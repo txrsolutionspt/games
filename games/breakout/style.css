@@ -1,0 +1,29 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+}
+
+#container {
+    width: 100%;
+    max-width: 420px;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border: 2px solid #2e2e4e;
+    border-radius: 4px;
+    cursor: none;
+    touch-action: none;
+}
