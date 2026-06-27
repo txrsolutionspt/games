@@ -123,7 +123,7 @@ function loop(ts) {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 
-function update(dt) {
+function physicsUpdate(dt) {
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
 
@@ -247,14 +247,10 @@ function draw() {
 }
 
 function drawBricks() {
-    for (const b of bricks) {
+    for (let i = 0; i < bricks.length; i++) {
+        const b = bricks[i];
         if (!b.alive) continue;
-        const [fullColor, damagedColor] = BRICK_COLORS[bricks.indexOf(b) < COLS * 2
-            ? bricks.indexOf(b) < COLS ? 0 : 1
-            : Math.floor(bricks.indexOf(b) / COLS)];
-
-        // Determine row index properly
-        const row = Math.floor(bricks.indexOf(b) / COLS);
+        const row = Math.floor(i / COLS);
         const [fc, dc] = BRICK_COLORS[row];
         ctx.fillStyle = (b.maxHp === 2 && b.hp === 1 && dc) ? dc : fc;
 
@@ -368,11 +364,9 @@ function applyKeys(dt) {
     if (state === STATE.READY) ball.x = paddle.x + paddle.w / 2;
 }
 
-// Wrap update to include keyboard polling
-const _update = update;
 function update(dt) {
     applyKeys(dt);
-    _update(dt);
+    physicsUpdate(dt);
 }
 
 // Mouse
