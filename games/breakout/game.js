@@ -335,6 +335,7 @@ function drawOverlay(title, subtitle, showButton) {
 // ── Input ─────────────────────────────────────────────────────────────────────
 
 function movePaddleTo(clientX) {
+    if (!paddle) return;
     const rect = canvas.getBoundingClientRect();
     const x = (clientX - rect.left) * (W / rect.width);
     paddle.x = Math.max(0, Math.min(W - paddle.w, x - paddle.w / 2));
@@ -382,8 +383,8 @@ canvas.addEventListener('touchmove', e => {
 }, { passive: false });
 canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-    movePaddleTo(e.touches[0].clientX);
     launch();
+    movePaddleTo(e.touches[0].clientX);
 }, { passive: false });
 
 // Resize
