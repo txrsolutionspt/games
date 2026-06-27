@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="container">
+        <div id="hud">
+            <span>SCORE: <span id="score">0</span></span>
+            <span>BEST: <span id="highScore">0</span></span>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="dpad">
+            <div id="dpad-grid">
+                <button class="dpad-btn" id="btn-up"    data-dir="up">▲</button>
+                <button class="dpad-btn" id="btn-left"  data-dir="left">◀</button>
+                <button class="dpad-btn" id="btn-right" data-dir="right">▶</button>
+                <button class="dpad-btn" id="btn-down"  data-dir="down">▼</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
