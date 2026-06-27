@@ -12,4 +12,3 @@ You are the implementation expert for the Game Hub. Your focus is on writing cle
 - Always use the standard `index.html` boilerplate provided in the project root.
 - Document complex logic within the `game.js` file for future maintenance.
 - Ensure all styles are scoped to the game's specific folder.
-- 
