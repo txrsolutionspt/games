@@ -21,7 +21,7 @@ This file serves as the architectural reference for the Game Hub repository. All
 ```
 ## 2. Technical Standards
  * **Hosting:** GitHub Pages (Public).
- * **Deployment Path:** [https://yourusername.github.io/game-hub/games/game_name/](https://yourusername.github.io/game-hub/games/game_name/)
+ * **Deployment Path:** [https://txrsolutionspt.github.io/games/](https://txrsolutionspt.github.io/games/)
  * **Rendering Engine:** HTML5 Canvas API.
  * **Responsiveness:** All style.css files must utilize CSS Media Queries to adapt to mobile/desktop screens.
  * **Asset Loading:** Prefer WebP format for images and MP3 for audio to minimize load times.
