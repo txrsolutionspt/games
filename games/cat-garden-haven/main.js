@@ -23,6 +23,13 @@ class Game {
     this.birthdayPetsCount = 0;
     this.achievements = new Set();
     this.seasonChanges = 0;
+    this.trophies = new Set();
+    this.seasonYarn = 0;
+    this.seasonStartVisits = 0;
+    // Trophy passive bonuses (recomputed from this.trophies)
+    this.giftBonus = 1.0;
+    this.moodBonus = 0;
+    this.offlineRewardBonus = 0;
 
     this._initUnlocks();
     this._resize();
@@ -99,12 +106,14 @@ class Game {
           if (cat.isBirthday) this.birthdayPetsCount++;
           const yarn = cat.tryGift(this.particles, this.garden.season);
           if (yarn > 0) {
-            this.yarn += yarn;
-            this.totalYarnEarned += yarn;
+            const boosted = Math.ceil(yarn * this.giftBonus);
+            this.yarn += boosted;
+            this.totalYarnEarned += boosted;
+            this.seasonYarn += boosted;
             this.ui.updateYarnDisplay();
             const msg = cat.isBirthday
-              ? `🎂 ${cat.def.name}'s birthday gift: ${yarn}🧶!`
-              : `${cat.def.name} left you ${yarn}🧶!`;
+              ? `🎂 ${cat.def.name}'s birthday gift: ${boosted}🧶!`
+              : `${cat.def.name} left you ${boosted}🧶!`;
             this.ui.notify(msg);
             this.save();
           }
@@ -234,12 +243,14 @@ class Game {
       this.garden.placedItems,
       this.particles,
       (yarn, cat) => {
-        this.yarn += yarn;
-        this.totalYarnEarned += yarn;
+        const boosted = Math.ceil(yarn * this.giftBonus);
+        this.yarn += boosted;
+        this.totalYarnEarned += boosted;
+        this.seasonYarn += boosted;
         this.ui.updateYarnDisplay();
         const msg = cat.isBirthday
-          ? `🎂 ${cat.def.name}'s birthday gift: ${yarn}🧶!`
-          : `${cat.def.name} left you ${yarn}🧶!`;
+          ? `🎂 ${cat.def.name}'s birthday gift: ${boosted}🧶!`
+          : `${cat.def.name} left you ${boosted}🧶!`;
         this.ui.notify(msg);
         this.save();
         this._checkAchievements();
@@ -251,7 +262,8 @@ class Game {
       (cat) => {
         const s = SEASONS[this.garden.season];
         this.ui.notify(`🎂 It's ${cat.def.name}'s birthday! ${s.emoji} Tap them for a special gift!`, 4500);
-      }
+      },
+      this.moodBonus
     );
 
     this.hintTimer += dt;
@@ -265,6 +277,24 @@ class Game {
   }
 
   _advanceSeason() {
+    // Evaluate trophy for the season that just ended
+    const justEnded = this.garden.season;
+    const trophy = TROPHIES[justEnded];
+    if (trophy && !this.trophies.has(justEnded)) {
+      const totalVisits = Object.values(this.catManager.visitCounts).reduce((a, b) => a + b, 0);
+      const seasonVisits = totalVisits - this.seasonStartVisits;
+      const yarnOk = trophy.condition.yarn === 0 || this.seasonYarn >= trophy.condition.yarn;
+      const visitsOk = trophy.condition.visits === 0 || seasonVisits >= trophy.condition.visits;
+      if (yarnOk && visitsOk) {
+        this.trophies.add(justEnded);
+        this._applyTrophyPassives();
+        this.ui.notifyAchievement(`🏆 ${trophy.emoji} ${trophy.label}! ${trophy.desc}`);
+      }
+    }
+    // Reset season stats for the incoming season
+    this.seasonYarn = 0;
+    this.seasonStartVisits = Object.values(this.catManager.visitCounts).reduce((a, b) => a + b, 0);
+
     this.garden.season = (this.garden.season + 1) % 4;
     this.seasonChanges++;
     const s = SEASONS[this.garden.season];
@@ -272,6 +302,22 @@ class Game {
     this.ui.notify(`${s.emoji} ${s.name} has arrived in your garden!`);
     this._checkAchievements();
     this.save();
+  }
+
+  _applyTrophyPassives() {
+    let spawnMult = 1, giftMult = 1, offlineBonus = 0, moodBonus = 0;
+    for (const seasonIdx of this.trophies) {
+      const t = TROPHIES[seasonIdx];
+      if (!t) continue;
+      if (t.spawnMult)    spawnMult    *= t.spawnMult;
+      if (t.giftMult)     giftMult     *= t.giftMult;
+      if (t.offlineBonus) offlineBonus += t.offlineBonus;
+      if (t.moodBonus)    moodBonus    += t.moodBonus;
+    }
+    this.catManager.spawnInterval = 18 * spawnMult;
+    this.giftBonus = giftMult;
+    this.offlineRewardBonus = offlineBonus;
+    this.moodBonus = moodBonus;
   }
 
   _checkAchievements() {
@@ -338,7 +384,8 @@ class Game {
     const now = Date.now();
     const elapsed = (now - last) / 1000 / 60; // minutes
     if (last && elapsed > 2) {
-      const reward = Math.min(50, Math.floor(elapsed * 0.8));
+      const cap = 50 + this.offlineRewardBonus;
+      const reward = Math.min(cap, Math.floor(elapsed * 0.8));
       if (reward > 0) {
         this.yarn += reward;
         this.ui?.updateYarnDisplay();
@@ -364,6 +411,9 @@ class Game {
         birthdayPetsCount: this.birthdayPetsCount,
         achievements: [...this.achievements],
         seasonChanges: this.seasonChanges,
+        trophies: [...this.trophies],
+        seasonYarn: this.seasonYarn,
+        seasonStartVisits: this.seasonStartVisits,
       };
       localStorage.setItem('catgarden_save', JSON.stringify(data));
     } catch (e) { /* ignore */ }
@@ -395,6 +445,10 @@ class Game {
       if (typeof data.birthdayPetsCount === 'number') this.birthdayPetsCount = data.birthdayPetsCount;
       if (typeof data.seasonChanges === 'number') this.seasonChanges = data.seasonChanges;
       if (data.achievements) data.achievements.forEach(id => this.achievements.add(id));
+      if (data.trophies) data.trophies.forEach(s => this.trophies.add(s));
+      if (typeof data.seasonYarn === 'number') this.seasonYarn = data.seasonYarn;
+      if (typeof data.seasonStartVisits === 'number') this.seasonStartVisits = data.seasonStartVisits;
+      this._applyTrophyPassives();
       this.ui.updateYarnDisplay();
     } catch (e) {
       this._newGame();

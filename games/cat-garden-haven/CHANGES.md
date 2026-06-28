@@ -5,6 +5,45 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 4 — 2026-06-28
+
+### Features Added
+
+**Garden Prestige: Seasonal Trophies**
+- `TROPHIES` constant added to `data.js` — one entry per season with a `condition` (yarn and/or visits), a passive effect field, label, and description.
+- Trophies are evaluated at the end of each season inside `_advanceSeason`, just before the season index advances. Stats tracked: `seasonYarn` (yarn earned this season) and season visits (delta between `catManager.visitCounts` total and `seasonStartVisits`).
+- Earning a trophy fires an achievement-style notification and immediately calls `_applyTrophyPassives()`.
+- `_applyTrophyPassives()` recomputes all passive bonuses from the full `trophies` set and writes them into four live fields: `catManager.spawnInterval`, `giftBonus`, `offlineRewardBonus`, `moodBonus`. Called on load to restore bonuses from save.
+- `giftBonus` is applied in both the `onYarn` callback and the petting gift handler (`Math.ceil(yarn * this.giftBonus)`).
+- `moodBonus` flows into `CatManager.update` as a 10th param → `_trySpawnCat` → `new Cat(..., moodBonus)`.
+- `offlineRewardBonus` raises the offline reward cap in `_startOfflineReward`.
+
+**Trophy passives by season:**
+| Season | Condition | Passive |
+|---|---|---|
+| 🌸 Spring | 25🧶 in one season | Cats spawn 5% more often |
+| ☀️ Summer | 4 visits in one season | All gifts 10% larger |
+| 🍂 Autumn | 50🧶 in one season | Offline cap +10🧶 |
+| ❄️ Winter | 6 visits in one season | Cats arrive happier (+0.1 mood) |
+
+**Trophy UI in Cat Journal**
+- A "🏆 Season Trophies" section appended below the cat list shows a 2×2 grid.
+- Earned slots glow gold with the trophy emoji, label, and passive description.
+- Unearned slots are dimmed with the season name and the unlock condition as hint text.
+
+### Architecture changes
+- `Cat` constructor: new optional `moodBonus = 0` param added to starting mood calculation.
+- `CatManager.update`: added `moodBonus = 0` as 10th param (non-breaking).
+- `CatManager._trySpawnCat`: passes `moodBonus` to `Cat` constructor.
+- Gift bonus is applied at the `Game` level (not inside `Cat.tryGift`) so cats.js stays unaware of trophy state.
+
+### Save data additions
+```json
+{ "trophies": [], "seasonYarn": 0, "seasonStartVisits": 0 }
+```
+
+---
+
 ## Session 3 — 2026-06-28
 
 ### Features Added

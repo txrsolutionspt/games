@@ -203,6 +203,45 @@ class UI {
       content.appendChild(el);
     });
 
+    // Trophy section
+    const trophySection = document.createElement('div');
+    trophySection.className = 'trophy-section';
+    const trophyTitle = document.createElement('h3');
+    trophyTitle.className = 'trophy-title';
+    trophyTitle.textContent = '🏆 Season Trophies';
+    trophySection.appendChild(trophyTitle);
+    const trophyGrid = document.createElement('div');
+    trophyGrid.className = 'trophy-grid';
+
+    TROPHIES.forEach(t => {
+      const earned = this.game.trophies.has(t.season);
+      const slot = document.createElement('div');
+      slot.className = 'trophy-slot' + (earned ? ' earned' : '');
+      const icon = document.createElement('div');
+      icon.className = 'trophy-icon';
+      icon.textContent = earned ? t.emoji : '🔒';
+      const label = document.createElement('div');
+      label.className = 'trophy-label';
+      label.textContent = earned ? t.label : SEASONS[t.season].name;
+      const desc = document.createElement('div');
+      desc.className = 'trophy-desc';
+      if (earned) {
+        desc.textContent = t.desc;
+      } else {
+        const parts = [];
+        if (t.condition.yarn > 0) parts.push(`${t.condition.yarn}🧶 in a season`);
+        if (t.condition.visits > 0) parts.push(`${t.condition.visits} visits in a season`);
+        desc.textContent = parts.join(' & ');
+      }
+      slot.appendChild(icon);
+      slot.appendChild(label);
+      slot.appendChild(desc);
+      trophyGrid.appendChild(slot);
+    });
+
+    trophySection.appendChild(trophyGrid);
+    content.appendChild(trophySection);
+
     modal.classList.remove('hidden');
   }
 

@@ -322,6 +322,41 @@ html, body {
   text-overflow: ellipsis;
 }
 
+/* Trophy section in journal */
+.trophy-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.trophy-title {
+  font-size: 0.9rem;
+  color: var(--text);
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+.trophy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.trophy-slot {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  opacity: 0.55;
+}
+.trophy-slot.earned {
+  opacity: 1;
+  border-color: #e8c44a;
+  background: linear-gradient(135deg, #fffbe8 0%, #fff8f0 100%);
+  box-shadow: 0 2px 8px rgba(232,196,74,0.18);
+}
+.trophy-icon { font-size: 1.6rem; line-height: 1; margin-bottom: 4px; }
+.trophy-label { font-size: 0.72rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.trophy-desc { font-size: 0.62rem; color: var(--text-light); }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

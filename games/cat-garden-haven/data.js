@@ -190,3 +190,32 @@ const SEASONS = [
   { name: 'Autumn', emoji: '🍂', palette: { sky: '#d4a96a', ground: '#9a7a45', accent: '#e07a2a' } },
   { name: 'Winter', emoji: '❄️', palette: { sky: '#c5dff8', ground: '#d8eef8', accent: '#9ac4f5' } },
 ];
+
+// One trophy per season. Conditions: yarn earned + visits that season.
+// Passives are cumulative across all earned trophies.
+const TROPHIES = [
+  {
+    season: 0, emoji: '🌸', label: 'Spring Trophy',
+    desc: 'Cats arrive 5% more often',
+    condition: { yarn: 25, visits: 0 },
+    spawnMult: 0.95,
+  },
+  {
+    season: 1, emoji: '☀️', label: 'Summer Trophy',
+    desc: 'Cat gifts are 10% larger',
+    condition: { yarn: 0, visits: 4 },
+    giftMult: 1.1,
+  },
+  {
+    season: 2, emoji: '🍂', label: 'Autumn Trophy',
+    desc: 'Offline reward cap +10🧶',
+    condition: { yarn: 50, visits: 0 },
+    offlineBonus: 10,
+  },
+  {
+    season: 3, emoji: '❄️', label: 'Winter Trophy',
+    desc: 'Cats arrive a little happier',
+    condition: { yarn: 0, visits: 6 },
+    moodBonus: 0.1,
+  },
+];

@@ -3,7 +3,7 @@
 const CAT_STATES = { ENTERING: 'entering', WANDERING: 'wandering', SITTING: 'sitting', PLAYING: 'playing', SLEEPING: 'sleeping', LEAVING: 'leaving', PETTING: 'petting' };
 
 class Cat {
-  constructor(def, canvasW, canvasH) {
+  constructor(def, canvasW, canvasH, moodBonus = 0) {
     this.def = def;
     this.id = def.id + '_' + Date.now();
     this.x = -60;
@@ -13,7 +13,7 @@ class Cat {
     this.canvasW = canvasW;
     this.canvasH = canvasH;
     this.state = CAT_STATES.ENTERING;
-    this.mood = 0.5 + Math.random() * 0.3;
+    this.mood = Math.min(1, 0.5 + Math.random() * 0.3 + moodBonus);
     this.stateTimer = 0;
     this.stateDuration = 3 + Math.random() * 4;
     this.thoughtTimer = 0;
@@ -497,13 +497,13 @@ class CatManager {
     this.visitCounts = {};
   }
 
-  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null) {
+  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null, moodBonus = 0) {
     if (zenMode) return;
 
     this.spawnTimer += dt;
     if (this.spawnTimer >= this.spawnInterval && this.cats.length < this.maxCats) {
       this.spawnTimer = 0;
-      const newCat = this._trySpawnCat(placedItems, canvasW, canvasH, season);
+      const newCat = this._trySpawnCat(placedItems, canvasW, canvasH, season, moodBonus);
       if (newCat && newCat.isBirthday && onBirthday) onBirthday(newCat);
     }
 
@@ -522,7 +522,7 @@ class CatManager {
     }
   }
 
-  _trySpawnCat(placedItems, canvasW, canvasH, season = 0) {
+  _trySpawnCat(placedItems, canvasW, canvasH, season = 0, moodBonus = 0) {
     const unlockedDefs = CAT_DEFS.filter(d => d.unlocked);
     if (!unlockedDefs.length) return null;
 
@@ -542,7 +542,7 @@ class CatManager {
 
     if (this.cats.find(c => c.def.id === chosen.id)) return null;
 
-    const cat = new Cat(chosen, canvasW, canvasH);
+    const cat = new Cat(chosen, canvasW, canvasH, moodBonus);
     if (chosen.birthday === season && Math.random() < 0.4) cat.isBirthday = true;
     this.cats.push(cat);
     this.seenCats[chosen.id] = true;
