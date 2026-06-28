@@ -5,6 +5,25 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 5 — 2026-06-28
+
+### Features Added
+
+**Personalised Cat Nicknames**
+- `game.nicknames` — plain object mapping `catId → nickname string`, stored in `localStorage`.
+- `game.setNickname(catId, name)` — trims, clamps to 12 chars, deletes entry if empty, then auto-saves.
+- `game._catDisplayName(def)` — returns the nickname if set, otherwise the default name. Used everywhere a cat's name appears in UI text: tooltip, gift notifications (petting and auto-leave), birthday announcement.
+- In the Cat Journal, tapping a seen cat's name replaces it with an inline `<input maxlength="12">`. Committing on blur or Enter saves the nickname and re-renders the journal. Escape cancels without saving.
+- When a nickname is active, the journal entry shows "🏷 {nickname}" with "(Default Name)" in smaller grey text alongside it.
+- Unseen cats are unaffected (still show "???").
+
+### Save data additions
+```json
+{ "nicknames": { "muffin": "Fluffy" } }
+```
+
+---
+
 ## Session 4 — 2026-06-28
 
 ### Features Added

@@ -145,7 +145,49 @@ class UI {
 
       const nameEl = document.createElement('div');
       nameEl.className = 'journal-cat-name';
-      nameEl.textContent = seen ? def.name : '???';
+      if (!seen) {
+        nameEl.textContent = '???';
+      } else {
+        const nickname = this.game.nicknames[def.id];
+        if (nickname) {
+          nameEl.textContent = '🏷 ' + nickname;
+          const origSpan = document.createElement('span');
+          origSpan.className = 'journal-cat-original-name';
+          origSpan.textContent = ` (${def.name})`;
+          nameEl.appendChild(origSpan);
+        } else {
+          nameEl.textContent = def.name;
+        }
+        nameEl.title = 'Tap to set a nickname';
+        nameEl.style.cursor = 'pointer';
+        nameEl.addEventListener('click', () => {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 12;
+          input.value = this.game.nicknames[def.id] || '';
+          input.placeholder = def.name;
+          input.className = 'nickname-input';
+          nameEl.replaceWith(input);
+          input.focus();
+          input.select();
+          let done = false;
+          const commit = () => {
+            if (done) return;
+            done = true;
+            this.game.setNickname(def.id, input.value);
+            this.openJournal();
+          };
+          input.addEventListener('blur', commit);
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            if (e.key === 'Escape') {
+              done = true;
+              input.removeEventListener('blur', commit);
+              input.replaceWith(nameEl);
+            }
+          });
+        });
+      }
       el.appendChild(nameEl);
 
       const traitEl = document.createElement('div');
