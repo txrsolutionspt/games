@@ -265,6 +265,7 @@ html, body {
 .journal-cat-name { font-weight: 700; font-size: 0.85rem; color: var(--text); }
 .journal-cat-trait { font-size: 0.7rem; color: var(--text-light); }
 .journal-cat-visits { font-size: 0.65rem; color: var(--accent); font-weight: 700; }
+.journal-cat-season { font-size: 0.6rem; color: var(--text-light); }
 
 /* Notification — sits above bottom panel, aware of safe area */
 #notification {
@@ -289,6 +290,17 @@ html, body {
 @keyframes notif-in {
   from { opacity: 0; transform: translateX(-50%) translateY(10px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+#notification.achievement {
+  background: linear-gradient(135deg, rgba(210,140,15,0.95), rgba(190,80,10,0.95));
+  box-shadow: 0 0 18px rgba(230,150,20,0.55);
+  animation: notif-in 0.3s ease, ach-pulse 0.7s ease 0.3s;
+}
+
+@keyframes ach-pulse {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50%       { transform: translateX(-50%) scale(1.06); }
 }
 
 /* Hint bar */
