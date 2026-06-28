@@ -335,6 +335,21 @@ class Garden {
 
     ctx.save();
     ctx.translate(x + sway, y);
+
+    // Upgrade glow ring
+    if (item.tier > 0) {
+      const rw = def.w > 1 ? 30 : 20;
+      const pulse = 0.38 + Math.sin(time * 1.8 + item.x * 0.05) * 0.1;
+      const grd = ctx.createRadialGradient(0, 6, 2, 0, 6, rw);
+      grd.addColorStop(0,   `rgba(255,210,40,${pulse * 0.65})`);
+      grd.addColorStop(0.55,`rgba(255,185,20,${pulse * 0.35})`);
+      grd.addColorStop(1,   'rgba(255,160,0,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.ellipse(0, 6, rw, rw * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.font = `${28 + (def.w > 1 ? 12 : 0)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
@@ -376,8 +391,15 @@ class Garden {
 
   placeItem(x, y, itemId) {
     if (!this.canPlace(x, y, itemId)) return false;
-    this.placedItems.push({ x, y, itemId, id: Date.now() + Math.random() });
+    this.placedItems.push({ x, y, itemId, tier: 0, id: Date.now() + Math.random() });
     return true;
+  }
+
+  getItemAt(x, y) {
+    return this.placedItems.find(item => {
+      const dx = item.x - x, dy = item.y - y;
+      return Math.sqrt(dx * dx + dy * dy) < 34;
+    }) || null;
   }
 
   removeItemAt(x, y) {
@@ -427,10 +449,10 @@ class Garden {
   }
 
   serialize() {
-    return this.placedItems.map(i => ({ x: i.x, y: i.y, itemId: i.itemId }));
+    return this.placedItems.map(i => ({ x: i.x, y: i.y, itemId: i.itemId, tier: i.tier || 0 }));
   }
 
   loadItems(data) {
-    this.placedItems = data.map(i => ({ ...i, id: Date.now() + Math.random() }));
+    this.placedItems = data.map(i => ({ ...i, tier: i.tier || 0, id: Date.now() + Math.random() }));
   }
 }
