@@ -92,6 +92,29 @@ html, body {
 .hdr-btn:hover { background: var(--border); }
 .hdr-btn.active { background: var(--accent2); border-color: var(--accent2); }
 
+/* Season progress bar — thin strip between header and canvas */
+#season-bar {
+  height: 3px;
+  background: rgba(0,0,0,0.07);
+  flex-shrink: 0;
+}
+#season-bar-fill {
+  height: 100%;
+  width: 0%;
+  transition: width 0.5s linear, background-color 0.9s ease;
+}
+#season-bar-fill.season-0 { background: #f08090; }
+#season-bar-fill.season-1 { background: #d4b820; }
+#season-bar-fill.season-2 { background: #d06830; }
+#season-bar-fill.season-3 { background: #70aad8; }
+#season-bar-fill.season-near {
+  animation: season-bar-pulse 0.9s ease-in-out infinite;
+}
+@keyframes season-bar-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
 /* Garden Canvas Area — takes all remaining space */
 #main-area {
   flex: 1;

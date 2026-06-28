@@ -5,6 +5,25 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 13 — 2026-06-28
+
+### Features Added
+
+**Season Progress Indicator**
+- A thin 3 px coloured strip (`#season-bar`) sits directly below the game header and fills left-to-right as `activePlayTime` accumulates toward the next season change (600 s).
+- Colour changes per season: 🌸 Spring = pink, ☀️ Summer = gold, 🍂 Autumn = orange, ❄️ Winter = blue — using CSS class toggles (`season-0` … `season-3`) so the colour transitions smoothly when a season changes.
+- When more than 82 % full the fill pulses (opacity blink at 0.9 s) to signal the season change is imminent.
+- Width updates every frame via `UI.updateSeasonBar(progress, season)` called from `Game._loop`. The fill element reference is cached in the `UI` constructor to avoid repeated `getElementById` calls.
+
+### Architecture changes
+- `index.html`: `<div id="season-bar"><div id="season-bar-fill"></div></div>` added between `#game-header` and `#main-area`.
+- `style.css`: `#season-bar`, `#season-bar-fill`, four season colour classes, `season-near` pulse animation.
+- `UI._seasonFill` — cached DOM reference.
+- `UI.updateSeasonBar(progress, season)` — updates width and CSS classes.
+- `Game._loop` — calls `updateSeasonBar` after `garden.update`.
+
+---
+
 ## Session 12 — 2026-06-28
 
 ### Features Added

@@ -10,6 +10,8 @@ class UI {
     this._notifQueue = [];
     this._processing = false;
 
+    this._seasonFill = document.getElementById('season-bar-fill');
+
     this._bindTabs();
     this._bindButtons();
     this._bindModal();
@@ -272,6 +274,13 @@ class UI {
 
   updateYarnDisplay() {
     document.getElementById('yarn-value').textContent = this.game.yarn;
+  }
+
+  updateSeasonBar(progress, season) {
+    if (!this._seasonFill) return;
+    this._seasonFill.style.width = (Math.min(1, progress) * 100) + '%';
+    for (let s = 0; s < 4; s++) this._seasonFill.classList.toggle(`season-${s}`, s === season);
+    this._seasonFill.classList.toggle('season-near', progress > 0.82);
   }
 
   _updateAmbienceBtn() {
