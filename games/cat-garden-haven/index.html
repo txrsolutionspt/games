@@ -17,7 +17,7 @@
       </div>
       <div id="header-right">
         <button id="btn-journal" class="hdr-btn" title="Cat Journal">📖</button>
-        <button id="btn-sound" class="hdr-btn" title="Toggle Sound">🔊</button>
+        <button id="btn-undo" class="hdr-btn" title="Remove last placed item">↩️</button>
         <button id="btn-zen" class="hdr-btn" title="Zen Mode">🌿</button>
       </div>
     </div>
@@ -52,6 +52,17 @@
     <div id="notification" class="hidden"></div>
   </div>
 
+  <script>
+    // Reliable cross-Android height fix using visualViewport
+    // env(safe-area-inset-bottom) returns 0 on many Android 3-button nav configs
+    function applyRealHeight() {
+      const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+      document.documentElement.style.setProperty('--real-height', h + 'px');
+    }
+    applyRealHeight();
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', applyRealHeight);
+    window.addEventListener('resize', applyRealHeight);
+  </script>
   <script src="data.js"></script>
   <script src="particles.js"></script>
   <script src="cats.js"></script>

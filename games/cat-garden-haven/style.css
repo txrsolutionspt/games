@@ -25,16 +25,15 @@ html, body {
 #app {
   display: flex;
   flex-direction: column;
-  /* use dvh so the Android chrome bar doesn't count */
-  height: 100dvh;
-  /* fallback */
-  height: 100vh;
-  padding-top: var(--safe-top);
+  /* --real-height is set by JS using visualViewport, which correctly excludes
+     both the browser chrome and the Android system nav bar */
+  height: var(--real-height, 100dvh);
   max-width: 900px;
   margin: 0 auto;
+  overflow: hidden;
 }
 
-/* Header — slimmer on mobile */
+/* Header */
 #game-header {
   display: flex;
   align-items: center;
@@ -44,6 +43,17 @@ html, body {
   border-bottom: 2px solid var(--border);
   flex-shrink: 0;
   min-height: 44px;
+  gap: 8px;
+}
+
+#header-left {
+  flex-shrink: 0;
+}
+
+#header-center {
+  flex: 1;
+  text-align: center;
+  overflow: hidden;
 }
 
 #header-center h1 {
@@ -52,6 +62,13 @@ html, body {
   font-weight: 700;
   letter-spacing: 0.3px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#header-right {
+  display: flex;
+  flex-shrink: 0;
 }
 
 #yarn-count {
@@ -110,13 +127,11 @@ html, body {
   z-index: 50;
 }
 
-/* Bottom Panel — fixed height, safe area aware */
+/* Bottom Panel */
 #bottom-panel {
   background: var(--panel-bg);
   border-top: 2px solid var(--border);
   flex-shrink: 0;
-  /* push content above Android nav bar */
-  padding-bottom: var(--safe-bottom);
 }
 
 #shop-tabs {

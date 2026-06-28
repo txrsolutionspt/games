@@ -28,10 +28,15 @@ class UI {
 
   _bindButtons() {
     document.getElementById('btn-journal').addEventListener('click', () => this.openJournal());
-    document.getElementById('btn-sound').addEventListener('click', () => {
-      const btn = document.getElementById('btn-sound');
-      this.game.soundEnabled = !this.game.soundEnabled;
-      btn.textContent = this.game.soundEnabled ? '🔊' : '🔇';
+    document.getElementById('btn-undo').addEventListener('click', () => {
+      const items = this.game.garden.placedItems;
+      if (items.length) {
+        items.pop();
+        this.game.save();
+        this.notify('↩️ Last item removed');
+      } else {
+        this.notify('Nothing to remove');
+      }
     });
     document.getElementById('btn-zen').addEventListener('click', () => {
       this.game.zenMode = !this.game.zenMode;
