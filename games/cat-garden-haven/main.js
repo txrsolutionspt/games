@@ -9,6 +9,7 @@ class Game {
     this.soundEnabled = false;
     this.unlockedItems = new Set();
     this.particles = new ParticleSystem();
+    this.ambience = new AmbienceSystem();
     this.catManager = new CatManager();
     this.garden = null;
     this.ui = null;
@@ -33,6 +34,7 @@ class Game {
     this.nicknames = {};
     this.visitLog = [];
     this.lastTreatTime = 0;
+    this.ambienceMode = 0;
 
     this._initUnlocks();
     this._resize();
@@ -459,6 +461,17 @@ class Game {
     if (m) m.remove();
   }
 
+  cycleAmbience() {
+    this.ambience.next();
+    this.ambienceMode = this.ambience.mode;
+    this.garden.ambienceMode = this.ambienceMode;
+    this.catManager.rainMode = (this.ambienceMode === 2);
+    this.ui._updateAmbienceBtn();
+    this.save();
+    const labels = ['🔇 Ambience off', '🐦 Birds chirping', '🌧️ Rainy garden', '🍃 Gentle breeze'];
+    this.ui.notify(labels[this.ambienceMode]);
+  }
+
   _render() {
     const ctx = this.ctx;
     const W = this.canvas.width;
@@ -507,6 +520,8 @@ class Game {
       '💡 A ✨ in the tooltip means it\'s their favourite season!',
       '💡 ✨ During Golden Hour (sunset), rare cats love to visit!',
       '💡 Right-click a placed item to upgrade it for 20🧶 — cats linger longer!',
+      '💡 Tap 🔇 to cycle garden ambience — birds, rain, or breeze!',
+      '💡 🌧️ Rainy mode makes the mysterious Shadow cat appear more often!',
     ];
     this.ui.showHint(hints[Math.floor(this.time / this.hintInterval) % hints.length]);
   }
@@ -550,6 +565,7 @@ class Game {
         nicknames: this.nicknames,
         visitLog: this.visitLog,
         lastTreatTime: this.lastTreatTime,
+        ambienceMode: this.ambienceMode,
       };
       localStorage.setItem('catgarden_save', JSON.stringify(data));
     } catch (e) { /* ignore */ }
@@ -587,9 +603,16 @@ class Game {
       if (data.nicknames && typeof data.nicknames === 'object') this.nicknames = data.nicknames;
       if (Array.isArray(data.visitLog)) this.visitLog = data.visitLog.slice(0, 50);
       if (typeof data.lastTreatTime === 'number') this.lastTreatTime = data.lastTreatTime;
+      if (typeof data.ambienceMode === 'number') {
+        this.ambienceMode = data.ambienceMode;
+        this.ambience.mode = data.ambienceMode;
+        this.garden.ambienceMode = data.ambienceMode;
+        this.catManager.rainMode = (data.ambienceMode === 2);
+      }
       this._applyTrophyPassives();
       this.ui.updateYarnDisplay();
       this.ui._updateTreatBtn();
+      this.ui._updateAmbienceBtn();
     } catch (e) {
       this._newGame();
     }

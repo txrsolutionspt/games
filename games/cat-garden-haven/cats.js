@@ -506,6 +506,7 @@ class CatManager {
     this.maxCats = 5;
     this.seenCats = {};
     this.visitCounts = {};
+    this.rainMode = false;
   }
 
   update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null, moodBonus = 0, goldenHour = false, onLeave = null, onSpawn = null) {
@@ -545,6 +546,7 @@ class CatManager {
       let w = def.rarity === 'common' ? 3 : def.rarity === 'uncommon' ? 2 : 1;
       if (this._isAttracted(def, placedItems)) w *= 2;
       if (goldenHour && def.rarity === 'rare') w *= 2;
+      if (this.rainMode && def.id === 'shadow') w *= 2;
       return w;
     });
 

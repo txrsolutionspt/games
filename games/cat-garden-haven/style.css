@@ -467,6 +467,11 @@ html, body {
 .menu-action-btn--confirm { background: #c0392b; color: #fff; border-color: #c0392b; }
 .menu-action-btn--confirm:hover { background: #a93226; }
 
+/* Ambience button mode tints */
+#btn-ambience.ambience-birds  { background: #eef8ee; border-color: var(--accent2); }
+#btn-ambience.ambience-rain   { background: #e8f0fb; border-color: #8ab4d8; }
+#btn-ambience.ambience-breeze { background: #f8f4e8; border-color: #c4b478; }
+
 /* Treat button states */
 #btn-treat { opacity: 0.45; }
 #btn-treat.treat-available {

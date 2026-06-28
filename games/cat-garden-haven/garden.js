@@ -10,6 +10,7 @@ class Garden {
     this.H = canvas.height;
     this.placedItems = [];
     this.treat = null;
+    this.ambienceMode = 0;
     this.season = 0;
     this.timeOfDay = 0;
     this.dayTimer = 0;
@@ -228,6 +229,34 @@ class Garden {
       ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
       ctx.fillText('✨ Golden Hour', 10, this.H - 28);
+      ctx.restore();
+    }
+
+    // Rain visual tint
+    if (this.ambienceMode === 2) {
+      ctx.fillStyle = 'rgba(90,110,155,0.18)';
+      ctx.fillRect(0, 0, this.W, this.H);
+      // Rain streaks
+      ctx.save();
+      ctx.strokeStyle = 'rgba(180,200,230,0.22)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 28; i++) {
+        const rx = (i * 137.5 * 2.3 + time * 60) % this.W;
+        const ry = (i * 73.1 + time * 120) % this.H;
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(rx - 3, ry + 14);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.font = 'bold 11px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = '#8ab0d8';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('🌧️ Rainy Day', 10, this.H - 28);
       ctx.restore();
     }
   }

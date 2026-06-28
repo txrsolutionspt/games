@@ -29,6 +29,10 @@ class UI {
   }
 
   _bindButtons() {
+    document.getElementById('btn-ambience').addEventListener('click', () => {
+      this.game.cycleAmbience();
+    });
+
     document.getElementById('btn-treat').addEventListener('click', () => {
       if (this.game._canUseTreat()) {
         this.game.placeTreat();
@@ -268,6 +272,16 @@ class UI {
 
   updateYarnDisplay() {
     document.getElementById('yarn-value').textContent = this.game.yarn;
+  }
+
+  _updateAmbienceBtn() {
+    const btn = document.getElementById('btn-ambience');
+    if (!btn) return;
+    const mode = AMBIENCE_MODES[this.game.ambienceMode];
+    btn.textContent = mode.icon;
+    btn.title = `Garden ambience: ${mode.label}`;
+    btn.classList.toggle('active', this.game.ambienceMode !== 0);
+    AMBIENCE_MODES.forEach(m => btn.classList.toggle(`ambience-${m.id}`, m.id === mode.id));
   }
 
   _updateTreatBtn() {

@@ -5,6 +5,81 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 11 — 2026-06-28
+
+### Features Added
+
+**Garden Ambience Customiser**
+- New `🔇` button in the game header cycles through four ambience modes: Off → 🐦 Birds → 🌧️ Rain → 🍃 Breeze → Off.
+- Each mode is powered by the Web Audio API (no audio assets):
+  - **Birds:** `setTimeout`-based random chirps using Oscillator + Gain envelope (gain 0.07, 140 ms duration, random pitch 900–2300 Hz).
+  - **Rain:** Looping white-noise AudioBuffer through a lowpass BiquadFilter (1100 Hz) at gain 0.16.
+  - **Breeze:** Sine oscillator at 75 Hz through a lowpass 280 Hz filter, amplitude swelled by a slow LFO at 0.07 Hz.
+- AudioContext is created lazily on the first user tap (satisfies browser autoplay policy).
+- **Visual rain overlay:** When rain mode is active, `Garden.drawBackground` draws a `rgba(90,110,155,0.18)` fill + 28 animated rain streaks and a "🌧️ Rainy Day" label.
+- **Gameplay (rain):** `CatManager.rainMode = true` doubles Shadow's spawn weight during rain.
+- Ambience mode persists across sessions via `localStorage` (`ambienceMode` field in save).
+- Button tint changes per mode: green (birds), blue (rain), amber (breeze).
+- Two hints added to the rotation about ambience and Shadow in rain.
+
+### Architecture changes
+- `ambience.js` — new file. `AMBIENCE_MODES` global constant array; `AmbienceSystem` class handles audio lifecycle.
+- `Garden.ambienceMode` — integer 0–3; read in `drawBackground` for rain overlay.
+- `CatManager.rainMode` — boolean; read in `_trySpawnCat` for Shadow weight boost.
+- `Game.ambience`, `Game.ambienceMode`, `Game.cycleAmbience()` — wire the three systems together on button press.
+- `UI._updateAmbienceBtn()` — updates icon, title, and CSS class (`ambience-{id}`) on every mode change.
+
+### Save data additions
+```json
+{ "ambienceMode": 0 }
+```
+
+---
+
+## Session 10 — 2026-06-28
+
+### Features Added
+
+**Friendship Biscuit (Daily Treat)**
+- A new 🍪 button in the header lets the player leave a daily treat in the garden.
+- Once placed, `Garden.treat = { x, y }` marks a cookie position drawn with a golden glow in the canvas.
+- The next cat that spawns is redirected to the treat position (`cat.targetX/Y`), gets `treatGuaranteed = true` (100 % gift chance on departure), and has `visitDuration += 60` seconds.
+- The treat disappears when a cat finds it. `Garden.drawTreat` draws the cookie only while `garden.treat` is set.
+- Cooldown: 24-hour wall-clock timer (`lastTreatTime` timestamp). Button shows three visual states — pulse animation when available, dimmed when active/waiting.
+- `UI._updateTreatBtn()` computes and reflects state; called on load, treat placement, cat claiming, and every 60 seconds.
+
+### Architecture changes
+- `CatManager.update`: added `onSpawn = null` as 13th param. Fires immediately after birthday check for every newly spawned cat; `Game` uses it to redirect cats to the treat.
+- `Cat.treatGuaranteed` flag: when `true`, `tryGift` sets chance to 1.0 unconditionally.
+- `Garden.drawTreat(ctx, time)` — cookie emoji with animated warm radial glow.
+
+### Save data additions
+```json
+{ "lastTreatTime": 0 }
+```
+
+---
+
+## Session 9 — 2026-06-28
+
+### Features Added
+
+**Game Menu (☰)**
+- New ☰ button opens a scrollable modal with four sections:
+  - **🧶 Your Garden** — live stats: total yarn, yarn in hand, cats discovered, times petted, total visits, trophies, achievements, current season, diary entries.
+  - **ℹ️ About** — brief description of the game.
+  - **⚙️ Options** — toggle Zen Mode, clear the visitor diary.
+  - **⚠️ Danger Zone** — Reset Game button with a two-tap confirmation (3-second window) to prevent accidental resets.
+- Reuses the existing `.modal` / `.modal-inner` HTML pattern (a second modal `#game-menu-modal` added to `index.html`).
+
+### Architecture changes
+- `UI._bindGameMenu()` — binds ☰ button, close button, and backdrop click.
+- `UI.openGameMenu()` — renders all sections dynamically into `#game-menu-content`.
+- Helper methods `UI._menuSection(title)` and `UI._menuActionBtn(label, onClick)` reduce repetition.
+- `Game.resetGame()` — clears both `catgarden_save` and `catgarden_lastvisit`, then reloads.
+
+---
+
 ## Session 8 — 2026-06-28
 
 ### Features Added
