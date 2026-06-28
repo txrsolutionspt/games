@@ -497,13 +497,13 @@ class CatManager {
     this.visitCounts = {};
   }
 
-  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null, moodBonus = 0) {
+  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null, moodBonus = 0, goldenHour = false) {
     if (zenMode) return;
 
     this.spawnTimer += dt;
     if (this.spawnTimer >= this.spawnInterval && this.cats.length < this.maxCats) {
       this.spawnTimer = 0;
-      const newCat = this._trySpawnCat(placedItems, canvasW, canvasH, season, moodBonus);
+      const newCat = this._trySpawnCat(placedItems, canvasW, canvasH, season, moodBonus, goldenHour);
       if (newCat && newCat.isBirthday && onBirthday) onBirthday(newCat);
     }
 
@@ -522,13 +522,14 @@ class CatManager {
     }
   }
 
-  _trySpawnCat(placedItems, canvasW, canvasH, season = 0, moodBonus = 0) {
+  _trySpawnCat(placedItems, canvasW, canvasH, season = 0, moodBonus = 0, goldenHour = false) {
     const unlockedDefs = CAT_DEFS.filter(d => d.unlocked);
     if (!unlockedDefs.length) return null;
 
     const weights = unlockedDefs.map(def => {
       let w = def.rarity === 'common' ? 3 : def.rarity === 'uncommon' ? 2 : 1;
       if (this._isAttracted(def, placedItems)) w *= 2;
+      if (goldenHour && def.rarity === 'rare') w *= 2;
       return w;
     });
 

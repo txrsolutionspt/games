@@ -264,8 +264,19 @@ class Game {
         const s = SEASONS[this.garden.season];
         this.ui.notify(`🎂 It's ${this._catDisplayName(cat.def)}'s birthday! ${s.emoji} Tap them for a special gift!`, 4500);
       },
-      this.moodBonus
+      this.moodBonus,
+      this.garden.isGoldenHour
     );
+
+    // Shimmer particles during golden hour
+    if (this.garden.isGoldenHour) {
+      const gp = this.garden._goldenProgress();
+      if (Math.random() < gp * 0.12 * dt * 60) {
+        const x = 20 + Math.random() * (this.canvas.width - 40);
+        const y = this.canvas.height * 0.35 + Math.random() * this.canvas.height * 0.45;
+        this.particles.spawnSingle(x, y, 'shimmer', (Math.random() - 0.5) * 0.4, -0.7);
+      }
+    }
 
     this.hintTimer += dt;
     if (this.hintTimer >= this.hintInterval) {
@@ -386,6 +397,7 @@ class Game {
       `💡 ${season.emoji} ${season.name}: cats love their favourite season — gifts x1.5!`,
       '💡 Hover over a cat to see their mood.',
       '💡 A ✨ in the tooltip means it\'s their favourite season!',
+      '💡 ✨ During Golden Hour (sunset), rare cats love to visit!',
     ];
     this.ui.showHint(hints[Math.floor(this.time / this.hintInterval) % hints.length]);
   }
