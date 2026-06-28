@@ -20,6 +20,7 @@ class Game {
     this.SEASON_PLAY_DURATION = 600;
     this.totalYarnEarned = 0;
     this.pettedCount = 0;
+    this.birthdayPetsCount = 0;
     this.achievements = new Set();
     this.seasonChanges = 0;
 
@@ -95,12 +96,16 @@ class Game {
           this.pettedCount++;
           canvas.className = 'petting';
           setTimeout(() => { if (!this.ui.selectedItem) canvas.className = ''; }, 1500);
+          if (cat.isBirthday) this.birthdayPetsCount++;
           const yarn = cat.tryGift(this.particles, this.garden.season);
           if (yarn > 0) {
             this.yarn += yarn;
             this.totalYarnEarned += yarn;
             this.ui.updateYarnDisplay();
-            this.ui.notify(`${cat.def.name} left you ${yarn}🧶!`);
+            const msg = cat.isBirthday
+              ? `🎂 ${cat.def.name}'s birthday gift: ${yarn}🧶!`
+              : `${cat.def.name} left you ${yarn}🧶!`;
+            this.ui.notify(msg);
             this.save();
           }
           this._checkAchievements();
@@ -135,7 +140,8 @@ class Game {
           el.style.top = (pos.y / (this.canvas.height / this.canvas.getBoundingClientRect().height)) - 30 + 'px';
           const moodEmoji = cat.mood < 0.4 ? '😾' : cat.mood < 0.65 ? '😺' : cat.mood < 0.85 ? '😸' : '😻';
           const seasonBonus = cat.def.favSeason === this.garden.season ? ' ✨' : '';
-          el.textContent = `${cat.def.name} — ${cat.def.personality} ${moodEmoji}${seasonBonus}`;
+          const bdTag = cat.isBirthday ? ' 🎂' : '';
+          el.textContent = `${cat.def.name} — ${cat.def.personality} ${moodEmoji}${seasonBonus}${bdTag}`;
         } else {
           el.style.display = 'none';
         }
@@ -231,14 +237,21 @@ class Game {
         this.yarn += yarn;
         this.totalYarnEarned += yarn;
         this.ui.updateYarnDisplay();
-        this.ui.notify(`${cat.def.name} left you ${yarn}🧶!`);
+        const msg = cat.isBirthday
+          ? `🎂 ${cat.def.name}'s birthday gift: ${yarn}🧶!`
+          : `${cat.def.name} left you ${yarn}🧶!`;
+        this.ui.notify(msg);
         this.save();
         this._checkAchievements();
       },
       this.canvas.width,
       this.canvas.height,
       this.zenMode,
-      this.garden.season
+      this.garden.season,
+      (cat) => {
+        const s = SEASONS[this.garden.season];
+        this.ui.notify(`🎂 It's ${cat.def.name}'s birthday! ${s.emoji} Tap them for a special gift!`, 4500);
+      }
     );
 
     this.hintTimer += dt;
@@ -348,6 +361,7 @@ class Game {
         activePlayTime: this.activePlayTime,
         totalYarnEarned: this.totalYarnEarned,
         pettedCount: this.pettedCount,
+        birthdayPetsCount: this.birthdayPetsCount,
         achievements: [...this.achievements],
         seasonChanges: this.seasonChanges,
       };
@@ -378,6 +392,7 @@ class Game {
       if (typeof data.activePlayTime === 'number') this.activePlayTime = data.activePlayTime;
       if (typeof data.totalYarnEarned === 'number') this.totalYarnEarned = data.totalYarnEarned;
       if (typeof data.pettedCount === 'number') this.pettedCount = data.pettedCount;
+      if (typeof data.birthdayPetsCount === 'number') this.birthdayPetsCount = data.birthdayPetsCount;
       if (typeof data.seasonChanges === 'number') this.seasonChanges = data.seasonChanges;
       if (data.achievements) data.achievements.forEach(id => this.achievements.add(id));
       this.ui.updateYarnDisplay();

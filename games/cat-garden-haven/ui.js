@@ -166,6 +166,15 @@ class UI {
           favSeasonEl.textContent = `Loves ${s.emoji} ${s.name}`;
           el.appendChild(favSeasonEl);
         }
+
+        if (def.birthday !== undefined) {
+          const bdEl = document.createElement('div');
+          bdEl.className = 'journal-cat-season';
+          const bs = SEASONS[def.birthday];
+          const isBdSeason = def.birthday === this.game.garden.season;
+          bdEl.textContent = `Birthday ${bs.emoji} ${bs.name}${isBdSeason ? ' 🎂' : ''}`;
+          el.appendChild(bdEl);
+        }
       }
 
       if (!def.unlocked) {

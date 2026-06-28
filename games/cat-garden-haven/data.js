@@ -47,6 +47,7 @@ const CAT_DEFS = [
     thoughts: ['💤 Nap time...','😌 So cozy...','🌞 Warm...','💭 Dreams of tuna'],
     speed: 0.3,
     favSeason: 3,
+    birthday: 1,
     unlocked: true,
   },
   {
@@ -63,6 +64,7 @@ const CAT_DEFS = [
     thoughts: ['👀 Watching...','🌑 The shadows...','💎 Shiny gift!','🤫 Shhh...'],
     speed: 0.5,
     favSeason: 2,
+    birthday: 2,
     unlocked: true,
   },
   {
@@ -79,6 +81,7 @@ const CAT_DEFS = [
     thoughts: ['⚡ ZOOM!','🏃 Faster!','🎾 Must catch!','💨 Wheee!'],
     speed: 1.4,
     favSeason: 1,
+    birthday: 1,
     unlocked: true,
   },
   {
@@ -95,6 +98,7 @@ const CAT_DEFS = [
     thoughts: ['👑 Bow to me','🌸 Lovely...','💅 Impeccable','🎀 Perfection'],
     speed: 0.55,
     favSeason: 0,
+    birthday: 0,
     unlocked: true,
   },
   {
@@ -111,6 +115,7 @@ const CAT_DEFS = [
     thoughts: ['🔍 What\'s this?','👃 Sniff sniff','✨ Ooh shiny!','🧐 Interesting...'],
     speed: 0.7,
     favSeason: 1,
+    birthday: 2,
     unlocked: true,
   },
   {
@@ -127,6 +132,7 @@ const CAT_DEFS = [
     thoughts: ['💧 Drip drop...','🐟 Fishies~','😊 Peaceful','🫧 Bubbles!'],
     speed: 0.45,
     favSeason: 0,
+    birthday: 0,
     unlocked: true,
   },
   {
@@ -143,6 +149,7 @@ const CAT_DEFS = [
     thoughts: ['🎩 Distinguished','📜 Hmm, yes...','🍷 Refined taste','⚜️ My garden'],
     speed: 0.4,
     favSeason: 2,
+    birthday: 3,
     unlocked: false,
     unlockCost: 80,
   },
@@ -160,6 +167,7 @@ const CAT_DEFS = [
     thoughts: ['🌙 Moonlit paths','🔮 I see things...','✨ Magic nearby','🌀 Spinning...'],
     speed: 0.6,
     favSeason: 3,
+    birthday: 3,
     unlocked: false,
     unlockCost: 100,
   },
@@ -173,6 +181,7 @@ const ACHIEVEMENTS = [
   { id: 'visits_20',     emoji: '🌸', label: 'Popular Garden', check: (g) => Object.values(g.catManager.visitCounts).reduce((a,b)=>a+b,0) >= 20 },
   { id: 'season_change', emoji: '🍂', label: 'Through the Seasons', check: (g) => g.seasonChanges >= 1 },
   { id: 'all_common',    emoji: '📖', label: 'Cat Friend', check: (g) => CAT_DEFS.filter(d => d.rarity === 'common').every(d => g.catManager.seenCats[d.id]) },
+  { id: 'birthday_pet',  emoji: '🎂', label: 'Happy Birthday!', check: (g) => g.birthdayPetsCount >= 1 },
 ];
 
 const SEASONS = [

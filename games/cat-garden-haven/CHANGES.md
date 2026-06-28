@@ -5,6 +5,42 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 3 — 2026-06-28
+
+### Features Added
+
+**Cat Birthdays**
+- Each cat has a `birthday` season (0–3) in `CAT_DEFS`:
+  - Spring (0): Princess, Bubbles
+  - Summer (1): Muffin, Zoom
+  - Autumn (2): Shadow, Biscuit
+  - Winter (3): Duke, Marble
+- On spawn, if the current season matches a cat's `birthday`, a 40 % dice roll flags `cat.isBirthday = true`.
+- Birthday cats wear a party hat (red cone, yellow stripes, yellow pompom) drawn in `Cat._drawPartyHat`, rendered above the head after ears are drawn.
+- When a birthday cat finishes entering the garden (state transitions away from ENTERING), a `confetti` particle burst fires and the cat thinks "🎂 It's my birthday!".
+- `tryGift` for birthday cats has gift chance boosted by ×1.5 (capped at 100 %) and payout doubled (×2). Both fav-season and birthday bonuses stack.
+- Gift notifications are birthday-aware: "🎂 [Name]'s birthday gift: N🧶!" instead of generic copy.
+- Tooltip shows 🎂 tag next to birthday cats.
+- Cat Journal shows each cat's birthday season; if the current season matches it shows "🎂" inline.
+- New achievement `birthday_pet` (🎂 "Happy Birthday!") — earned by petting a birthday cat at least once.
+
+**New particle type: `confetti`**
+- Count 14, glyphs cycle through 🎊 🎉 🎈 ⭐ 🎀.
+- Used for the birthday entrance burst and birthday gift effect.
+
+### Architecture changes
+- `CatManager._trySpawnCat` now accepts a `season` parameter and returns the spawned `Cat` (or `null`). The `update` method checks the return value and fires an `onBirthday(cat)` callback if provided.
+- `CatManager.update` signature: added `onBirthday = null` as 9th parameter (non-breaking; all prior call sites omit it safely).
+- `Cat` constructor: two new flags `isBirthday` (set by CatManager post-construction) and `birthdayAnnounced` (gates the entrance confetti burst to fire only once).
+- `Cat.update` now captures `prevState` at the top of the method to detect the ENTERING → first real state transition.
+
+### Save data additions
+```json
+{ "birthdayPetsCount": 0 }
+```
+
+---
+
 ## Session 2 — 2026-06-28
 
 ### Features Added
