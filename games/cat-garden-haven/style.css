@@ -467,6 +467,18 @@ html, body {
 .menu-action-btn--confirm { background: #c0392b; color: #fff; border-color: #c0392b; }
 .menu-action-btn--confirm:hover { background: #a93226; }
 
+/* Treat button states */
+#btn-treat { opacity: 0.45; }
+#btn-treat.treat-available {
+  opacity: 1;
+  animation: treat-pulse 1.8s ease-in-out infinite;
+}
+#btn-treat.treat-active { opacity: 0.7; }
+@keyframes treat-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,158,122,0); }
+  50%       { box-shadow: 0 0 0 5px rgba(255,158,122,0.45); }
+}
+
 /* Item upgrade context menu */
 #item-menu {
   position: absolute;

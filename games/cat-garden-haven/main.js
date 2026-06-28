@@ -32,6 +32,7 @@ class Game {
     this.offlineRewardBonus = 0;
     this.nicknames = {};
     this.visitLog = [];
+    this.lastTreatTime = 0;
 
     this._initUnlocks();
     this._resize();
@@ -271,7 +272,18 @@ class Game {
       },
       this.moodBonus,
       this.garden.isGoldenHour,
-      (cat) => this._logVisit(cat)
+      (cat) => this._logVisit(cat),
+      (cat) => {
+        if (this.garden.treat) {
+          cat.targetX = this.garden.treat.x;
+          cat.targetY = this.garden.treat.y;
+          cat.treatGuaranteed = true;
+          cat.visitDuration += 60;
+          this.garden.treat = null;
+          this.ui._updateTreatBtn();
+          this.ui.notify(`🍪 ${this._catDisplayName(cat.def)} found the treat!`, 3000);
+        }
+      }
     );
 
     // Shimmer particles during golden hour
@@ -345,6 +357,20 @@ class Game {
     });
     if (this.visitLog.length > 50) this.visitLog.length = 50;
     this.save();
+  }
+
+  _canUseTreat() {
+    return !this.garden.treat && Date.now() - this.lastTreatTime >= 86400000;
+  }
+
+  placeTreat() {
+    const cx = this.canvas.width  / 2 + (Math.random() - 0.5) * 100;
+    const cy = this.canvas.height * 0.55 + (Math.random() - 0.5) * 50;
+    this.garden.treat = { x: cx, y: cy };
+    this.lastTreatTime = Date.now();
+    this.save();
+    this.ui._updateTreatBtn();
+    this.ui.notify('🍪 Treat left out — the next visitor will love it!');
   }
 
   _applyTrophyPassives() {
@@ -441,6 +467,7 @@ class Game {
 
     this.garden.drawBackground(this.time);
     this.garden.drawItems(this.time);
+    this.garden.drawTreat(ctx, this.time);
 
     // Draw cats sorted by y
     const cats = [...this.catManager.cats].sort((a, b) => a.y - b.y);
@@ -522,6 +549,7 @@ class Game {
         seasonStartVisits: this.seasonStartVisits,
         nicknames: this.nicknames,
         visitLog: this.visitLog,
+        lastTreatTime: this.lastTreatTime,
       };
       localStorage.setItem('catgarden_save', JSON.stringify(data));
     } catch (e) { /* ignore */ }
@@ -558,8 +586,10 @@ class Game {
       if (typeof data.seasonStartVisits === 'number') this.seasonStartVisits = data.seasonStartVisits;
       if (data.nicknames && typeof data.nicknames === 'object') this.nicknames = data.nicknames;
       if (Array.isArray(data.visitLog)) this.visitLog = data.visitLog.slice(0, 50);
+      if (typeof data.lastTreatTime === 'number') this.lastTreatTime = data.lastTreatTime;
       this._applyTrophyPassives();
       this.ui.updateYarnDisplay();
+      this.ui._updateTreatBtn();
     } catch (e) {
       this._newGame();
     }
