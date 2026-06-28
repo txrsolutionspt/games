@@ -124,12 +124,16 @@ class Game {
         return;
       }
 
-      // Right-click or long-press: remove item
+      // Right-click or long-press: item context menu
       if (e.button === 2 || e.type === 'contextmenu') {
         e.preventDefault();
-        if (this.garden.removeItemAt(pos.x, pos.y)) {
+        const item = this.garden.getItemAt(pos.x, pos.y);
+        if (item) {
+          this._showItemMenu(pos, item);
+        } else if (this.garden.placedItems.length) {
+          this.garden.placedItems.pop();
           this.save();
-          this.ui.notify('Item removed');
+          this.ui.notify('↩️ Last item removed');
         }
         return;
       }
@@ -368,6 +372,67 @@ class Game {
     }
   }
 
+  _showItemMenu(pos, item) {
+    this._hideItemMenu();
+    const def = Object.values(ITEMS).flat().find(d => d.id === item.itemId);
+    const menu = document.createElement('div');
+    menu.id = 'item-menu';
+    menu.style.left = `${Math.min(pos.x + 8, this.canvas.width - 150)}px`;
+    menu.style.top  = `${Math.max(pos.y - 8, 8)}px`;
+
+    if (item.tier === 0) {
+      const upBtn = document.createElement('button');
+      upBtn.className = 'item-menu-btn';
+      upBtn.textContent = '⬆️ Upgrade 20🧶';
+      upBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (this.yarn >= 20) {
+          item.tier = 1;
+          this.yarn -= 20;
+          this.ui.updateYarnDisplay();
+          this.save();
+          this.ui.notify(`✨ ${def ? def.name : 'Item'} upgraded!`);
+        } else {
+          this.ui.notify('Need 20🧶 to upgrade');
+        }
+        this._hideItemMenu();
+      });
+      menu.appendChild(upBtn);
+    } else {
+      const badge = document.createElement('div');
+      badge.className = 'item-menu-badge';
+      badge.textContent = '✨ Upgraded';
+      menu.appendChild(badge);
+    }
+
+    const rmBtn = document.createElement('button');
+    rmBtn.className = 'item-menu-btn item-menu-btn--danger';
+    rmBtn.textContent = '🗑️ Remove';
+    rmBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = this.garden.placedItems.indexOf(item);
+      if (idx >= 0) this.garden.placedItems.splice(idx, 1);
+      this.save();
+      this.ui.notify('Item removed');
+      this._hideItemMenu();
+    });
+    menu.appendChild(rmBtn);
+
+    document.getElementById('main-area').appendChild(menu);
+
+    setTimeout(() => {
+      const dismiss = ev => {
+        if (!menu.contains(ev.target)) { this._hideItemMenu(); document.removeEventListener('pointerdown', dismiss); }
+      };
+      document.addEventListener('pointerdown', dismiss);
+    }, 0);
+  }
+
+  _hideItemMenu() {
+    const m = document.getElementById('item-menu');
+    if (m) m.remove();
+  }
+
   _render() {
     const ctx = this.ctx;
     const W = this.canvas.width;
@@ -414,6 +479,7 @@ class Game {
       '💡 Hover over a cat to see their mood.',
       '💡 A ✨ in the tooltip means it\'s their favourite season!',
       '💡 ✨ During Golden Hour (sunset), rare cats love to visit!',
+      '💡 Right-click a placed item to upgrade it for 20🧶 — cats linger longer!',
     ];
     this.ui.showHint(hints[Math.floor(this.time / this.hintInterval) % hints.length]);
   }

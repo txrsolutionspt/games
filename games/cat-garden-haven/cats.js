@@ -28,6 +28,7 @@ class Cat {
     this.blinkFrame = 0;
     this.isBirthday = false;
     this.birthdayAnnounced = false;
+    this.nearUpgrade = false;
     this.petted = false;
     this.leftGift = false;
     this.giftYarnAmount = 0;
@@ -117,19 +118,25 @@ class Cat {
       this.targetY = favItem.y + Math.random() * 20 - 10;
       this.state = CAT_STATES.WANDERING;
       this.sitTarget = favItem;
+      if (favItem.tier > 0) {
+        this.nearUpgrade = true;
+        this.mood = Math.min(1, this.mood + 0.1);
+      }
       return;
     }
 
+    const upgradeMult = this.nearUpgrade ? 1.3 : 1;
     if (rand < 0.3) {
       this.state = CAT_STATES.SITTING;
-      this.stateDuration = 3 + Math.random() * 6;
+      this.stateDuration = (3 + Math.random() * 6) * upgradeMult;
     } else if (rand < 0.5) {
       this.state = CAT_STATES.PLAYING;
-      this.stateDuration = 2 + Math.random() * 4;
+      this.stateDuration = (2 + Math.random() * 4) * upgradeMult;
     } else if (rand < 0.65) {
       this.state = CAT_STATES.SLEEPING;
-      this.stateDuration = 5 + Math.random() * 8;
+      this.stateDuration = (5 + Math.random() * 8) * upgradeMult;
     } else {
+      this.nearUpgrade = false;
       this.state = CAT_STATES.WANDERING;
       const margin = 60;
       this.targetX = margin + Math.random() * (this.canvasW - margin * 2);

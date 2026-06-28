@@ -411,6 +411,43 @@ html, body {
 .trophy-label { font-size: 0.72rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
 .trophy-desc { font-size: 0.62rem; color: var(--text-light); }
 
+/* Item upgrade context menu */
+#item-menu {
+  position: absolute;
+  background: var(--panel-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 60;
+  box-shadow: 0 4px 16px var(--shadow);
+  min-width: 140px;
+}
+.item-menu-btn {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+  transition: background 0.12s;
+}
+.item-menu-btn:hover { background: var(--border); }
+.item-menu-btn--danger { color: #c0392b; }
+.item-menu-btn--danger:hover { background: #fde8e8; border-color: #e8b4b4; }
+.item-menu-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #b8860b;
+  padding: 4px 10px;
+  text-align: center;
+}
+
 /* Diary entries */
 .diary-entry {
   padding: 8px 10px;

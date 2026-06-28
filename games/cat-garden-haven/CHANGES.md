@@ -5,6 +5,30 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 8 — 2026-06-28
+
+### Features Added
+
+**Item Upgrade Tokens**
+- Right-clicking (or long-pressing on mobile) a placed item opens a small context menu with two options: **⬆️ Upgrade 20🧶** and **🗑️ Remove**.
+- Upgrading costs 20🧶 and sets `item.tier = 1`. If an item is already upgraded, the menu shows "✨ Upgraded" in place of the button.
+- Upgraded items render with a pulsing warm gold radial glow beneath the emoji (drawn before the emoji in `_drawItem`, using an animated ellipse gradient).
+- Cats that wander to a favourite item with `tier > 0` get `mood += 0.1` on arrival and have all subsequent `stateDuration` values extended by ×1.3 (sitting/playing/sleeping).
+- `Cat.nearUpgrade` flag is set when a cat heads toward an upgraded fav item and cleared when it wanders away freely.
+- `tier` is serialised in `garden.serialize()` and restored in `loadItems()`, so upgrades persist across sessions.
+- `Garden.getItemAt(x, y)` added — returns the item object within 34 px of a point (used by the right-click handler).
+- Hint about upgrading added to the hint rotation.
+
+### Architecture changes
+- Right-click on canvas: was always `removeItemAt`. Now checks `getItemAt` first; if a placed item is found, shows `#item-menu` HTML overlay; if not, removes the last item (previous undo behaviour preserved as fallback).
+- `_showItemMenu` / `_hideItemMenu` added to `Game`.
+- `placeItem` now initialises `tier: 0` on every new item.
+
+### Save data changes
+- `items` array entries now include `tier` field (existing saves load fine — `tier` defaults to 0 when absent).
+
+---
+
 ## Session 7 — 2026-06-28
 
 ### Features Added
