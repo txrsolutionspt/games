@@ -30,6 +30,7 @@ class Game {
     this.giftBonus = 1.0;
     this.moodBonus = 0;
     this.offlineRewardBonus = 0;
+    this.nicknames = {};
 
     this._initUnlocks();
     this._resize();
@@ -112,8 +113,8 @@ class Game {
             this.seasonYarn += boosted;
             this.ui.updateYarnDisplay();
             const msg = cat.isBirthday
-              ? `🎂 ${cat.def.name}'s birthday gift: ${boosted}🧶!`
-              : `${cat.def.name} left you ${boosted}🧶!`;
+              ? `🎂 ${this._catDisplayName(cat.def)}'s birthday gift: ${boosted}🧶!`
+              : `${this._catDisplayName(cat.def)} left you ${boosted}🧶!`;
             this.ui.notify(msg);
             this.save();
           }
@@ -150,7 +151,7 @@ class Game {
           const moodEmoji = cat.mood < 0.4 ? '😾' : cat.mood < 0.65 ? '😺' : cat.mood < 0.85 ? '😸' : '😻';
           const seasonBonus = cat.def.favSeason === this.garden.season ? ' ✨' : '';
           const bdTag = cat.isBirthday ? ' 🎂' : '';
-          el.textContent = `${cat.def.name} — ${cat.def.personality} ${moodEmoji}${seasonBonus}${bdTag}`;
+          el.textContent = `${this._catDisplayName(cat.def)} — ${cat.def.personality} ${moodEmoji}${seasonBonus}${bdTag}`;
         } else {
           el.style.display = 'none';
         }
@@ -249,8 +250,8 @@ class Game {
         this.seasonYarn += boosted;
         this.ui.updateYarnDisplay();
         const msg = cat.isBirthday
-          ? `🎂 ${cat.def.name}'s birthday gift: ${boosted}🧶!`
-          : `${cat.def.name} left you ${boosted}🧶!`;
+          ? `🎂 ${this._catDisplayName(cat.def)}'s birthday gift: ${boosted}🧶!`
+          : `${this._catDisplayName(cat.def)} left you ${boosted}🧶!`;
         this.ui.notify(msg);
         this.save();
         this._checkAchievements();
@@ -261,7 +262,7 @@ class Game {
       this.garden.season,
       (cat) => {
         const s = SEASONS[this.garden.season];
-        this.ui.notify(`🎂 It's ${cat.def.name}'s birthday! ${s.emoji} Tap them for a special gift!`, 4500);
+        this.ui.notify(`🎂 It's ${this._catDisplayName(cat.def)}'s birthday! ${s.emoji} Tap them for a special gift!`, 4500);
       },
       this.moodBonus
     );
@@ -301,6 +302,17 @@ class Game {
     this.particles.spawn(this.canvas.width / 2, this.canvas.height / 3, 'leaves');
     this.ui.notify(`${s.emoji} ${s.name} has arrived in your garden!`);
     this._checkAchievements();
+    this.save();
+  }
+
+  _catDisplayName(def) {
+    return this.nicknames[def.id] || def.name;
+  }
+
+  setNickname(catId, name) {
+    const trimmed = name.trim().slice(0, 12);
+    if (trimmed) this.nicknames[catId] = trimmed;
+    else delete this.nicknames[catId];
     this.save();
   }
 
@@ -414,6 +426,7 @@ class Game {
         trophies: [...this.trophies],
         seasonYarn: this.seasonYarn,
         seasonStartVisits: this.seasonStartVisits,
+        nicknames: this.nicknames,
       };
       localStorage.setItem('catgarden_save', JSON.stringify(data));
     } catch (e) { /* ignore */ }
@@ -448,6 +461,7 @@ class Game {
       if (data.trophies) data.trophies.forEach(s => this.trophies.add(s));
       if (typeof data.seasonYarn === 'number') this.seasonYarn = data.seasonYarn;
       if (typeof data.seasonStartVisits === 'number') this.seasonStartVisits = data.seasonStartVisits;
+      if (data.nicknames && typeof data.nicknames === 'object') this.nicknames = data.nicknames;
       this._applyTrophyPassives();
       this.ui.updateYarnDisplay();
     } catch (e) {
