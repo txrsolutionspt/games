@@ -1,0 +1,34 @@
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0a2e;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#game-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#game-canvas {
+  display: block;
+  touch-action: none;
+  cursor: pointer;
+  /* Crisp rendering for pixel art — not needed here, using auto */
+  image-rendering: auto;
+}
