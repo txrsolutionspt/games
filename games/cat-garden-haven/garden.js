@@ -21,6 +21,8 @@ class Garden {
     this.grassBlades = this._genGrass();
     this.pathPoints = this._genPath();
     this.fireflies = this._genFireflies();
+    this._time = 0;
+    this.ambientParts = this._genAmbientParts();
   }
 
   _genTrees() {
@@ -85,10 +87,112 @@ class Garden {
     this.grassBlades = this._genGrass();
     this.pathPoints = this._genPath();
     this.fireflies = this._genFireflies();
+    this.ambientParts = this._genAmbientParts();
     this.cloudX = this.cloudX.map(() => Math.random() * w);
   }
 
+  _genAmbientParts() {
+    const parts = [];
+    for (let i = 0; i < 28; i++) {
+      parts.push({
+        x: Math.random() * (this.W || 400),
+        y: Math.random() * (this.H || 600),
+        vx: (Math.random() - 0.5) * 18,
+        vy: 10 + Math.random() * 26,
+        rot: Math.random() * Math.PI * 2,
+        rotV: (Math.random() - 0.5) * 2.2,
+        phase: Math.random() * Math.PI * 2,
+        size: 5 + Math.random() * 5,
+      });
+    }
+    return parts;
+  }
+
+  _updateAmbientParts(dt) {
+    this.ambientParts.forEach((p, i) => {
+      if (this.season === 1) {
+        // Summer: first 6 particles are butterflies drifting horizontally
+        if (i < 6) {
+          p.x += (i % 2 === 0 ? 22 : -18) * dt;
+          p.y = this.H * (0.18 + (i / 6) * 0.48) + Math.sin(this._time * 1.1 + p.phase) * 20;
+          if (p.x > this.W + 40) p.x = -40;
+          if (p.x < -40) p.x = this.W + 40;
+        }
+        return; // particles i≥6 idle during summer
+      }
+      // Falling particles (spring/autumn/winter)
+      const speed = this.season === 2 ? 1.5 : this.season === 3 ? 0.55 : 1.0;
+      p.rot += p.rotV * dt * speed;
+      p.x += Math.sin(this._time * 0.4 + p.phase) * 22 * dt * speed;
+      p.y += p.vy * dt * speed;
+      if (p.y > this.H + 20) { p.y = -15; p.x = Math.random() * this.W; }
+      if (p.x < -35) p.x = this.W + 35;
+      if (p.x > this.W + 35) p.x = -35;
+    });
+  }
+
+  _drawAmbientParts() {
+    const ctx = this.ctx;
+    ctx.save();
+
+    if (this.season === 0) {
+      // Spring — cherry blossom petals (pink ellipses)
+      ctx.fillStyle = '#ffb7c5';
+      this.ambientParts.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.size * 1.35, p.size * 0.62, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    } else if (this.season === 1) {
+      // Summer — butterflies (emoji, first 6 only)
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i < 6; i++) {
+        const p = this.ambientParts[i];
+        ctx.globalAlpha = 0.5;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        const flap = 0.6 + Math.abs(Math.sin(this._time * 5 + p.phase)) * 0.6;
+        ctx.scale(flap, 1);
+        ctx.fillText('🦋', 0, 0);
+        ctx.restore();
+      }
+    } else if (this.season === 2) {
+      // Autumn — falling leaves (orange/amber ellipses)
+      this.ambientParts.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = `hsl(${15 + (p.size * 3 | 0) % 22}, 80%, 44%)`;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.size * 1.2, p.size * 0.58, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    } else {
+      // Winter — snowflakes (soft white circles)
+      ctx.fillStyle = '#ffffff';
+      this.ambientParts.forEach(p => {
+        ctx.globalAlpha = 0.42 + Math.sin(this._time * 0.9 + p.phase) * 0.12;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
   update(dt) {
+    this._time += dt;
     this.dayTimer += dt;
     if (this.dayTimer >= this.dayDuration) {
       this.dayTimer -= this.dayDuration;
@@ -99,6 +203,8 @@ class Garden {
       cx += dt * 8;
       return cx > this.W + 100 ? -100 : cx;
     });
+
+    this._updateAmbientParts(dt);
 
     this.fireflies.forEach(ff => {
       ff.x += Math.cos(ff.dir) * ff.speed * dt;
@@ -209,6 +315,9 @@ class Garden {
       }
       ctx.globalAlpha = 1;
     }
+
+    // Seasonal ambient particles (petals/butterflies/leaves/snow)
+    this._drawAmbientParts();
 
     // Golden Hour warm overlay
     const gp = this._goldenProgress();

@@ -5,6 +5,29 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 12 — 2026-06-28
+
+### Features Added
+
+**Seasonal Ambient Particles**
+- Each season now has a passive ambient particle effect in the garden:
+  - 🌸 **Spring:** 28 small pink ellipses (cherry blossom petals) drift down gently, rotating and swaying left/right with a sine drift.
+  - 🦋 **Summer:** 6 butterfly glyphs (🦋) float horizontally across the garden at different heights, their wing-flap simulated by horizontal scale oscillation.
+  - 🍂 **Autumn:** 28 orange/amber ellipses (leaves) fall 50 % faster, spinning with more rotation speed.
+  - ❄️ **Winter:** 28 small white circles (snowflakes) drift down at 45 % speed with soft alpha pulsing.
+- Particles wrap around screen edges so there's always an even coverage.
+- Particle pool is generated in `Garden._genAmbientParts()` (28 entries with `x, y, vx, vy, rot, rotV, phase, size`) and regenerated on canvas `resize()`.
+- Seasonal ambient particles are drawn after grass blades but before the golden hour overlay, so both warm tint and rain tint naturally colour them.
+
+### Architecture changes
+- `Garden._time` — accumulated time counter in `update(dt)`, used for particle drift oscillation (avoids dependency on game-level `time`).
+- `Garden.ambientParts[]` — particle pool (28 items); initialised in constructor and on `resize()`.
+- `Garden._genAmbientParts()` — particle factory (position, velocity, rotation, phase, size).
+- `Garden._updateAmbientParts(dt)` — moves particles per season (falling for spring/autumn/winter; horizontal flutter for summer butterflies).
+- `Garden._drawAmbientParts()` — draws particles per season using canvas shapes (ellipses/arcs) or emoji (butterflies only).
+
+---
+
 ## Session 11 — 2026-06-28
 
 ### Features Added

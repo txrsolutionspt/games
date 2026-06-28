@@ -522,6 +522,7 @@ class Game {
       '💡 Right-click a placed item to upgrade it for 20🧶 — cats linger longer!',
       '💡 Tap 🔇 to cycle garden ambience — birds, rain, or breeze!',
       '💡 🌧️ Rainy mode makes the mysterious Shadow cat appear more often!',
+      '💡 Watch for falling petals in Spring, butterflies in Summer, leaves in Autumn, and snow in Winter!',
     ];
     this.ui.showHint(hints[Math.floor(this.time / this.hintInterval) % hints.length]);
   }
