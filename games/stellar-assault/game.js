@@ -82,9 +82,11 @@ function sfxBomb() {
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PLAYER_SPEED    = 240;
 const PLAYER_R        = 16;
+const HITBOX_R        = 5;   // sweet-spot hitbox (classic shmup style)
 const BULLET_SPD      = 540;
 const ENEMY_BULLET_SPD = 185;
 const BASE_FIRE_RATE  = 0.13;
+const MAX_PLAYER_BULLETS = 32;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let state, score, highScore, wave, combo, comboTimer, maxCombo;
@@ -94,7 +96,7 @@ let stars, nebulaPoints;
 let waveActive, betweenWaves, betweenWaveTimer;
 let spawnQueue, spawnTimer;
 let spreadTimer, beamTimer, invTimer, speedTimer, bombCooldown;
-let fireTimer = 0;
+let fireTimer = 0, hitStopTimer = 0;
 let keys = {};
 let mouseX = GW / 2, mouseY = GH - 80, mouseAim = false;
 
@@ -158,7 +160,7 @@ function initGame() {
     waveActive = false; betweenWaves = true; betweenWaveTimer = 1.5;
     spawnQueue = []; spawnTimer = 0;
     spreadTimer = 0; beamTimer = 0; invTimer = 0; speedTimer = 0;
-    bombCooldown = 0; fireTimer = 0;
+    bombCooldown = 0; fireTimer = 0; hitStopTimer = 0;
     mouseAim = false;
 
     player = { x: GW/2, y: GH-90, hp:3, maxHp:3, invFrames:0, trail:[] };
@@ -220,9 +222,12 @@ function doSpawn(spec) {
                 fireRate: spec.fireRate,
                 phase:'descend',
                 formY: 70 + Math.floor(rnd()*3)*52,
+                formBaseX: spacing*(i+1),
+                sineT: rnd()*Math.PI*2,
+                sineSpd: 0.9 + rnd()*0.4,
+                sineAmp: 30 + rnd()*35,
                 speed: spec.speed,
                 diveTimer: 3.5 + rnd()*5,
-                driftVx: (rnd()-0.5)*50,
                 col:'#44AAFF',
             });
         }
@@ -267,6 +272,9 @@ function doSpawn(spec) {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
+    // hit-stop: decrement in real time, then slow game dt
+    if (hitStopTimer > 0) { hitStopTimer = Math.max(0, hitStopTimer - dt); dt *= 0.1; }
+
     shakeX *= 0.78; shakeY *= 0.78;
     if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) combo = 0; }
 
@@ -371,6 +379,7 @@ function tryFire(dt) {
     } else {
         playerBullets.push({ x:player.x, y:player.y-PLAYER_R, vx:0, vy:-BULLET_SPD, r:3, life:1.1 });
     }
+    if (playerBullets.length > MAX_PLAYER_BULLETS) playerBullets.splice(0, playerBullets.length - MAX_PLAYER_BULLETS);
     sfxShoot();
 }
 
@@ -418,9 +427,8 @@ function updateGrunt(e, dt) {
         e.y += e.vy*dt; e.x += e.vx*dt;
         if (e.y >= e.formY) { e.y = e.formY; e.phase = 'formation'; e.vx = e.driftVx; }
     } else if (e.phase === 'formation') {
-        e.x += e.vx*dt;
-        if (e.x > GW-28) e.vx = -Math.abs(e.vx);
-        if (e.x < 28)    e.vx =  Math.abs(e.vx);
+        e.sineT += e.sineSpd * dt;
+        e.x = Math.max(18, Math.min(GW-18, e.formBaseX + Math.sin(e.sineT) * e.sineAmp));
         e.diveTimer -= dt;
         if (e.diveTimer <= 0) {
             e.phase = 'dive';
@@ -574,39 +582,38 @@ function collectPowerup(p) {
 
 // ── Collision ─────────────────────────────────────────────────────────────────
 function checkCollisions() {
-    // player bullets → enemies
-    outer:
+    // player bullets → enemies; beam pierces through
     for (let bi = playerBullets.length-1; bi >= 0; bi--) {
         const b = playerBullets[bi];
+        let hit = false;
         for (let ei = enemies.length-1; ei >= 0; ei--) {
             const e = enemies[ei];
             const dx = b.x-e.x, dy = b.y-e.y;
             if (dx*dx+dy*dy < (b.r+e.r)*(b.r+e.r)) {
-                playerBullets.splice(bi, 1);
                 e.hp--;
                 burst(b.x, b.y, '#FFFFFF', 3, 70, 1.2, 0.18);
-                if (e.hp <= 0) {
-                    onEnemyKilled(e, ei);
-                }
-                continue outer;
+                if (e.hp <= 0) onEnemyKilled(e, ei);
+                if (b.beam) continue; // beam keeps going
+                hit = true; break;
             }
         }
+        if (hit) playerBullets.splice(bi, 1);
     }
 
-    // enemy bullets → player
+    // enemy bullets → player sweet-spot hitbox
     if (player && player.invFrames <= 0 && invTimer <= 0) {
         for (let i = enemyBullets.length-1; i >= 0; i--) {
             const b = enemyBullets[i];
             const dx = b.x-player.x, dy = b.y-player.y;
-            if (dx*dx+dy*dy < (b.r+PLAYER_R-4)*(b.r+PLAYER_R-4)) {
+            if (dx*dx+dy*dy < (b.r+HITBOX_R)*(b.r+HITBOX_R)) {
                 enemyBullets.splice(i, 1);
                 hitPlayer(); break;
             }
         }
-        // enemy contact damage
+        // enemy body contact (slightly larger than sweet-spot but still forgiving)
         for (const e of enemies) {
             const dx = e.x-player.x, dy = e.y-player.y;
-            if (dx*dx+dy*dy < (e.r+PLAYER_R-6)*(e.r+PLAYER_R-6)) {
+            if (dx*dx+dy*dy < (e.r*0.55+HITBOX_R)*(e.r*0.55+HITBOX_R)) {
                 hitPlayer(); break;
             }
         }
@@ -626,6 +633,7 @@ function onEnemyKilled(e, idx) {
     sfxExplosion(e.r/18);
 
     if (e.type === 'boss') {
+        hitStopTimer = 0.12;
         shake(22);
         // debris bursts with delay
         for (let k = 0; k < 6; k++) {
@@ -642,6 +650,7 @@ function hitPlayer() {
     if (!player) return;
     player.hp--;
     player.invFrames = 2.5; combo = 0;
+    hitStopTimer = 0.07;
     shake(11); sfxDamage();
     burst(player.x, player.y, '#FF4400', 20, 160, 3, 0.85);
     if (player.hp <= 0) triggerGameOver();
@@ -754,6 +763,10 @@ function drawPlayer() {
     ctx.beginPath(); ctx.ellipse(-6, 16, 3.5, 6, 0, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.ellipse( 6, 16, 3.5, 6, 0, 0, Math.PI*2); ctx.fill();
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+
+    // sweet-spot hitbox dot (always visible as a tiny reference)
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI*2); ctx.fill();
 
     // invincibility aura
     if (invTimer > 0) {
@@ -1007,6 +1020,12 @@ function drawHUD() {
         const ap = 0.15+0.1*Math.sin(Date.now()*0.02);
         ctx.save(); ctx.strokeStyle=`rgba(170,255,170,${ap})`; ctx.lineWidth=5;
         ctx.strokeRect(3,3,GW-6,GH-6); ctx.restore();
+    }
+    // Low-HP danger flash
+    if (player && player.hp === 1) {
+        const ap = 0.18 + 0.18*Math.sin(Date.now()*0.007);
+        ctx.save(); ctx.strokeStyle=`rgba(255,0,0,${ap})`; ctx.lineWidth=10;
+        ctx.strokeRect(0,0,GW,GH); ctx.restore();
     }
 }
 
