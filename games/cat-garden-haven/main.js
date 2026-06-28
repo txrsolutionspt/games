@@ -246,6 +246,7 @@ class Game {
     }
 
     this.garden.update(dt);
+    this.ui.updateSeasonBar(this.activePlayTime / this.SEASON_PLAY_DURATION, this.garden.season);
     this.particles.update();
     this.catManager.update(
       dt,
@@ -523,6 +524,7 @@ class Game {
       '💡 Tap 🔇 to cycle garden ambience — birds, rain, or breeze!',
       '💡 🌧️ Rainy mode makes the mysterious Shadow cat appear more often!',
       '💡 Watch for falling petals in Spring, butterflies in Summer, leaves in Autumn, and snow in Winter!',
+      '💡 The coloured bar below the header shows how close the next season change is — it pulses when near!',
     ];
     this.ui.showHint(hints[Math.floor(this.time / this.hintInterval) % hints.length]);
   }
