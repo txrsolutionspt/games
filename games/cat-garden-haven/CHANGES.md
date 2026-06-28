@@ -5,6 +5,34 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 7 — 2026-06-28
+
+### Features Added
+
+**Cat Visitor Log (Time-Stamped Diary)**
+- `game.visitLog` — array of up to 50 visit entries, newest first, persisted in `localStorage`.
+- Each entry: `{ catId, season, timeOfDay, gifted, yarn, petted, ts }`.
+- Entries are appended when a cat fully exits via the new `onLeave` callback in `CatManager.update`.
+- `Cat.giftYarnAmount` — set in `tryGift` after all bonuses are applied, so the correct boosted value is recorded.
+- The Cat Journal now has two tabs: **🐾 Cats** (existing cat list + trophies) and **📖 Diary** (visit log).
+- Diary renders each entry as a one-line sentence: "🌅 Morning 🌸 — Muffin left you 12🧶." Time of day maps to four labels: 🌅 Morning / ☀️ Afternoon / 🌇 Dusk / 🌙 Night.
+- Diary uses the cat's current nickname if one is set.
+- Empty state message shown when no visits have been logged yet.
+
+### Architecture changes
+- `CatManager.update`: added `onLeave = null` as 12th param (non-breaking). Fires with the departing `Cat` just before it is spliced from the array.
+- `CatManager._trySpawnCat`: unchanged.
+- `Cat` constructor: `giftYarnAmount = 0` added.
+- `Cat.tryGift`: sets `this.giftYarnAmount` after bonuses so the log captures the final value.
+- `#journal-content` CSS changed from `display: grid` to `display: flex / column` so the tab bar + dynamic content work correctly. The 2-column cat grid moved to `.journal-cat-grid`.
+
+### Save data additions
+```json
+{ "visitLog": [] }
+```
+
+---
+
 ## Session 6 — 2026-06-28
 
 ### Features Added

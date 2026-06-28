@@ -30,6 +30,7 @@ class Cat {
     this.birthdayAnnounced = false;
     this.petted = false;
     this.leftGift = false;
+    this.giftYarnAmount = 0;
     this.visitDuration = 30 + Math.random() * 60;
     this.visitTimer = 0;
     this.speed = def.speed * (12 + Math.random() * 4);
@@ -176,9 +177,11 @@ class Cat {
       this.leftGift = true;
       const gifts = this.def.gifts;
       let amount = gifts[Math.floor(Math.random() * gifts.length)];
+      this.giftYarnAmount = amount; // will be updated below after bonuses
       const isFavSeason = this.def.favSeason === season;
       if (isFavSeason) amount = Math.ceil(amount * 1.5);
       if (this.isBirthday) amount = Math.ceil(amount * 2);
+      this.giftYarnAmount = amount;
       particles.spawn(this.x, this.y - 24, this.isBirthday ? 'confetti' : 'yarn');
       const thought = this.isBirthday
         ? '🎂 Birthday gift for you!'
@@ -497,7 +500,7 @@ class CatManager {
     this.visitCounts = {};
   }
 
-  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null, moodBonus = 0, goldenHour = false) {
+  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null, moodBonus = 0, goldenHour = false, onLeave = null) {
     if (zenMode) return;
 
     this.spawnTimer += dt;
@@ -517,6 +520,7 @@ class CatManager {
       }
 
       if (cat.isGone()) {
+        if (onLeave) onLeave(cat);
         this.cats.splice(i, 1);
       }
     }

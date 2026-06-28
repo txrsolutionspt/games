@@ -4,6 +4,7 @@ class UI {
   constructor(game) {
     this.game = game;
     this.activeTab = 'plants';
+    this._journalTab = 'cats';
     this.selectedItem = null;
     this._notifTimer = null;
     this._notifQueue = [];
@@ -130,10 +131,35 @@ class UI {
     const content = document.getElementById('journal-content');
     content.innerHTML = '';
 
+    // Tab bar
+    const tabBar = document.createElement('div');
+    tabBar.className = 'journal-tabs';
+    [['cats', '🐾 Cats'], ['diary', '📖 Diary']].forEach(([id, label]) => {
+      const btn = document.createElement('button');
+      btn.className = 'journal-tab-btn' + (this._journalTab === id ? ' active' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => { this._journalTab = id; this.openJournal(); });
+      tabBar.appendChild(btn);
+    });
+    content.appendChild(tabBar);
+
+    if (this._journalTab === 'diary') {
+      this._renderDiary(content);
+    } else {
+      this._renderCats(content);
+    }
+
+    modal.classList.remove('hidden');
+  }
+
+  _renderCats(content) {
+    const grid = document.createElement('div');
+    grid.className = 'journal-cat-grid';
+    content.appendChild(grid);
+
     CAT_DEFS.forEach(def => {
       const seen = this.game.catManager.seenCats[def.id];
       const visits = this.game.catManager.visitCounts[def.id] || 0;
-      const locked = !def.unlocked;
 
       const el = document.createElement('div');
       el.className = 'journal-entry' + (!seen ? ' unseen' : '');
@@ -242,7 +268,7 @@ class UI {
         el.style.cursor = 'pointer';
       }
 
-      content.appendChild(el);
+      grid.appendChild(el);
     });
 
     // Trophy section
@@ -283,8 +309,58 @@ class UI {
 
     trophySection.appendChild(trophyGrid);
     content.appendChild(trophySection);
+  }
 
-    modal.classList.remove('hidden');
+  _renderDiary(content) {
+    const log = this.game.visitLog;
+    if (!log.length) {
+      const empty = document.createElement('p');
+      empty.className = 'diary-empty';
+      empty.textContent = 'No visits yet — cats will leave their mark here!';
+      content.appendChild(empty);
+      return;
+    }
+
+    const TIME_LABELS = [
+      { max: 0.25, emoji: '🌅', label: 'Morning' },
+      { max: 0.5,  emoji: '☀️', label: 'Afternoon' },
+      { max: 0.75, emoji: '🌇', label: 'Dusk' },
+      { max: 1,    emoji: '🌙', label: 'Night' },
+    ];
+
+    log.forEach(entry => {
+      const def = CAT_DEFS.find(d => d.id === entry.catId);
+      if (!def) return;
+      const name = this.game.nicknames[entry.catId] || def.name;
+      const season = SEASONS[entry.season];
+      const tl = TIME_LABELS.find(l => entry.timeOfDay <= l.max) || TIME_LABELS[3];
+
+      let action;
+      if (entry.gifted && entry.petted) {
+        action = `was petted and left ${entry.yarn}🧶`;
+      } else if (entry.gifted) {
+        action = `left you ${entry.yarn}🧶`;
+      } else if (entry.petted) {
+        action = `was petted but left no gift`;
+      } else {
+        action = `visited but left no gift`;
+      }
+
+      const el = document.createElement('div');
+      el.className = 'diary-entry';
+
+      const time = document.createElement('span');
+      time.className = 'diary-time';
+      time.textContent = `${tl.emoji} ${tl.label} ${season.emoji}`;
+      el.appendChild(time);
+
+      const text = document.createElement('span');
+      text.className = 'diary-text';
+      text.textContent = ` — ${name} ${action}.`;
+      el.appendChild(text);
+
+      content.appendChild(el);
+    });
   }
 
   notify(msg, duration = 2500, isAchievement = false) {
