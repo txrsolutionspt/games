@@ -120,9 +120,12 @@ let planet, interceptors, threats, particles, powerups, comboTexts, stars, warns
 let mouse;
 
 highScore = parseInt(localStorage.getItem('od_hs') || '0');
+let bestWave = parseInt(localStorage.getItem('od_bw') || '0');
+let paused = false;
 
 function initGame() {
     state = 'PLAYING';
+    paused = false;
     score = 0; wave = 0; combo = 0; comboTimer = 0; maxCombo = 0;
     shakeX = 0; shakeY = 0;
     timeScale = 1; timeSlowTimer = 0;
@@ -616,6 +619,7 @@ function spawnBossDebris(x, y) {
 function triggerGameOver() {
     state = 'GAME_OVER';
     if (score > highScore) { highScore = score; localStorage.setItem('od_hs', highScore); }
+    if (wave > bestWave) { bestWave = wave; localStorage.setItem('od_bw', bestWave); }
     burst(PLANET_X, PLANET_Y, '#FF4400', 100, 300, 6, 2.5);
     shake(28); sfxExplosion(5);
 }
@@ -1042,6 +1046,10 @@ function drawStartScreen() {
         ctx.fillStyle='#FFAA00'; ctx.font='15px monospace';
         ctx.fillText(`Best Score:  ${highScore.toLocaleString()}`, GW/2, GH/2+145);
     }
+    if (bestWave>0) {
+        ctx.fillStyle='#AAFFAA'; ctx.font='13px monospace';
+        ctx.fillText(`Best Wave:  ${bestWave}`, GW/2, GH/2+168);
+    }
     ctx.restore();
 }
 
@@ -1059,7 +1067,7 @@ function drawGameOver() {
 
         ctx.fillStyle='#FFFFFF'; ctx.font='22px monospace';
         ctx.fillText(`Score:  ${score.toLocaleString()}`, GW/2, GH/2-30);
-        ctx.fillText(`Wave:  ${wave}`, GW/2, GH/2+4);
+        ctx.fillText(`Wave:  ${wave}  ${wave >= bestWave && wave > 0 ? '(new best!)' : bestWave > 0 ? `(best: ${bestWave})` : ''}`, GW/2, GH/2+4);
         ctx.fillText(`Best Combo:  ${maxCombo}×`, GW/2, GH/2+38);
 
         if (score>=highScore && score>0) {
@@ -1103,9 +1111,23 @@ function render() {
 
     if (state==='START')     drawStartScreen();
     if (state==='GAME_OVER') drawGameOver();
+
+    if (paused) {
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0,0,GW,GH);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 40px monospace';
+        ctx.fillText('PAUSED', GW/2, GH/2);
+        ctx.fillStyle = '#AAAAAA'; ctx.font = '16px monospace';
+        ctx.fillText('ESC to resume', GW/2, GH/2+38);
+    }
 }
 
 // ── Input ─────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+    if (e.code === 'Escape' && (state === 'PLAYING' || paused)) paused = !paused;
+});
+
 mouse = { x:GW/2, y:GH/2, down:false };
 
 function canvasCoords(e) {
@@ -1163,7 +1185,7 @@ let lastTS = 0;
 function loop(ts) {
     const dt = Math.min((ts-lastTS)/1000, 0.05);
     lastTS = ts;
-    if (state==='PLAYING' || state==='GAME_OVER') update(dt);
+    if ((state==='PLAYING' || state==='GAME_OVER') && !paused) update(dt);
     render();
     requestAnimationFrame(loop);
 }
