@@ -565,6 +565,12 @@ class Game {
     }
   }
 
+  resetGame() {
+    try { localStorage.removeItem('catgarden_save'); } catch(e) {}
+    try { localStorage.removeItem('catgarden_lastvisit'); } catch(e) {}
+    window.location.reload();
+  }
+
   _newGame() {
     // Starter items
     const W = this.canvas.width;
