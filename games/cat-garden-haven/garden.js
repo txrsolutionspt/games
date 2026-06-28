@@ -18,6 +18,7 @@ class Garden {
     for (let i = 0; i < 3; i++) this.cloudX.push(Math.random() * this.W);
     this.grassBlades = this._genGrass();
     this.pathPoints = this._genPath();
+    this.fireflies = this._genFireflies();
   }
 
   _genTrees() {
@@ -61,26 +62,51 @@ class Garden {
     return pts;
   }
 
+  _genFireflies() {
+    const ff = [];
+    for (let i = 0; i < 14; i++) {
+      ff.push({
+        x: 20 + Math.random() * (this.W - 40),
+        y: this.H * 0.15 + Math.random() * (this.H * 0.65),
+        phase: Math.random() * Math.PI * 2,
+        dir: Math.random() * Math.PI * 2,
+        speed: 8 + Math.random() * 12,
+      });
+    }
+    return ff;
+  }
+
   resize(w, h) {
     this.W = w; this.H = h;
     this.canvas.width = w; this.canvas.height = h;
     this.treeOffsets = this._genTrees();
     this.grassBlades = this._genGrass();
     this.pathPoints = this._genPath();
+    this.fireflies = this._genFireflies();
     this.cloudX = this.cloudX.map(() => Math.random() * w);
   }
 
   update(dt) {
     this.dayTimer += dt;
     if (this.dayTimer >= this.dayDuration) {
-      this.dayTimer = 0;
-      this.timeOfDay = (this.timeOfDay + 1) % 4;
+      this.dayTimer -= this.dayDuration;
     }
     this.timeOfDay = this.dayTimer / this.dayDuration;
 
     this.cloudX = this.cloudX.map(cx => {
       cx += dt * 8;
       return cx > this.W + 100 ? -100 : cx;
+    });
+
+    this.fireflies.forEach(ff => {
+      ff.x += Math.cos(ff.dir) * ff.speed * dt;
+      ff.y += Math.sin(ff.dir) * ff.speed * dt * 0.35;
+      ff.dir += (Math.random() - 0.5) * 0.15;
+      if (ff.x < 0) ff.x = this.W;
+      if (ff.x > this.W) ff.x = 0;
+      const minY = this.H * 0.12, maxY = this.H * 0.78;
+      if (ff.y < minY) { ff.y = minY; ff.dir = Math.PI - ff.dir; }
+      if (ff.y > maxY) { ff.y = maxY; ff.dir = Math.PI - ff.dir; }
     });
   }
 
@@ -133,6 +159,11 @@ class Garden {
       ctx.stroke();
     });
 
+    // Fireflies at dusk / night
+    if (t > 0.6 || t < 0.12) {
+      this._drawFireflies(ctx, time, t);
+    }
+
     // Sun / Moon
     if (t < 0.5) {
       const sunX = this.W * 0.1 + t * 2 * (this.W * 0.8);
@@ -166,6 +197,32 @@ class Garden {
       }
       ctx.globalAlpha = 1;
     }
+  }
+
+  _drawFireflies(ctx, time, t) {
+    let alpha = 0;
+    if (t >= 0.62 && t < 0.92) alpha = Math.min(1, (t - 0.62) * 5.5);
+    else if (t >= 0.92) alpha = Math.max(0, (1 - t) * 12);
+    else if (t < 0.12) alpha = Math.min(0.75, (0.12 - t) * 8);
+    if (alpha <= 0) return;
+
+    ctx.save();
+    this.fireflies.forEach(ff => {
+      const pulse = (Math.sin(time * 1.8 + ff.phase) + 1) / 2;
+      const a = alpha * pulse;
+      if (a < 0.05) return;
+      ctx.globalAlpha = a * 0.28;
+      ctx.fillStyle = '#ffffaa';
+      ctx.beginPath();
+      ctx.arc(ff.x, ff.y, 5.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = a * 0.9;
+      ctx.fillStyle = '#ffffdd';
+      ctx.beginPath();
+      ctx.arc(ff.x, ff.y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
   }
 
   _drawPath(ctx) {
@@ -276,7 +333,13 @@ class Garden {
 
   canPlace(x, y, itemId) {
     if (x < 20 || x > this.W - 20 || y < 40 || y > this.H - 20) return false;
-    return true;
+    const MIN_DIST = 38;
+    return !this.placedItems.some(item => {
+      const dx = item.x - x, dy = item.y - y;
+      const existDef = this._findDef(item.itemId);
+      const minD = (existDef && existDef.w > 1) ? MIN_DIST + 14 : MIN_DIST;
+      return (dx * dx + dy * dy) < minD * minD;
+    });
   }
 
   placeItem(x, y, itemId) {

@@ -158,6 +158,14 @@ class UI {
         visitEl.className = 'journal-cat-visits';
         visitEl.textContent = `${visits} visit${visits !== 1 ? 's' : ''}`;
         el.appendChild(visitEl);
+
+        if (def.favSeason !== undefined) {
+          const favSeasonEl = document.createElement('div');
+          favSeasonEl.className = 'journal-cat-season';
+          const s = SEASONS[def.favSeason];
+          favSeasonEl.textContent = `Loves ${s.emoji} ${s.name}`;
+          el.appendChild(favSeasonEl);
+        }
       }
 
       if (!def.unlocked) {
@@ -189,17 +197,22 @@ class UI {
     modal.classList.remove('hidden');
   }
 
-  notify(msg, duration = 2500) {
-    this._notifQueue.push({ msg, duration });
+  notify(msg, duration = 2500, isAchievement = false) {
+    this._notifQueue.push({ msg, duration, isAchievement });
     if (!this._processing) this._processQueue();
+  }
+
+  notifyAchievement(msg) {
+    this.notify('⭐ ' + msg, 4000, true);
   }
 
   _processQueue() {
     if (!this._notifQueue.length) { this._processing = false; return; }
     this._processing = true;
-    const { msg, duration } = this._notifQueue.shift();
+    const { msg, duration, isAchievement } = this._notifQueue.shift();
     const el = document.getElementById('notification');
     el.textContent = msg;
+    el.classList.toggle('achievement', !!isAchievement);
     el.classList.remove('hidden');
     clearTimeout(this._notifTimer);
     this._notifTimer = setTimeout(() => {

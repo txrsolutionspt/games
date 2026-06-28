@@ -157,14 +157,16 @@ class Cat {
     return true;
   }
 
-  tryGift(particles) {
+  tryGift(particles, season = 0) {
     if (this.leftGift) return 0;
     if (Math.random() < this.def.giftChance * this.mood) {
       this.leftGift = true;
       const gifts = this.def.gifts;
-      const amount = gifts[Math.floor(Math.random() * gifts.length)];
+      let amount = gifts[Math.floor(Math.random() * gifts.length)];
+      const isFavSeason = this.def.favSeason === season;
+      if (isFavSeason) amount = Math.ceil(amount * 1.5);
       particles.spawn(this.x, this.y - 24, 'yarn');
-      this._showThought('🎁 A gift for you!');
+      this._showThought(isFavSeason ? '🎁 Favourite season gift!' : '🎁 A gift for you!');
       return amount;
     }
     return 0;
@@ -446,7 +448,7 @@ class CatManager {
     this.visitCounts = {};
   }
 
-  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode) {
+  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0) {
     if (zenMode) return;
 
     this.spawnTimer += dt;
@@ -460,7 +462,7 @@ class CatManager {
       cat.update(dt, placedItems, particles);
 
       if (cat.state === CAT_STATES.LEAVING && !cat.leftGift) {
-        const yarn = cat.tryGift(particles);
+        const yarn = cat.tryGift(particles, season);
         if (yarn > 0) onYarn(yarn, cat);
       }
 

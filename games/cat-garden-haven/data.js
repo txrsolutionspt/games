@@ -46,6 +46,7 @@ const CAT_DEFS = [
     gifts: [5, 8, 12],
     thoughts: ['💤 Nap time...','😌 So cozy...','🌞 Warm...','💭 Dreams of tuna'],
     speed: 0.3,
+    favSeason: 3,
     unlocked: true,
   },
   {
@@ -61,6 +62,7 @@ const CAT_DEFS = [
     gifts: [10, 18, 25],
     thoughts: ['👀 Watching...','🌑 The shadows...','💎 Shiny gift!','🤫 Shhh...'],
     speed: 0.5,
+    favSeason: 2,
     unlocked: true,
   },
   {
@@ -76,6 +78,7 @@ const CAT_DEFS = [
     gifts: [3, 6, 10],
     thoughts: ['⚡ ZOOM!','🏃 Faster!','🎾 Must catch!','💨 Wheee!'],
     speed: 1.4,
+    favSeason: 1,
     unlocked: true,
   },
   {
@@ -91,6 +94,7 @@ const CAT_DEFS = [
     gifts: [15, 25, 40],
     thoughts: ['👑 Bow to me','🌸 Lovely...','💅 Impeccable','🎀 Perfection'],
     speed: 0.55,
+    favSeason: 0,
     unlocked: true,
   },
   {
@@ -106,6 +110,7 @@ const CAT_DEFS = [
     gifts: [4, 8, 14],
     thoughts: ['🔍 What\'s this?','👃 Sniff sniff','✨ Ooh shiny!','🧐 Interesting...'],
     speed: 0.7,
+    favSeason: 1,
     unlocked: true,
   },
   {
@@ -121,6 +126,7 @@ const CAT_DEFS = [
     gifts: [8, 15, 22],
     thoughts: ['💧 Drip drop...','🐟 Fishies~','😊 Peaceful','🫧 Bubbles!'],
     speed: 0.45,
+    favSeason: 0,
     unlocked: true,
   },
   {
@@ -136,6 +142,7 @@ const CAT_DEFS = [
     gifts: [25, 45, 70],
     thoughts: ['🎩 Distinguished','📜 Hmm, yes...','🍷 Refined taste','⚜️ My garden'],
     speed: 0.4,
+    favSeason: 2,
     unlocked: false,
     unlockCost: 80,
   },
@@ -152,9 +159,20 @@ const CAT_DEFS = [
     gifts: [20, 35, 60],
     thoughts: ['🌙 Moonlit paths','🔮 I see things...','✨ Magic nearby','🌀 Spinning...'],
     speed: 0.6,
+    favSeason: 3,
     unlocked: false,
     unlockCost: 100,
   },
+];
+
+const ACHIEVEMENTS = [
+  { id: 'first_visitor', emoji: '🐱', label: 'First Visitor', check: (g) => Object.keys(g.catManager.seenCats).length >= 1 },
+  { id: 'first_pet',     emoji: '😻', label: 'Cat Whisperer', check: (g) => g.pettedCount >= 1 },
+  { id: 'yarn_50',       emoji: '🧶', label: 'Yarn Collector', check: (g) => g.totalYarnEarned >= 50 },
+  { id: 'yarn_250',      emoji: '💰', label: 'Yarn Hoarder', check: (g) => g.totalYarnEarned >= 250 },
+  { id: 'visits_20',     emoji: '🌸', label: 'Popular Garden', check: (g) => Object.values(g.catManager.visitCounts).reduce((a,b)=>a+b,0) >= 20 },
+  { id: 'season_change', emoji: '🍂', label: 'Through the Seasons', check: (g) => g.seasonChanges >= 1 },
+  { id: 'all_common',    emoji: '📖', label: 'Cat Friend', check: (g) => CAT_DEFS.filter(d => d.rarity === 'common').every(d => g.catManager.seenCats[d.id]) },
 ];
 
 const SEASONS = [
