@@ -13,6 +13,7 @@ class UI {
     this._bindTabs();
     this._bindButtons();
     this._bindModal();
+    this._bindGameMenu();
     this.renderShop();
   }
 
@@ -54,6 +55,136 @@ class UI {
       if (e.target === document.getElementById('journal-modal'))
         document.getElementById('journal-modal').classList.add('hidden');
     });
+  }
+
+  _bindGameMenu() {
+    document.getElementById('btn-menu').addEventListener('click', () => this.openGameMenu());
+    document.querySelector('#game-menu-modal .close-modal').addEventListener('click', () => {
+      document.getElementById('game-menu-modal').classList.add('hidden');
+    });
+    document.getElementById('game-menu-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('game-menu-modal'))
+        document.getElementById('game-menu-modal').classList.add('hidden');
+    });
+  }
+
+  openGameMenu() {
+    const content = document.getElementById('game-menu-content');
+    content.innerHTML = '';
+
+    // ── Stats ────────────────────────────────────────────────────
+    const statsSection = this._menuSection('🧶 Your Garden');
+    const g = this.game;
+    const seenCount  = Object.keys(g.catManager.seenCats).length;
+    const totalCats  = CAT_DEFS.length;
+    const totalVisits = Object.values(g.catManager.visitCounts).reduce((a, b) => a + b, 0);
+    const achCount   = g.achievements.size;
+    const totalAch   = ACHIEVEMENTS.length;
+    const trophyCount = g.trophies.size;
+    const season     = SEASONS[g.garden.season];
+
+    [
+      ['🧶 Total yarn earned',  `${g.totalYarnEarned}🧶`],
+      ['🧶 Yarn in hand',       `${g.yarn}🧶`],
+      ['🐱 Cats discovered',    `${seenCount} / ${totalCats}`],
+      ['👋 Times petted',       `${g.pettedCount}`],
+      ['📬 Total cat visits',   `${totalVisits}`],
+      ['🏆 Trophies earned',    `${trophyCount} / ${TROPHIES.length}`],
+      ['⭐ Achievements',       `${achCount} / ${totalAch}`],
+      ['🌸 Current season',     `${season.emoji} ${season.name}`],
+      ['📖 Diary entries',      `${g.visitLog.length}`],
+    ].forEach(([label, value]) => {
+      const row = document.createElement('div');
+      row.className = 'menu-stat-row';
+      const l = document.createElement('span');
+      l.className = 'menu-stat-label';
+      l.textContent = label;
+      const v = document.createElement('span');
+      v.className = 'menu-stat-value';
+      v.textContent = value;
+      row.appendChild(l);
+      row.appendChild(v);
+      statsSection.appendChild(row);
+    });
+    content.appendChild(statsSection);
+
+    // ── About ────────────────────────────────────────────────────
+    const aboutSection = this._menuSection('ℹ️ About');
+    const aboutText = document.createElement('p');
+    aboutText.className = 'menu-about-text';
+    aboutText.innerHTML =
+      '<strong>Cat Garden Haven</strong> is a cosy idle garden where cats visit, leave gifts, and make themselves at home.<br><br>' +
+      'Place items to attract different cats, unlock rare visitors, and collect yarn to grow your garden.<br><br>' +
+      '<em>Cats save automatically. Progress is stored in your browser.</em>';
+    aboutSection.appendChild(aboutText);
+    content.appendChild(aboutSection);
+
+    // ── Actions ──────────────────────────────────────────────────
+    const actionsSection = this._menuSection('⚙️ Options');
+
+    const zenRow = this._menuActionBtn(
+      g.zenMode ? '🌿 Zen Mode: On' : '🌿 Zen Mode: Off',
+      () => {
+        g.zenMode = !g.zenMode;
+        document.getElementById('btn-zen').classList.toggle('active', g.zenMode);
+        document.getElementById('game-menu-modal').classList.add('hidden');
+        this.notify(g.zenMode ? '🌿 Zen Mode On' : '🌿 Zen Mode Off');
+      }
+    );
+    actionsSection.appendChild(zenRow);
+
+    const clearLogBtn = this._menuActionBtn('🗑️ Clear Visitor Diary', () => {
+      g.visitLog = [];
+      g.save();
+      document.getElementById('game-menu-modal').classList.add('hidden');
+      this.notify('Visitor diary cleared');
+    });
+    actionsSection.appendChild(clearLogBtn);
+
+    content.appendChild(actionsSection);
+
+    // ── Danger zone ──────────────────────────────────────────────
+    const dangerSection = this._menuSection('⚠️ Danger Zone');
+    let confirmPending = false;
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'menu-action-btn menu-action-btn--danger';
+    resetBtn.textContent = '🔄 Reset Game';
+    resetBtn.addEventListener('click', () => {
+      if (!confirmPending) {
+        confirmPending = true;
+        resetBtn.textContent = '⚠️ Tap again to confirm reset';
+        resetBtn.classList.add('menu-action-btn--confirm');
+        setTimeout(() => {
+          confirmPending = false;
+          resetBtn.textContent = '🔄 Reset Game';
+          resetBtn.classList.remove('menu-action-btn--confirm');
+        }, 3000);
+      } else {
+        g.resetGame();
+      }
+    });
+    dangerSection.appendChild(resetBtn);
+    content.appendChild(dangerSection);
+
+    document.getElementById('game-menu-modal').classList.remove('hidden');
+  }
+
+  _menuSection(title) {
+    const section = document.createElement('div');
+    section.className = 'menu-section';
+    const h = document.createElement('h3');
+    h.className = 'menu-section-title';
+    h.textContent = title;
+    section.appendChild(h);
+    return section;
+  }
+
+  _menuActionBtn(label, onClick) {
+    const btn = document.createElement('button');
+    btn.className = 'menu-action-btn';
+    btn.textContent = label;
+    btn.addEventListener('click', onClick);
+    return btn;
   }
 
   renderShop() {
