@@ -101,6 +101,8 @@ let keys = {};
 let mouseX = GW / 2, mouseY = GH - 80, mouseAim = false;
 
 highScore = parseInt(localStorage.getItem('sa_hs') || '0');
+let bestWave = parseInt(localStorage.getItem('sa_bw') || '0');
+let paused = false;
 
 // ── Starfield ─────────────────────────────────────────────────────────────────
 function buildStarfield() {
@@ -155,6 +157,7 @@ function comboMult() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 function initGame() {
     state = 'PLAYING';
+    paused = false;
     score = 0; wave = 0; combo = 0; comboTimer = 0; maxCombo = 0;
     shakeX = 0; shakeY = 0; gameOverTimer = 0;
     waveActive = false; betweenWaves = true; betweenWaveTimer = 1.5;
@@ -659,6 +662,7 @@ function hitPlayer() {
 function triggerGameOver() {
     state = 'GAME_OVER';
     if (score > highScore) { highScore = score; localStorage.setItem('sa_hs', highScore); }
+    if (wave > bestWave) { bestWave = wave; localStorage.setItem('sa_bw', bestWave); }
     burst(player.x, player.y, '#FF6600', 80, 280, 5.5, 2.2);
     shake(26); sfxExplosion(5);
     player = null;
@@ -1059,6 +1063,10 @@ function drawStartScreen() {
         ctx.fillStyle = '#FFAA00'; ctx.font = '13px monospace';
         ctx.fillText(`Best Score:  ${highScore.toLocaleString()}`, GW/2, GH/2+140);
     }
+    if (bestWave > 0) {
+        ctx.fillStyle = '#AAFFAA'; ctx.font = '12px monospace';
+        ctx.fillText(`Best Wave:  ${bestWave}`, GW/2, GH/2+160);
+    }
     ctx.restore();
 }
 
@@ -1084,7 +1092,7 @@ function drawGameOver() {
 
         ctx.fillStyle = '#FFFFFF'; ctx.font = '19px monospace';
         ctx.fillText(`Score:  ${score.toLocaleString()}`, GW/2, GH/2-16);
-        ctx.fillText(`Wave:   ${wave}`, GW/2, GH/2+16);
+        ctx.fillText(`Wave:   ${wave}  ${wave >= bestWave && wave > 0 ? '(new best!)' : bestWave > 0 ? `(best: ${bestWave})` : ''}`, GW/2, GH/2+16);
         ctx.fillText(`Best Combo:  ${maxCombo}×`, GW/2, GH/2+48);
 
         const p2 = 0.6+0.4*Math.sin(Date.now()*0.003);
@@ -1118,6 +1126,16 @@ function render() {
 
     if (state === 'START')     drawStartScreen();
     if (state === 'GAME_OVER') drawGameOver();
+
+    if (paused) {
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, 0, GW, GH);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 36px monospace';
+        ctx.fillText('PAUSED', GW/2, GH/2);
+        ctx.fillStyle = '#AAAAAA'; ctx.font = '14px monospace';
+        ctx.fillText('ESC to resume', GW/2, GH/2+34);
+    }
 }
 
 // ── Input ─────────────────────────────────────────────────────────────────────
@@ -1128,6 +1146,7 @@ document.addEventListener('keydown', e => {
     if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && state === 'PLAYING') {
         fireSmartBomb();
     }
+    if (e.code === 'Escape' && (state === 'PLAYING' || paused)) paused = !paused;
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
@@ -1168,7 +1187,7 @@ let lastTS = 0;
 function loop(ts) {
     const dt = Math.min((ts - lastTS) / 1000, 0.05);
     lastTS = ts;
-    if (state !== 'START') update(dt);
+    if (state !== 'START' && !paused) update(dt);
     render();
     requestAnimationFrame(loop);
 }
