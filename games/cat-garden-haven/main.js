@@ -31,6 +31,7 @@ class Game {
     this.moodBonus = 0;
     this.offlineRewardBonus = 0;
     this.nicknames = {};
+    this.visitLog = [];
 
     this._initUnlocks();
     this._resize();
@@ -265,7 +266,8 @@ class Game {
         this.ui.notify(`🎂 It's ${this._catDisplayName(cat.def)}'s birthday! ${s.emoji} Tap them for a special gift!`, 4500);
       },
       this.moodBonus,
-      this.garden.isGoldenHour
+      this.garden.isGoldenHour,
+      (cat) => this._logVisit(cat)
     );
 
     // Shimmer particles during golden hour
@@ -324,6 +326,20 @@ class Game {
     const trimmed = name.trim().slice(0, 12);
     if (trimmed) this.nicknames[catId] = trimmed;
     else delete this.nicknames[catId];
+    this.save();
+  }
+
+  _logVisit(cat) {
+    this.visitLog.unshift({
+      catId: cat.def.id,
+      season: this.garden.season,
+      timeOfDay: this.garden.timeOfDay,
+      gifted: cat.leftGift,
+      yarn: cat.giftYarnAmount || 0,
+      petted: cat.petted,
+      ts: Date.now(),
+    });
+    if (this.visitLog.length > 50) this.visitLog.length = 50;
     this.save();
   }
 
@@ -439,6 +455,7 @@ class Game {
         seasonYarn: this.seasonYarn,
         seasonStartVisits: this.seasonStartVisits,
         nicknames: this.nicknames,
+        visitLog: this.visitLog,
       };
       localStorage.setItem('catgarden_save', JSON.stringify(data));
     } catch (e) { /* ignore */ }
@@ -474,6 +491,7 @@ class Game {
       if (typeof data.seasonYarn === 'number') this.seasonYarn = data.seasonYarn;
       if (typeof data.seasonStartVisits === 'number') this.seasonStartVisits = data.seasonStartVisits;
       if (data.nicknames && typeof data.nicknames === 'object') this.nicknames = data.nicknames;
+      if (Array.isArray(data.visitLog)) this.visitLog = data.visitLog.slice(0, 50);
       this._applyTrophyPassives();
       this.ui.updateYarnDisplay();
     } catch (e) {

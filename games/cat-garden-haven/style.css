@@ -244,7 +244,41 @@ html, body {
 
 #journal-content {
   overflow-y: auto;
-  padding: 14px 16px;
+  padding: 0 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Journal tab row inside modal */
+.journal-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin: 0 -16px 4px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: var(--panel-bg);
+  z-index: 1;
+}
+.journal-tab-btn {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  color: var(--text-light);
+  transition: all 0.15s;
+}
+.journal-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.journal-tab-btn:hover { background: var(--bg); }
+
+/* Two-column cat grid (moved from #journal-content) */
+.journal-cat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
@@ -376,6 +410,25 @@ html, body {
 .trophy-icon { font-size: 1.6rem; line-height: 1; margin-bottom: 4px; }
 .trophy-label { font-size: 0.72rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
 .trophy-desc { font-size: 0.62rem; color: var(--text-light); }
+
+/* Diary entries */
+.diary-entry {
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+.diary-time { font-weight: 700; color: var(--accent); white-space: nowrap; }
+.diary-text { color: var(--text); }
+.diary-empty {
+  text-align: center;
+  color: var(--text-light);
+  font-size: 0.8rem;
+  padding: 24px 0;
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
