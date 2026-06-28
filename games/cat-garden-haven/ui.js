@@ -29,6 +29,19 @@ class UI {
   }
 
   _bindButtons() {
+    document.getElementById('btn-treat').addEventListener('click', () => {
+      if (this.game._canUseTreat()) {
+        this.game.placeTreat();
+      } else if (this.game.garden.treat) {
+        this.notify('🍪 Treat is already out — waiting for a visitor!');
+      } else {
+        const remainMs = 86400000 - (Date.now() - this.game.lastTreatTime);
+        const remainH = Math.ceil(remainMs / 3600000);
+        this.notify(`🍪 Next treat available in ~${remainH}h`);
+      }
+    });
+    setInterval(() => this._updateTreatBtn(), 60000);
+
     document.getElementById('btn-journal').addEventListener('click', () => this.openJournal());
     document.getElementById('btn-undo').addEventListener('click', () => {
       const items = this.game.garden.placedItems;
@@ -255,6 +268,23 @@ class UI {
 
   updateYarnDisplay() {
     document.getElementById('yarn-value').textContent = this.game.yarn;
+  }
+
+  _updateTreatBtn() {
+    const btn = document.getElementById('btn-treat');
+    if (!btn) return;
+    const active    = !!this.game.garden.treat;
+    const available = this.game._canUseTreat();
+    btn.classList.toggle('treat-available', available);
+    btn.classList.toggle('treat-active', active);
+    if (active) {
+      btn.title = 'Treat is out — waiting for a visitor!';
+    } else if (available) {
+      btn.title = 'Leave a daily treat — the next cat will always bring a gift!';
+    } else {
+      const remainH = Math.ceil((86400000 - (Date.now() - this.game.lastTreatTime)) / 3600000);
+      btn.title = `Next treat in ~${remainH}h`;
+    }
   }
 
   openJournal() {

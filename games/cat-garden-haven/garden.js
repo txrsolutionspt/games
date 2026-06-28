@@ -9,6 +9,7 @@ class Garden {
     this.W = canvas.width;
     this.H = canvas.height;
     this.placedItems = [];
+    this.treat = null;
     this.season = 0;
     this.timeOfDay = 0;
     this.dayTimer = 0;
@@ -375,6 +376,27 @@ class Garden {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillText(itemDef.emoji, x, y);
+    ctx.restore();
+  }
+
+  drawTreat(ctx, time) {
+    if (!this.treat) return;
+    const { x, y } = this.treat;
+    const bob = Math.sin(time * 2.2) * 2.5;
+    ctx.save();
+    // Glow halo
+    const grd = ctx.createRadialGradient(x, y + bob, 0, x, y + bob, 26);
+    grd.addColorStop(0, 'rgba(255,200,80,0.45)');
+    grd.addColorStop(1, 'rgba(255,200,80,0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(x, y + bob, 26, 0, Math.PI * 2);
+    ctx.fill();
+    // Cookie
+    ctx.font = '22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🍪', x, y + bob);
     ctx.restore();
   }
 

@@ -29,6 +29,7 @@ class Cat {
     this.isBirthday = false;
     this.birthdayAnnounced = false;
     this.nearUpgrade = false;
+    this.treatGuaranteed = false;
     this.petted = false;
     this.leftGift = false;
     this.giftYarnAmount = 0;
@@ -177,8 +178,8 @@ class Cat {
 
   tryGift(particles, season = 0) {
     if (this.leftGift) return 0;
-    const chance = this.isBirthday
-      ? Math.min(1, this.def.giftChance * 1.5 * this.mood)
+    const chance = this.treatGuaranteed ? 1
+      : this.isBirthday ? Math.min(1, this.def.giftChance * 1.5 * this.mood)
       : this.def.giftChance * this.mood;
     if (Math.random() < chance) {
       this.leftGift = true;
@@ -507,14 +508,17 @@ class CatManager {
     this.visitCounts = {};
   }
 
-  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null, moodBonus = 0, goldenHour = false, onLeave = null) {
+  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null, moodBonus = 0, goldenHour = false, onLeave = null, onSpawn = null) {
     if (zenMode) return;
 
     this.spawnTimer += dt;
     if (this.spawnTimer >= this.spawnInterval && this.cats.length < this.maxCats) {
       this.spawnTimer = 0;
       const newCat = this._trySpawnCat(placedItems, canvasW, canvasH, season, moodBonus, goldenHour);
-      if (newCat && newCat.isBirthday && onBirthday) onBirthday(newCat);
+      if (newCat) {
+        if (newCat.isBirthday && onBirthday) onBirthday(newCat);
+        if (onSpawn) onSpawn(newCat);
+      }
     }
 
     for (let i = this.cats.length - 1; i >= 0; i--) {
