@@ -110,6 +110,16 @@ class Garden {
     });
   }
 
+  _goldenProgress() {
+    const t = this.timeOfDay;
+    if (t < 0.45 || t > 0.55) return 0;
+    return t <= 0.5 ? (t - 0.45) / 0.05 : (0.55 - t) / 0.05;
+  }
+
+  get isGoldenHour() {
+    return this.timeOfDay >= 0.45 && this.timeOfDay <= 0.55;
+  }
+
   drawBackground(time) {
     const ctx = this.ctx;
     const pal = SEASONS[this.season].palette;
@@ -196,6 +206,28 @@ class Garden {
         ctx.fill();
       }
       ctx.globalAlpha = 1;
+    }
+
+    // Golden Hour warm overlay
+    const gp = this._goldenProgress();
+    if (gp > 0) {
+      const cx = this.W / 2, cy = this.H * 0.45;
+      const radius = Math.max(this.W, this.H) * 0.95;
+      const vignette = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+      vignette.addColorStop(0,   `rgba(255,200,80,${gp * 0.13})`);
+      vignette.addColorStop(0.55,`rgba(255,140,40,${gp * 0.09})`);
+      vignette.addColorStop(1,   `rgba(180,70,10,${gp * 0.18})`);
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, this.W, this.H);
+
+      ctx.save();
+      ctx.globalAlpha = gp * 0.7;
+      ctx.font = 'bold 11px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = '#e07820';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('✨ Golden Hour', 10, this.H - 28);
+      ctx.restore();
     }
   }
 

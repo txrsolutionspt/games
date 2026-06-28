@@ -67,6 +67,7 @@ class ParticleSystem {
         case 'gift':     glyph = '🎁'; break;
         case 'star':     glyph = '⭐'; break;
         case 'confetti': glyph = ['🎊','🎉','🎈','⭐','🎀'][Math.floor(Math.abs(p.rot * 5)) % 5]; break;
+        case 'shimmer':  glyph = ['✨','🌟','💛'][Math.floor(Math.abs(p.rot * 3)) % 3]; break;
         default:         glyph = '✨';
       }
       ctx.fillText(glyph, 0, 0);

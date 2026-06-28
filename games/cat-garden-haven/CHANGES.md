@@ -5,6 +5,27 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 6 — 2026-06-28
+
+### Features Added
+
+**Twilight Golden Hour**
+- A "golden hour" window is active when `garden.timeOfDay` is between 0.45 and 0.55 (centred on sunset in the 120-second day cycle).
+- `Garden._goldenProgress()` — triangle 0→1→0 value over that range.
+- `Garden.isGoldenHour` getter — used by `Game` to pass state into `CatManager`.
+- **Visual:** Warm amber/orange radial vignette overlaid on the full canvas, opacity proportional to `goldenProgress`. Faint "✨ Golden Hour" label at the bottom-left of the garden canvas.
+- **Particles:** Each frame `Game._loop` has a chance to emit a `shimmer` particle (slow upward drift, glyphs ✨ 🌟 💛) scaled by `goldenProgress × dt`.
+- **Gameplay:** Rare cats (Duke, Marble — `rarity === 'rare'`) receive an additional ×2 spawn-weight bonus during golden hour.
+- `shimmer` type added to `ParticleSystem` draw switch, spawned via `spawnSingle`.
+- Golden-hour tip added to the hint rotation.
+
+### Architecture changes
+- `CatManager.update`: added `goldenHour = false` as 11th param (non-breaking).
+- `CatManager._trySpawnCat`: added `goldenHour = false` as 6th param; rare cat weight is doubled when active.
+- Shimmer spawning lives in `Game._loop`, keeping `Garden` free of particle dependencies.
+
+---
+
 ## Session 5 — 2026-06-28
 
 ### Features Added
