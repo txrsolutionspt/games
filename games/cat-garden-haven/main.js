@@ -1,0 +1,336 @@
+'use strict';
+
+class Game {
+  constructor() {
+    this.canvas = document.getElementById('garden-canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.yarn = 0;
+    this.zenMode = false;
+    this.soundEnabled = false;
+    this.unlockedItems = new Set();
+    this.particles = new ParticleSystem();
+    this.catManager = new CatManager();
+    this.garden = null;
+    this.ui = null;
+    this.lastTime = 0;
+    this.time = 0;
+    this.hintTimer = 0;
+    this.hintInterval = 25;
+
+    this._initUnlocks();
+    this._resize();
+    this.garden = new Garden(this.canvas);
+    this.ui = new UI(this);
+    this._bindInput();
+    this._loadSave();
+    this._loop(0);
+
+    window.addEventListener('resize', () => this._resize());
+    this._startOfflineReward();
+  }
+
+  _initUnlocks() {
+    // Free items are always unlocked
+    for (const cat of Object.values(ITEMS)) {
+      cat.forEach(item => { if (item.cost === 0) this.unlockedItems.add(item.id); });
+    }
+  }
+
+  _resize() {
+    const main = document.getElementById('main-area');
+    const w = main.clientWidth;
+    const h = main.clientHeight;
+    if (this.canvas) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+    }
+    if (this.garden) this.garden.resize(w, h);
+    if (this.catManager) this.catManager.resize(w, h);
+  }
+
+  _bindInput() {
+    const canvas = this.canvas;
+
+    const getPos = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const src = e.touches ? e.touches[0] : e;
+      return {
+        x: (src.clientX - rect.left) * scaleX,
+        y: (src.clientY - rect.top) * scaleY,
+      };
+    };
+
+    let dragging = false;
+    let dragItem = null;
+    let ghostPos = null;
+
+    const onDown = (e) => {
+      e.preventDefault();
+      const pos = getPos(e);
+
+      if (this.ui.selectedItem) {
+        dragging = true;
+        dragItem = this.ui.selectedItem;
+        ghostPos = pos;
+        return;
+      }
+
+      // Try petting a cat
+      const cat = this.catManager.getCatAt(pos.x, pos.y);
+      if (cat) {
+        const petted = cat.pet(this.particles);
+        if (petted) {
+          canvas.className = 'petting';
+          setTimeout(() => { if (!this.ui.selectedItem) canvas.className = ''; }, 1500);
+          const yarn = cat.tryGift(this.particles);
+          if (yarn > 0) {
+            this.yarn += yarn;
+            this.ui.updateYarnDisplay();
+            this.ui.notify(`${cat.def.name} left you ${yarn}🧶!`);
+            this.save();
+          }
+        }
+        return;
+      }
+
+      // Right-click or long-press: remove item
+      if (e.button === 2 || e.type === 'contextmenu') {
+        e.preventDefault();
+        if (this.garden.removeItemAt(pos.x, pos.y)) {
+          this.save();
+          this.ui.notify('Item removed');
+        }
+        return;
+      }
+    };
+
+    const onMove = (e) => {
+      e.preventDefault();
+      const pos = getPos(e);
+      if (dragging && dragItem) {
+        ghostPos = pos;
+      }
+      const el = document.getElementById('tooltip');
+      if (!this.ui.selectedItem && !dragging) {
+        const cat = this.catManager.getCatAt(pos.x, pos.y);
+        if (cat) {
+          el.style.display = 'block';
+          el.style.left = (pos.x / (this.canvas.width / this.canvas.getBoundingClientRect().width)) + 10 + 'px';
+          el.style.top = (pos.y / (this.canvas.height / this.canvas.getBoundingClientRect().height)) - 30 + 'px';
+          el.textContent = `${cat.def.name} — ${cat.def.personality}`;
+        } else {
+          el.style.display = 'none';
+        }
+      } else {
+        el.style.display = 'none';
+      }
+    };
+
+    const onUp = (e) => {
+      e.preventDefault();
+      if (dragging && dragItem && ghostPos) {
+        const valid = this.garden.canPlace(ghostPos.x, ghostPos.y, dragItem.id);
+        if (valid) {
+          const placed = this.garden.placeItem(ghostPos.x, ghostPos.y, dragItem.id);
+          if (placed) {
+            this.particles.spawn(ghostPos.x, ghostPos.y, 'sparkle');
+            this.save();
+            this.ui.notify(`Placed ${dragItem.name}!`);
+          }
+        }
+        dragging = false;
+        dragItem = null;
+        ghostPos = null;
+      }
+    };
+
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('touchstart', onDown, { passive: false });
+    canvas.addEventListener('touchmove', onMove, { passive: false });
+    canvas.addEventListener('touchend', onUp, { passive: false });
+    canvas.addEventListener('contextmenu', e => { e.preventDefault(); onDown(e); });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        this.ui.selectedItem = null;
+        canvas.className = '';
+        this.ui.renderShop();
+      }
+    });
+
+    // Store ghost info for rendering
+    this._ghost = { active: false, item: null, pos: null, valid: false };
+    canvas.addEventListener('mousemove', (e) => {
+      if (this.ui.selectedItem) {
+        const pos = getPos(e);
+        this._ghost = { active: true, item: this.ui.selectedItem, pos, valid: this.garden.canPlace(pos.x, pos.y, this.ui.selectedItem.id) };
+      } else {
+        this._ghost.active = false;
+      }
+    });
+    canvas.addEventListener('mouseleave', () => { this._ghost.active = false; });
+
+    // Touch ghost
+    canvas.addEventListener('touchmove', (e) => {
+      if (this.ui.selectedItem) {
+        const pos = getPos(e);
+        this._ghost = { active: true, item: this.ui.selectedItem, pos, valid: this.garden.canPlace(pos.x, pos.y, this.ui.selectedItem.id) };
+      }
+    }, { passive: false });
+  }
+
+  _loop(ts) {
+    const dt = Math.min((ts - this.lastTime) / 1000, 0.1);
+    this.lastTime = ts;
+    this.time += dt;
+
+    this.garden.update(dt);
+    this.particles.update();
+    this.catManager.update(
+      dt,
+      this.garden.placedItems,
+      this.particles,
+      (yarn, cat) => {
+        this.yarn += yarn;
+        this.ui.updateYarnDisplay();
+        this.ui.notify(`${cat.def.name} left you ${yarn}🧶!`);
+        this.save();
+      },
+      this.canvas.width,
+      this.canvas.height,
+      this.zenMode
+    );
+
+    this.hintTimer += dt;
+    if (this.hintTimer >= this.hintInterval) {
+      this.hintTimer = 0;
+      this._showHint();
+    }
+
+    this._render();
+    requestAnimationFrame(ts => this._loop(ts));
+  }
+
+  _render() {
+    const ctx = this.ctx;
+    const W = this.canvas.width;
+    const H = this.canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    this.garden.drawBackground(this.time);
+    this.garden.drawItems(this.time);
+
+    // Draw cats sorted by y
+    const cats = [...this.catManager.cats].sort((a, b) => a.y - b.y);
+    for (const cat of cats) cat.draw(ctx);
+
+    this.particles.draw(ctx);
+
+    // Ghost placement preview
+    if (this._ghost && this._ghost.active && this._ghost.item && this._ghost.pos) {
+      this.garden.drawPlacingGhost(ctx, this._ghost.pos.x, this._ghost.pos.y, this._ghost.item, this._ghost.valid);
+    }
+
+    // Season label (faint)
+    const season = SEASONS[this.garden.season];
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#4a3728';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`${season.emoji} ${season.name}`, W - 8, H - 8);
+    ctx.restore();
+  }
+
+  _showHint() {
+    const hints = [
+      '💡 Try placing Catnip to attract more cats!',
+      '💡 Tap a cat to pet them — they may leave a gift!',
+      '💡 Check the Cat Journal to track visitors.',
+      '💡 Add a Cat Tree to attract Princess!',
+      '💡 Tall Grass makes Shadow feel safe.',
+      '💡 Press Escape to cancel placement.',
+      '💡 Right-click an item to remove it.',
+    ];
+    this.ui.showHint(hints[Math.floor(this.time / this.hintInterval) % hints.length]);
+  }
+
+  _startOfflineReward() {
+    const key = 'catgarden_lastvisit';
+    const last = parseInt(localStorage.getItem(key) || '0', 10);
+    const now = Date.now();
+    const elapsed = (now - last) / 1000 / 60; // minutes
+    if (last && elapsed > 2) {
+      const reward = Math.min(50, Math.floor(elapsed * 0.8));
+      if (reward > 0) {
+        this.yarn += reward;
+        this.ui?.updateYarnDisplay();
+        this.ui?.notify(`🌙 Welcome back! Cats left ${reward}🧶 while you were away.`);
+      }
+    }
+    localStorage.setItem(key, now);
+  }
+
+  save() {
+    try {
+      const data = {
+        yarn: this.yarn,
+        unlocked: [...this.unlockedItems],
+        items: this.garden.serialize(),
+        catsSeen: this.catManager.seenCats,
+        catVisits: this.catManager.visitCounts,
+        catUnlocked: CAT_DEFS.filter(d => d.unlocked).map(d => d.id),
+        season: this.garden.season,
+      };
+      localStorage.setItem('catgarden_save', JSON.stringify(data));
+    } catch (e) { /* ignore */ }
+  }
+
+  _loadSave() {
+    try {
+      const raw = localStorage.getItem('catgarden_save');
+      if (!raw) {
+        this._newGame();
+        return;
+      }
+      const data = JSON.parse(raw);
+      this.yarn = data.yarn || 0;
+      if (data.unlocked) data.unlocked.forEach(id => this.unlockedItems.add(id));
+      if (data.items) this.garden.loadItems(data.items);
+      if (data.catsSeen) this.catManager.seenCats = data.catsSeen;
+      if (data.catVisits) this.catManager.visitCounts = data.catVisits;
+      if (data.catUnlocked) {
+        data.catUnlocked.forEach(id => {
+          const def = CAT_DEFS.find(d => d.id === id);
+          if (def) def.unlocked = true;
+        });
+      }
+      if (typeof data.season === 'number') this.garden.season = data.season;
+      this.ui.updateYarnDisplay();
+    } catch (e) {
+      this._newGame();
+    }
+  }
+
+  _newGame() {
+    // Starter items
+    const W = this.canvas.width;
+    const H = this.canvas.height;
+    this.garden.placeItem(W * 0.3, H * 0.5, 'catnip');
+    this.garden.placeItem(W * 0.6, H * 0.45, 'box');
+    this.garden.placeItem(W * 0.45, H * 0.65, 'ball');
+    this.yarn = 20;
+    this.ui.updateYarnDisplay();
+    this.ui.notify('🌸 Welcome to Cat Garden Haven! Tap the items panel to add more!');
+    this.save();
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  window._game = new Game();
+});

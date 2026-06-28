@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Cat Garden Haven</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="game-header">
+      <div id="header-left">
+        <span id="yarn-count">🧶 <span id="yarn-value">0</span></span>
+      </div>
+      <div id="header-center">
+        <h1>Cat Garden Haven</h1>
+      </div>
+      <div id="header-right">
+        <button id="btn-journal" class="hdr-btn" title="Cat Journal">📖</button>
+        <button id="btn-sound" class="hdr-btn" title="Toggle Sound">🔊</button>
+        <button id="btn-zen" class="hdr-btn" title="Zen Mode">🌿</button>
+      </div>
+    </div>
+
+    <div id="main-area">
+      <canvas id="garden-canvas"></canvas>
+      <div id="tooltip"></div>
+    </div>
+
+    <div id="bottom-panel">
+      <div id="shop-tabs">
+        <button class="tab-btn active" data-tab="plants">🌿 Plants</button>
+        <button class="tab-btn" data-tab="furniture">🪑 Furniture</button>
+        <button class="tab-btn" data-tab="toys">🎾 Toys</button>
+        <button class="tab-btn" data-tab="decor">✨ Decor</button>
+      </div>
+      <div id="shop-items"></div>
+    </div>
+
+    <!-- Cat Journal Modal -->
+    <div id="journal-modal" class="modal hidden">
+      <div class="modal-inner">
+        <div class="modal-header">
+          <h2>📖 Cat Journal</h2>
+          <button class="close-modal">✕</button>
+        </div>
+        <div id="journal-content"></div>
+      </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="hidden"></div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="particles.js"></script>
+  <script src="cats.js"></script>
+  <script src="garden.js"></script>
+  <script src="ui.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
