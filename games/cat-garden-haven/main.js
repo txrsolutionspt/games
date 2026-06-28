@@ -65,6 +65,8 @@ class Game {
     let dragging = false;
     let dragItem = null;
     let ghostPos = null;
+    let dragStart = null;
+    const MIN_DRAG_PX = 18; // must move this far before placement commits
 
     const onDown = (e) => {
       e.preventDefault();
@@ -73,7 +75,9 @@ class Game {
       if (this.ui.selectedItem) {
         dragging = true;
         dragItem = this.ui.selectedItem;
-        ghostPos = pos;
+        ghostPos = { ...pos };
+        dragStart = { ...pos };
+        this._ghost = { active: true, item: dragItem, pos, valid: this.garden.canPlace(pos.x, pos.y, dragItem.id) };
         return;
       }
 
@@ -111,6 +115,7 @@ class Game {
       const pos = getPos(e);
       if (dragging && dragItem) {
         ghostPos = pos;
+        this._ghost = { active: true, item: dragItem, pos, valid: this.garden.canPlace(pos.x, pos.y, dragItem.id) };
       }
       const el = document.getElementById('tooltip');
       if (!this.ui.selectedItem && !dragging) {
@@ -130,20 +135,31 @@ class Game {
 
     const onUp = (e) => {
       e.preventDefault();
-      if (dragging && dragItem && ghostPos) {
-        const valid = this.garden.canPlace(ghostPos.x, ghostPos.y, dragItem.id);
-        if (valid) {
-          const placed = this.garden.placeItem(ghostPos.x, ghostPos.y, dragItem.id);
-          if (placed) {
-            this.particles.spawn(ghostPos.x, ghostPos.y, 'sparkle');
-            this.save();
-            this.ui.notify(`Placed ${dragItem.name}!`);
+      if (dragging && dragItem && ghostPos && dragStart) {
+        const dx = ghostPos.x - dragStart.x;
+        const dy = ghostPos.y - dragStart.y;
+        const moved = Math.sqrt(dx * dx + dy * dy);
+
+        if (moved >= MIN_DRAG_PX) {
+          // Real drag — place the item
+          const valid = this.garden.canPlace(ghostPos.x, ghostPos.y, dragItem.id);
+          if (valid) {
+            const placed = this.garden.placeItem(ghostPos.x, ghostPos.y, dragItem.id);
+            if (placed) {
+              this.particles.spawn(ghostPos.x, ghostPos.y, 'sparkle');
+              this.save();
+              this.ui.notify(`Placed ${dragItem.name}! Tap again to place more, or tap the item to deselect.`);
+            }
+          } else {
+            this.ui.notify('Cannot place there');
           }
         }
-        dragging = false;
-        dragItem = null;
-        ghostPos = null;
+        // Short tap with item selected = do nothing (keep item selected for next drag)
       }
+      dragging = false;
+      dragItem = null;
+      dragStart = null;
+      this._ghost.active = !!this.ui.selectedItem;
     };
 
     canvas.addEventListener('mousedown', onDown);
@@ -301,7 +317,7 @@ class Game {
       const data = JSON.parse(raw);
       this.yarn = data.yarn || 0;
       if (data.unlocked) data.unlocked.forEach(id => this.unlockedItems.add(id));
-      if (data.items) this.garden.loadItems(data.items);
+      if (data.items) this.garden.loadItems(data.items.slice(0, 60));
       if (data.catsSeen) this.catManager.seenCats = data.catsSeen;
       if (data.catVisits) this.catManager.visitCounts = data.catVisits;
       if (data.catUnlocked) {
