@@ -29,6 +29,35 @@ body {
   display: block;
   touch-action: none;
   cursor: pointer;
-  /* Crisp rendering for pixel art — not needed here, using auto */
   image-rendering: auto;
+}
+
+/* Name-entry text field — positioned and sized by JS to align with canvas */
+#name-input {
+  position: fixed;
+  display: none;
+  z-index: 10;
+  border: 3px solid #9B59B6;
+  border-radius: 16px;
+  background: rgba(12, 8, 45, 0.96);
+  color: #ffffff;
+  text-align: center;
+  outline: none;
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  font-weight: bold;
+  caret-color: #FFD700;
+  padding: 0 14px;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(155, 89, 182, 0.25);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+#name-input:focus {
+  border-color: #FFD700;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 215, 0, 0.3);
+}
+
+#name-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: normal;
 }
