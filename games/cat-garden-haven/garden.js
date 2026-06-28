@@ -9,6 +9,8 @@ class Garden {
     this.W = canvas.width;
     this.H = canvas.height;
     this.placedItems = [];
+    this.treat = null;
+    this.ambienceMode = 0;
     this.season = 0;
     this.timeOfDay = 0;
     this.dayTimer = 0;
@@ -110,6 +112,16 @@ class Garden {
     });
   }
 
+  _goldenProgress() {
+    const t = this.timeOfDay;
+    if (t < 0.45 || t > 0.55) return 0;
+    return t <= 0.5 ? (t - 0.45) / 0.05 : (0.55 - t) / 0.05;
+  }
+
+  get isGoldenHour() {
+    return this.timeOfDay >= 0.45 && this.timeOfDay <= 0.55;
+  }
+
   drawBackground(time) {
     const ctx = this.ctx;
     const pal = SEASONS[this.season].palette;
@@ -196,6 +208,56 @@ class Garden {
         ctx.fill();
       }
       ctx.globalAlpha = 1;
+    }
+
+    // Golden Hour warm overlay
+    const gp = this._goldenProgress();
+    if (gp > 0) {
+      const cx = this.W / 2, cy = this.H * 0.45;
+      const radius = Math.max(this.W, this.H) * 0.95;
+      const vignette = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+      vignette.addColorStop(0,   `rgba(255,200,80,${gp * 0.13})`);
+      vignette.addColorStop(0.55,`rgba(255,140,40,${gp * 0.09})`);
+      vignette.addColorStop(1,   `rgba(180,70,10,${gp * 0.18})`);
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, this.W, this.H);
+
+      ctx.save();
+      ctx.globalAlpha = gp * 0.7;
+      ctx.font = 'bold 11px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = '#e07820';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('✨ Golden Hour', 10, this.H - 28);
+      ctx.restore();
+    }
+
+    // Rain visual tint
+    if (this.ambienceMode === 2) {
+      ctx.fillStyle = 'rgba(90,110,155,0.18)';
+      ctx.fillRect(0, 0, this.W, this.H);
+      // Rain streaks
+      ctx.save();
+      ctx.strokeStyle = 'rgba(180,200,230,0.22)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 28; i++) {
+        const rx = (i * 137.5 * 2.3 + time * 60) % this.W;
+        const ry = (i * 73.1 + time * 120) % this.H;
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(rx - 3, ry + 14);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.font = 'bold 11px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = '#8ab0d8';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('🌧️ Rainy Day', 10, this.H - 28);
+      ctx.restore();
     }
   }
 
@@ -303,6 +365,21 @@ class Garden {
 
     ctx.save();
     ctx.translate(x + sway, y);
+
+    // Upgrade glow ring
+    if (item.tier > 0) {
+      const rw = def.w > 1 ? 30 : 20;
+      const pulse = 0.38 + Math.sin(time * 1.8 + item.x * 0.05) * 0.1;
+      const grd = ctx.createRadialGradient(0, 6, 2, 0, 6, rw);
+      grd.addColorStop(0,   `rgba(255,210,40,${pulse * 0.65})`);
+      grd.addColorStop(0.55,`rgba(255,185,20,${pulse * 0.35})`);
+      grd.addColorStop(1,   'rgba(255,160,0,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.ellipse(0, 6, rw, rw * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.font = `${28 + (def.w > 1 ? 12 : 0)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
@@ -331,6 +408,27 @@ class Garden {
     ctx.restore();
   }
 
+  drawTreat(ctx, time) {
+    if (!this.treat) return;
+    const { x, y } = this.treat;
+    const bob = Math.sin(time * 2.2) * 2.5;
+    ctx.save();
+    // Glow halo
+    const grd = ctx.createRadialGradient(x, y + bob, 0, x, y + bob, 26);
+    grd.addColorStop(0, 'rgba(255,200,80,0.45)');
+    grd.addColorStop(1, 'rgba(255,200,80,0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(x, y + bob, 26, 0, Math.PI * 2);
+    ctx.fill();
+    // Cookie
+    ctx.font = '22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🍪', x, y + bob);
+    ctx.restore();
+  }
+
   canPlace(x, y, itemId) {
     if (x < 20 || x > this.W - 20 || y < 40 || y > this.H - 20) return false;
     const MIN_DIST = 38;
@@ -344,8 +442,15 @@ class Garden {
 
   placeItem(x, y, itemId) {
     if (!this.canPlace(x, y, itemId)) return false;
-    this.placedItems.push({ x, y, itemId, id: Date.now() + Math.random() });
+    this.placedItems.push({ x, y, itemId, tier: 0, id: Date.now() + Math.random() });
     return true;
+  }
+
+  getItemAt(x, y) {
+    return this.placedItems.find(item => {
+      const dx = item.x - x, dy = item.y - y;
+      return Math.sqrt(dx * dx + dy * dy) < 34;
+    }) || null;
   }
 
   removeItemAt(x, y) {
@@ -395,10 +500,10 @@ class Garden {
   }
 
   serialize() {
-    return this.placedItems.map(i => ({ x: i.x, y: i.y, itemId: i.itemId }));
+    return this.placedItems.map(i => ({ x: i.x, y: i.y, itemId: i.itemId, tier: i.tier || 0 }));
   }
 
   loadItems(data) {
-    this.placedItems = data.map(i => ({ ...i, id: Date.now() + Math.random() }));
+    this.placedItems = data.map(i => ({ ...i, tier: i.tier || 0, id: Date.now() + Math.random() }));
   }
 }

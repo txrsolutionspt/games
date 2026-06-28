@@ -6,7 +6,7 @@ class ParticleSystem {
   }
 
   spawn(x, y, type) {
-    const count = type === 'hearts' ? 5 : type === 'sparkle' ? 6 : type === 'leaves' ? 4 : 3;
+    const count = type === 'confetti' ? 14 : type === 'hearts' ? 5 : type === 'sparkle' ? 6 : type === 'leaves' ? 4 : 3;
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i / count) + (Math.random() - 0.5) * 0.6;
       const speed = 0.5 + Math.random() * 1.5;
@@ -66,6 +66,8 @@ class ParticleSystem {
         case 'yarn':     glyph = '🧶'; break;
         case 'gift':     glyph = '🎁'; break;
         case 'star':     glyph = '⭐'; break;
+        case 'confetti': glyph = ['🎊','🎉','🎈','⭐','🎀'][Math.floor(Math.abs(p.rot * 5)) % 5]; break;
+        case 'shimmer':  glyph = ['✨','🌟','💛'][Math.floor(Math.abs(p.rot * 3)) % 3]; break;
         default:         glyph = '✨';
       }
       ctx.fillText(glyph, 0, 0);

@@ -3,7 +3,7 @@
 const CAT_STATES = { ENTERING: 'entering', WANDERING: 'wandering', SITTING: 'sitting', PLAYING: 'playing', SLEEPING: 'sleeping', LEAVING: 'leaving', PETTING: 'petting' };
 
 class Cat {
-  constructor(def, canvasW, canvasH) {
+  constructor(def, canvasW, canvasH, moodBonus = 0) {
     this.def = def;
     this.id = def.id + '_' + Date.now();
     this.x = -60;
@@ -13,7 +13,7 @@ class Cat {
     this.canvasW = canvasW;
     this.canvasH = canvasH;
     this.state = CAT_STATES.ENTERING;
-    this.mood = 0.5 + Math.random() * 0.3;
+    this.mood = Math.min(1, 0.5 + Math.random() * 0.3 + moodBonus);
     this.stateTimer = 0;
     this.stateDuration = 3 + Math.random() * 4;
     this.thoughtTimer = 0;
@@ -26,8 +26,13 @@ class Cat {
     this.blinkTimer = 2 + Math.random() * 3;
     this.blinking = false;
     this.blinkFrame = 0;
+    this.isBirthday = false;
+    this.birthdayAnnounced = false;
+    this.nearUpgrade = false;
+    this.treatGuaranteed = false;
     this.petted = false;
     this.leftGift = false;
+    this.giftYarnAmount = 0;
     this.visitDuration = 30 + Math.random() * 60;
     this.visitTimer = 0;
     this.speed = def.speed * (12 + Math.random() * 4);
@@ -38,6 +43,7 @@ class Cat {
   }
 
   update(dt, placedItems, particles) {
+    const prevState = this.state;
     this.visitTimer += dt;
     this.stateTimer += dt;
     this.bobOffset += dt * 2;
@@ -77,6 +83,13 @@ class Cat {
       const thoughts = this.def.thoughts;
       this._showThought(thoughts[Math.floor(Math.random() * thoughts.length)]);
     }
+
+    // Confetti burst when a birthday cat finishes entering the garden
+    if (!this.birthdayAnnounced && this.isBirthday && prevState === CAT_STATES.ENTERING && this.state !== CAT_STATES.ENTERING) {
+      this.birthdayAnnounced = true;
+      particles.spawn(this.x, this.y - 20, 'confetti');
+      this._showThought('🎂 It\'s my birthday!', 3.5);
+    }
   }
 
   _moveToTarget(dt) {
@@ -106,19 +119,25 @@ class Cat {
       this.targetY = favItem.y + Math.random() * 20 - 10;
       this.state = CAT_STATES.WANDERING;
       this.sitTarget = favItem;
+      if (favItem.tier > 0) {
+        this.nearUpgrade = true;
+        this.mood = Math.min(1, this.mood + 0.1);
+      }
       return;
     }
 
+    const upgradeMult = this.nearUpgrade ? 1.3 : 1;
     if (rand < 0.3) {
       this.state = CAT_STATES.SITTING;
-      this.stateDuration = 3 + Math.random() * 6;
+      this.stateDuration = (3 + Math.random() * 6) * upgradeMult;
     } else if (rand < 0.5) {
       this.state = CAT_STATES.PLAYING;
-      this.stateDuration = 2 + Math.random() * 4;
+      this.stateDuration = (2 + Math.random() * 4) * upgradeMult;
     } else if (rand < 0.65) {
       this.state = CAT_STATES.SLEEPING;
-      this.stateDuration = 5 + Math.random() * 8;
+      this.stateDuration = (5 + Math.random() * 8) * upgradeMult;
     } else {
+      this.nearUpgrade = false;
       this.state = CAT_STATES.WANDERING;
       const margin = 60;
       this.targetX = margin + Math.random() * (this.canvasW - margin * 2);
@@ -159,14 +178,23 @@ class Cat {
 
   tryGift(particles, season = 0) {
     if (this.leftGift) return 0;
-    if (Math.random() < this.def.giftChance * this.mood) {
+    const chance = this.treatGuaranteed ? 1
+      : this.isBirthday ? Math.min(1, this.def.giftChance * 1.5 * this.mood)
+      : this.def.giftChance * this.mood;
+    if (Math.random() < chance) {
       this.leftGift = true;
       const gifts = this.def.gifts;
       let amount = gifts[Math.floor(Math.random() * gifts.length)];
+      this.giftYarnAmount = amount; // will be updated below after bonuses
       const isFavSeason = this.def.favSeason === season;
       if (isFavSeason) amount = Math.ceil(amount * 1.5);
-      particles.spawn(this.x, this.y - 24, 'yarn');
-      this._showThought(isFavSeason ? '🎁 Favourite season gift!' : '🎁 A gift for you!');
+      if (this.isBirthday) amount = Math.ceil(amount * 2);
+      this.giftYarnAmount = amount;
+      particles.spawn(this.x, this.y - 24, this.isBirthday ? 'confetti' : 'yarn');
+      const thought = this.isBirthday
+        ? '🎂 Birthday gift for you!'
+        : (isFavSeason ? '🎁 Favourite season gift!' : '🎁 A gift for you!');
+      this._showThought(thought);
       return amount;
     }
     return 0;
@@ -391,7 +419,39 @@ class Cat {
         ctx.arc(pawX, pawY, 6, 0, Math.PI * 2);
         ctx.fill(); ctx.stroke();
       }
+
+      // Party hat on birthday visits
+      if (this.isBirthday) this._drawPartyHat(ctx);
     }
+  }
+
+  _drawPartyHat(ctx) {
+    ctx.save();
+    ctx.translate(0, -24);
+    // Cone
+    ctx.beginPath();
+    ctx.moveTo(-7, 0);
+    ctx.lineTo(0, -18);
+    ctx.lineTo(7, 0);
+    ctx.closePath();
+    ctx.fillStyle = '#ff4466';
+    ctx.fill();
+    ctx.strokeStyle = '#cc2244';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Yellow stripes
+    ctx.strokeStyle = '#ffdd00';
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.moveTo(-4.5, -6); ctx.lineTo(4.5, -6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-2.5, -12); ctx.lineTo(2.5, -12); ctx.stroke();
+    ctx.globalAlpha = 1;
+    // Pompom
+    ctx.beginPath();
+    ctx.arc(0, -20, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffdd00';
+    ctx.fill();
+    ctx.restore();
   }
 
   _drawThought(ctx, x, y) {
@@ -446,15 +506,20 @@ class CatManager {
     this.maxCats = 5;
     this.seenCats = {};
     this.visitCounts = {};
+    this.rainMode = false;
   }
 
-  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0) {
+  update(dt, placedItems, particles, onYarn, canvasW, canvasH, zenMode, season = 0, onBirthday = null, moodBonus = 0, goldenHour = false, onLeave = null, onSpawn = null) {
     if (zenMode) return;
 
     this.spawnTimer += dt;
     if (this.spawnTimer >= this.spawnInterval && this.cats.length < this.maxCats) {
       this.spawnTimer = 0;
-      this._trySpawnCat(placedItems, canvasW, canvasH);
+      const newCat = this._trySpawnCat(placedItems, canvasW, canvasH, season, moodBonus, goldenHour);
+      if (newCat) {
+        if (newCat.isBirthday && onBirthday) onBirthday(newCat);
+        if (onSpawn) onSpawn(newCat);
+      }
     }
 
     for (let i = this.cats.length - 1; i >= 0; i--) {
@@ -467,18 +532,21 @@ class CatManager {
       }
 
       if (cat.isGone()) {
+        if (onLeave) onLeave(cat);
         this.cats.splice(i, 1);
       }
     }
   }
 
-  _trySpawnCat(placedItems, canvasW, canvasH) {
+  _trySpawnCat(placedItems, canvasW, canvasH, season = 0, moodBonus = 0, goldenHour = false) {
     const unlockedDefs = CAT_DEFS.filter(d => d.unlocked);
-    if (!unlockedDefs.length) return;
+    if (!unlockedDefs.length) return null;
 
     const weights = unlockedDefs.map(def => {
       let w = def.rarity === 'common' ? 3 : def.rarity === 'uncommon' ? 2 : 1;
       if (this._isAttracted(def, placedItems)) w *= 2;
+      if (goldenHour && def.rarity === 'rare') w *= 2;
+      if (this.rainMode && def.id === 'shadow') w *= 2;
       return w;
     });
 
@@ -490,12 +558,14 @@ class CatManager {
       if (rand <= 0) { chosen = unlockedDefs[i]; break; }
     }
 
-    if (this.cats.find(c => c.def.id === chosen.id)) return;
+    if (this.cats.find(c => c.def.id === chosen.id)) return null;
 
-    const cat = new Cat(chosen, canvasW, canvasH);
+    const cat = new Cat(chosen, canvasW, canvasH, moodBonus);
+    if (chosen.birthday === season && Math.random() < 0.4) cat.isBirthday = true;
     this.cats.push(cat);
     this.seenCats[chosen.id] = true;
     this.visitCounts[chosen.id] = (this.visitCounts[chosen.id] || 0) + 1;
+    return cat;
   }
 
   _isAttracted(def, placedItems) {

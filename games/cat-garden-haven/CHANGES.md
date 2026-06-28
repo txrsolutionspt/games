@@ -5,6 +5,248 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 11 — 2026-06-28
+
+### Features Added
+
+**Garden Ambience Customiser**
+- New `🔇` button in the game header cycles through four ambience modes: Off → 🐦 Birds → 🌧️ Rain → 🍃 Breeze → Off.
+- Each mode is powered by the Web Audio API (no audio assets):
+  - **Birds:** `setTimeout`-based random chirps using Oscillator + Gain envelope (gain 0.07, 140 ms duration, random pitch 900–2300 Hz).
+  - **Rain:** Looping white-noise AudioBuffer through a lowpass BiquadFilter (1100 Hz) at gain 0.16.
+  - **Breeze:** Sine oscillator at 75 Hz through a lowpass 280 Hz filter, amplitude swelled by a slow LFO at 0.07 Hz.
+- AudioContext is created lazily on the first user tap (satisfies browser autoplay policy).
+- **Visual rain overlay:** When rain mode is active, `Garden.drawBackground` draws a `rgba(90,110,155,0.18)` fill + 28 animated rain streaks and a "🌧️ Rainy Day" label.
+- **Gameplay (rain):** `CatManager.rainMode = true` doubles Shadow's spawn weight during rain.
+- Ambience mode persists across sessions via `localStorage` (`ambienceMode` field in save).
+- Button tint changes per mode: green (birds), blue (rain), amber (breeze).
+- Two hints added to the rotation about ambience and Shadow in rain.
+
+### Architecture changes
+- `ambience.js` — new file. `AMBIENCE_MODES` global constant array; `AmbienceSystem` class handles audio lifecycle.
+- `Garden.ambienceMode` — integer 0–3; read in `drawBackground` for rain overlay.
+- `CatManager.rainMode` — boolean; read in `_trySpawnCat` for Shadow weight boost.
+- `Game.ambience`, `Game.ambienceMode`, `Game.cycleAmbience()` — wire the three systems together on button press.
+- `UI._updateAmbienceBtn()` — updates icon, title, and CSS class (`ambience-{id}`) on every mode change.
+
+### Save data additions
+```json
+{ "ambienceMode": 0 }
+```
+
+---
+
+## Session 10 — 2026-06-28
+
+### Features Added
+
+**Friendship Biscuit (Daily Treat)**
+- A new 🍪 button in the header lets the player leave a daily treat in the garden.
+- Once placed, `Garden.treat = { x, y }` marks a cookie position drawn with a golden glow in the canvas.
+- The next cat that spawns is redirected to the treat position (`cat.targetX/Y`), gets `treatGuaranteed = true` (100 % gift chance on departure), and has `visitDuration += 60` seconds.
+- The treat disappears when a cat finds it. `Garden.drawTreat` draws the cookie only while `garden.treat` is set.
+- Cooldown: 24-hour wall-clock timer (`lastTreatTime` timestamp). Button shows three visual states — pulse animation when available, dimmed when active/waiting.
+- `UI._updateTreatBtn()` computes and reflects state; called on load, treat placement, cat claiming, and every 60 seconds.
+
+### Architecture changes
+- `CatManager.update`: added `onSpawn = null` as 13th param. Fires immediately after birthday check for every newly spawned cat; `Game` uses it to redirect cats to the treat.
+- `Cat.treatGuaranteed` flag: when `true`, `tryGift` sets chance to 1.0 unconditionally.
+- `Garden.drawTreat(ctx, time)` — cookie emoji with animated warm radial glow.
+
+### Save data additions
+```json
+{ "lastTreatTime": 0 }
+```
+
+---
+
+## Session 9 — 2026-06-28
+
+### Features Added
+
+**Game Menu (☰)**
+- New ☰ button opens a scrollable modal with four sections:
+  - **🧶 Your Garden** — live stats: total yarn, yarn in hand, cats discovered, times petted, total visits, trophies, achievements, current season, diary entries.
+  - **ℹ️ About** — brief description of the game.
+  - **⚙️ Options** — toggle Zen Mode, clear the visitor diary.
+  - **⚠️ Danger Zone** — Reset Game button with a two-tap confirmation (3-second window) to prevent accidental resets.
+- Reuses the existing `.modal` / `.modal-inner` HTML pattern (a second modal `#game-menu-modal` added to `index.html`).
+
+### Architecture changes
+- `UI._bindGameMenu()` — binds ☰ button, close button, and backdrop click.
+- `UI.openGameMenu()` — renders all sections dynamically into `#game-menu-content`.
+- Helper methods `UI._menuSection(title)` and `UI._menuActionBtn(label, onClick)` reduce repetition.
+- `Game.resetGame()` — clears both `catgarden_save` and `catgarden_lastvisit`, then reloads.
+
+---
+
+## Session 8 — 2026-06-28
+
+### Features Added
+
+**Item Upgrade Tokens**
+- Right-clicking (or long-pressing on mobile) a placed item opens a small context menu with two options: **⬆️ Upgrade 20🧶** and **🗑️ Remove**.
+- Upgrading costs 20🧶 and sets `item.tier = 1`. If an item is already upgraded, the menu shows "✨ Upgraded" in place of the button.
+- Upgraded items render with a pulsing warm gold radial glow beneath the emoji (drawn before the emoji in `_drawItem`, using an animated ellipse gradient).
+- Cats that wander to a favourite item with `tier > 0` get `mood += 0.1` on arrival and have all subsequent `stateDuration` values extended by ×1.3 (sitting/playing/sleeping).
+- `Cat.nearUpgrade` flag is set when a cat heads toward an upgraded fav item and cleared when it wanders away freely.
+- `tier` is serialised in `garden.serialize()` and restored in `loadItems()`, so upgrades persist across sessions.
+- `Garden.getItemAt(x, y)` added — returns the item object within 34 px of a point (used by the right-click handler).
+- Hint about upgrading added to the hint rotation.
+
+### Architecture changes
+- Right-click on canvas: was always `removeItemAt`. Now checks `getItemAt` first; if a placed item is found, shows `#item-menu` HTML overlay; if not, removes the last item (previous undo behaviour preserved as fallback).
+- `_showItemMenu` / `_hideItemMenu` added to `Game`.
+- `placeItem` now initialises `tier: 0` on every new item.
+
+### Save data changes
+- `items` array entries now include `tier` field (existing saves load fine — `tier` defaults to 0 when absent).
+
+---
+
+## Session 7 — 2026-06-28
+
+### Features Added
+
+**Cat Visitor Log (Time-Stamped Diary)**
+- `game.visitLog` — array of up to 50 visit entries, newest first, persisted in `localStorage`.
+- Each entry: `{ catId, season, timeOfDay, gifted, yarn, petted, ts }`.
+- Entries are appended when a cat fully exits via the new `onLeave` callback in `CatManager.update`.
+- `Cat.giftYarnAmount` — set in `tryGift` after all bonuses are applied, so the correct boosted value is recorded.
+- The Cat Journal now has two tabs: **🐾 Cats** (existing cat list + trophies) and **📖 Diary** (visit log).
+- Diary renders each entry as a one-line sentence: "🌅 Morning 🌸 — Muffin left you 12🧶." Time of day maps to four labels: 🌅 Morning / ☀️ Afternoon / 🌇 Dusk / 🌙 Night.
+- Diary uses the cat's current nickname if one is set.
+- Empty state message shown when no visits have been logged yet.
+
+### Architecture changes
+- `CatManager.update`: added `onLeave = null` as 12th param (non-breaking). Fires with the departing `Cat` just before it is spliced from the array.
+- `CatManager._trySpawnCat`: unchanged.
+- `Cat` constructor: `giftYarnAmount = 0` added.
+- `Cat.tryGift`: sets `this.giftYarnAmount` after bonuses so the log captures the final value.
+- `#journal-content` CSS changed from `display: grid` to `display: flex / column` so the tab bar + dynamic content work correctly. The 2-column cat grid moved to `.journal-cat-grid`.
+
+### Save data additions
+```json
+{ "visitLog": [] }
+```
+
+---
+
+## Session 6 — 2026-06-28
+
+### Features Added
+
+**Twilight Golden Hour**
+- A "golden hour" window is active when `garden.timeOfDay` is between 0.45 and 0.55 (centred on sunset in the 120-second day cycle).
+- `Garden._goldenProgress()` — triangle 0→1→0 value over that range.
+- `Garden.isGoldenHour` getter — used by `Game` to pass state into `CatManager`.
+- **Visual:** Warm amber/orange radial vignette overlaid on the full canvas, opacity proportional to `goldenProgress`. Faint "✨ Golden Hour" label at the bottom-left of the garden canvas.
+- **Particles:** Each frame `Game._loop` has a chance to emit a `shimmer` particle (slow upward drift, glyphs ✨ 🌟 💛) scaled by `goldenProgress × dt`.
+- **Gameplay:** Rare cats (Duke, Marble — `rarity === 'rare'`) receive an additional ×2 spawn-weight bonus during golden hour.
+- `shimmer` type added to `ParticleSystem` draw switch, spawned via `spawnSingle`.
+- Golden-hour tip added to the hint rotation.
+
+### Architecture changes
+- `CatManager.update`: added `goldenHour = false` as 11th param (non-breaking).
+- `CatManager._trySpawnCat`: added `goldenHour = false` as 6th param; rare cat weight is doubled when active.
+- Shimmer spawning lives in `Game._loop`, keeping `Garden` free of particle dependencies.
+
+---
+
+## Session 5 — 2026-06-28
+
+### Features Added
+
+**Personalised Cat Nicknames**
+- `game.nicknames` — plain object mapping `catId → nickname string`, stored in `localStorage`.
+- `game.setNickname(catId, name)` — trims, clamps to 12 chars, deletes entry if empty, then auto-saves.
+- `game._catDisplayName(def)` — returns the nickname if set, otherwise the default name. Used everywhere a cat's name appears in UI text: tooltip, gift notifications (petting and auto-leave), birthday announcement.
+- In the Cat Journal, tapping a seen cat's name replaces it with an inline `<input maxlength="12">`. Committing on blur or Enter saves the nickname and re-renders the journal. Escape cancels without saving.
+- When a nickname is active, the journal entry shows "🏷 {nickname}" with "(Default Name)" in smaller grey text alongside it.
+- Unseen cats are unaffected (still show "???").
+
+### Save data additions
+```json
+{ "nicknames": { "muffin": "Fluffy" } }
+```
+
+---
+
+## Session 4 — 2026-06-28
+
+### Features Added
+
+**Garden Prestige: Seasonal Trophies**
+- `TROPHIES` constant added to `data.js` — one entry per season with a `condition` (yarn and/or visits), a passive effect field, label, and description.
+- Trophies are evaluated at the end of each season inside `_advanceSeason`, just before the season index advances. Stats tracked: `seasonYarn` (yarn earned this season) and season visits (delta between `catManager.visitCounts` total and `seasonStartVisits`).
+- Earning a trophy fires an achievement-style notification and immediately calls `_applyTrophyPassives()`.
+- `_applyTrophyPassives()` recomputes all passive bonuses from the full `trophies` set and writes them into four live fields: `catManager.spawnInterval`, `giftBonus`, `offlineRewardBonus`, `moodBonus`. Called on load to restore bonuses from save.
+- `giftBonus` is applied in both the `onYarn` callback and the petting gift handler (`Math.ceil(yarn * this.giftBonus)`).
+- `moodBonus` flows into `CatManager.update` as a 10th param → `_trySpawnCat` → `new Cat(..., moodBonus)`.
+- `offlineRewardBonus` raises the offline reward cap in `_startOfflineReward`.
+
+**Trophy passives by season:**
+| Season | Condition | Passive |
+|---|---|---|
+| 🌸 Spring | 25🧶 in one season | Cats spawn 5% more often |
+| ☀️ Summer | 4 visits in one season | All gifts 10% larger |
+| 🍂 Autumn | 50🧶 in one season | Offline cap +10🧶 |
+| ❄️ Winter | 6 visits in one season | Cats arrive happier (+0.1 mood) |
+
+**Trophy UI in Cat Journal**
+- A "🏆 Season Trophies" section appended below the cat list shows a 2×2 grid.
+- Earned slots glow gold with the trophy emoji, label, and passive description.
+- Unearned slots are dimmed with the season name and the unlock condition as hint text.
+
+### Architecture changes
+- `Cat` constructor: new optional `moodBonus = 0` param added to starting mood calculation.
+- `CatManager.update`: added `moodBonus = 0` as 10th param (non-breaking).
+- `CatManager._trySpawnCat`: passes `moodBonus` to `Cat` constructor.
+- Gift bonus is applied at the `Game` level (not inside `Cat.tryGift`) so cats.js stays unaware of trophy state.
+
+### Save data additions
+```json
+{ "trophies": [], "seasonYarn": 0, "seasonStartVisits": 0 }
+```
+
+---
+
+## Session 3 — 2026-06-28
+
+### Features Added
+
+**Cat Birthdays**
+- Each cat has a `birthday` season (0–3) in `CAT_DEFS`:
+  - Spring (0): Princess, Bubbles
+  - Summer (1): Muffin, Zoom
+  - Autumn (2): Shadow, Biscuit
+  - Winter (3): Duke, Marble
+- On spawn, if the current season matches a cat's `birthday`, a 40 % dice roll flags `cat.isBirthday = true`.
+- Birthday cats wear a party hat (red cone, yellow stripes, yellow pompom) drawn in `Cat._drawPartyHat`, rendered above the head after ears are drawn.
+- When a birthday cat finishes entering the garden (state transitions away from ENTERING), a `confetti` particle burst fires and the cat thinks "🎂 It's my birthday!".
+- `tryGift` for birthday cats has gift chance boosted by ×1.5 (capped at 100 %) and payout doubled (×2). Both fav-season and birthday bonuses stack.
+- Gift notifications are birthday-aware: "🎂 [Name]'s birthday gift: N🧶!" instead of generic copy.
+- Tooltip shows 🎂 tag next to birthday cats.
+- Cat Journal shows each cat's birthday season; if the current season matches it shows "🎂" inline.
+- New achievement `birthday_pet` (🎂 "Happy Birthday!") — earned by petting a birthday cat at least once.
+
+**New particle type: `confetti`**
+- Count 14, glyphs cycle through 🎊 🎉 🎈 ⭐ 🎀.
+- Used for the birthday entrance burst and birthday gift effect.
+
+### Architecture changes
+- `CatManager._trySpawnCat` now accepts a `season` parameter and returns the spawned `Cat` (or `null`). The `update` method checks the return value and fires an `onBirthday(cat)` callback if provided.
+- `CatManager.update` signature: added `onBirthday = null` as 9th parameter (non-breaking; all prior call sites omit it safely).
+- `Cat` constructor: two new flags `isBirthday` (set by CatManager post-construction) and `birthdayAnnounced` (gates the entrance confetti burst to fire only once).
+- `Cat.update` now captures `prevState` at the top of the method to detect the ENTERING → first real state transition.
+
+### Save data additions
+```json
+{ "birthdayPetsCount": 0 }
+```
+
+---
+
 ## Session 2 — 2026-06-28
 
 ### Features Added

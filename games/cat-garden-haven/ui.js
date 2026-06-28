@@ -4,6 +4,7 @@ class UI {
   constructor(game) {
     this.game = game;
     this.activeTab = 'plants';
+    this._journalTab = 'cats';
     this.selectedItem = null;
     this._notifTimer = null;
     this._notifQueue = [];
@@ -12,6 +13,7 @@ class UI {
     this._bindTabs();
     this._bindButtons();
     this._bindModal();
+    this._bindGameMenu();
     this.renderShop();
   }
 
@@ -27,6 +29,23 @@ class UI {
   }
 
   _bindButtons() {
+    document.getElementById('btn-ambience').addEventListener('click', () => {
+      this.game.cycleAmbience();
+    });
+
+    document.getElementById('btn-treat').addEventListener('click', () => {
+      if (this.game._canUseTreat()) {
+        this.game.placeTreat();
+      } else if (this.game.garden.treat) {
+        this.notify('🍪 Treat is already out — waiting for a visitor!');
+      } else {
+        const remainMs = 86400000 - (Date.now() - this.game.lastTreatTime);
+        const remainH = Math.ceil(remainMs / 3600000);
+        this.notify(`🍪 Next treat available in ~${remainH}h`);
+      }
+    });
+    setInterval(() => this._updateTreatBtn(), 60000);
+
     document.getElementById('btn-journal').addEventListener('click', () => this.openJournal());
     document.getElementById('btn-undo').addEventListener('click', () => {
       const items = this.game.garden.placedItems;
@@ -53,6 +72,136 @@ class UI {
       if (e.target === document.getElementById('journal-modal'))
         document.getElementById('journal-modal').classList.add('hidden');
     });
+  }
+
+  _bindGameMenu() {
+    document.getElementById('btn-menu').addEventListener('click', () => this.openGameMenu());
+    document.querySelector('#game-menu-modal .close-modal').addEventListener('click', () => {
+      document.getElementById('game-menu-modal').classList.add('hidden');
+    });
+    document.getElementById('game-menu-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('game-menu-modal'))
+        document.getElementById('game-menu-modal').classList.add('hidden');
+    });
+  }
+
+  openGameMenu() {
+    const content = document.getElementById('game-menu-content');
+    content.innerHTML = '';
+
+    // ── Stats ────────────────────────────────────────────────────
+    const statsSection = this._menuSection('🧶 Your Garden');
+    const g = this.game;
+    const seenCount  = Object.keys(g.catManager.seenCats).length;
+    const totalCats  = CAT_DEFS.length;
+    const totalVisits = Object.values(g.catManager.visitCounts).reduce((a, b) => a + b, 0);
+    const achCount   = g.achievements.size;
+    const totalAch   = ACHIEVEMENTS.length;
+    const trophyCount = g.trophies.size;
+    const season     = SEASONS[g.garden.season];
+
+    [
+      ['🧶 Total yarn earned',  `${g.totalYarnEarned}🧶`],
+      ['🧶 Yarn in hand',       `${g.yarn}🧶`],
+      ['🐱 Cats discovered',    `${seenCount} / ${totalCats}`],
+      ['👋 Times petted',       `${g.pettedCount}`],
+      ['📬 Total cat visits',   `${totalVisits}`],
+      ['🏆 Trophies earned',    `${trophyCount} / ${TROPHIES.length}`],
+      ['⭐ Achievements',       `${achCount} / ${totalAch}`],
+      ['🌸 Current season',     `${season.emoji} ${season.name}`],
+      ['📖 Diary entries',      `${g.visitLog.length}`],
+    ].forEach(([label, value]) => {
+      const row = document.createElement('div');
+      row.className = 'menu-stat-row';
+      const l = document.createElement('span');
+      l.className = 'menu-stat-label';
+      l.textContent = label;
+      const v = document.createElement('span');
+      v.className = 'menu-stat-value';
+      v.textContent = value;
+      row.appendChild(l);
+      row.appendChild(v);
+      statsSection.appendChild(row);
+    });
+    content.appendChild(statsSection);
+
+    // ── About ────────────────────────────────────────────────────
+    const aboutSection = this._menuSection('ℹ️ About');
+    const aboutText = document.createElement('p');
+    aboutText.className = 'menu-about-text';
+    aboutText.innerHTML =
+      '<strong>Cat Garden Haven</strong> is a cosy idle garden where cats visit, leave gifts, and make themselves at home.<br><br>' +
+      'Place items to attract different cats, unlock rare visitors, and collect yarn to grow your garden.<br><br>' +
+      '<em>Cats save automatically. Progress is stored in your browser.</em>';
+    aboutSection.appendChild(aboutText);
+    content.appendChild(aboutSection);
+
+    // ── Actions ──────────────────────────────────────────────────
+    const actionsSection = this._menuSection('⚙️ Options');
+
+    const zenRow = this._menuActionBtn(
+      g.zenMode ? '🌿 Zen Mode: On' : '🌿 Zen Mode: Off',
+      () => {
+        g.zenMode = !g.zenMode;
+        document.getElementById('btn-zen').classList.toggle('active', g.zenMode);
+        document.getElementById('game-menu-modal').classList.add('hidden');
+        this.notify(g.zenMode ? '🌿 Zen Mode On' : '🌿 Zen Mode Off');
+      }
+    );
+    actionsSection.appendChild(zenRow);
+
+    const clearLogBtn = this._menuActionBtn('🗑️ Clear Visitor Diary', () => {
+      g.visitLog = [];
+      g.save();
+      document.getElementById('game-menu-modal').classList.add('hidden');
+      this.notify('Visitor diary cleared');
+    });
+    actionsSection.appendChild(clearLogBtn);
+
+    content.appendChild(actionsSection);
+
+    // ── Danger zone ──────────────────────────────────────────────
+    const dangerSection = this._menuSection('⚠️ Danger Zone');
+    let confirmPending = false;
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'menu-action-btn menu-action-btn--danger';
+    resetBtn.textContent = '🔄 Reset Game';
+    resetBtn.addEventListener('click', () => {
+      if (!confirmPending) {
+        confirmPending = true;
+        resetBtn.textContent = '⚠️ Tap again to confirm reset';
+        resetBtn.classList.add('menu-action-btn--confirm');
+        setTimeout(() => {
+          confirmPending = false;
+          resetBtn.textContent = '🔄 Reset Game';
+          resetBtn.classList.remove('menu-action-btn--confirm');
+        }, 3000);
+      } else {
+        g.resetGame();
+      }
+    });
+    dangerSection.appendChild(resetBtn);
+    content.appendChild(dangerSection);
+
+    document.getElementById('game-menu-modal').classList.remove('hidden');
+  }
+
+  _menuSection(title) {
+    const section = document.createElement('div');
+    section.className = 'menu-section';
+    const h = document.createElement('h3');
+    h.className = 'menu-section-title';
+    h.textContent = title;
+    section.appendChild(h);
+    return section;
+  }
+
+  _menuActionBtn(label, onClick) {
+    const btn = document.createElement('button');
+    btn.className = 'menu-action-btn';
+    btn.textContent = label;
+    btn.addEventListener('click', onClick);
+    return btn;
   }
 
   renderShop() {
@@ -125,15 +274,67 @@ class UI {
     document.getElementById('yarn-value').textContent = this.game.yarn;
   }
 
+  _updateAmbienceBtn() {
+    const btn = document.getElementById('btn-ambience');
+    if (!btn) return;
+    const mode = AMBIENCE_MODES[this.game.ambienceMode];
+    btn.textContent = mode.icon;
+    btn.title = `Garden ambience: ${mode.label}`;
+    btn.classList.toggle('active', this.game.ambienceMode !== 0);
+    AMBIENCE_MODES.forEach(m => btn.classList.toggle(`ambience-${m.id}`, m.id === mode.id));
+  }
+
+  _updateTreatBtn() {
+    const btn = document.getElementById('btn-treat');
+    if (!btn) return;
+    const active    = !!this.game.garden.treat;
+    const available = this.game._canUseTreat();
+    btn.classList.toggle('treat-available', available);
+    btn.classList.toggle('treat-active', active);
+    if (active) {
+      btn.title = 'Treat is out — waiting for a visitor!';
+    } else if (available) {
+      btn.title = 'Leave a daily treat — the next cat will always bring a gift!';
+    } else {
+      const remainH = Math.ceil((86400000 - (Date.now() - this.game.lastTreatTime)) / 3600000);
+      btn.title = `Next treat in ~${remainH}h`;
+    }
+  }
+
   openJournal() {
     const modal = document.getElementById('journal-modal');
     const content = document.getElementById('journal-content');
     content.innerHTML = '';
 
+    // Tab bar
+    const tabBar = document.createElement('div');
+    tabBar.className = 'journal-tabs';
+    [['cats', '🐾 Cats'], ['diary', '📖 Diary']].forEach(([id, label]) => {
+      const btn = document.createElement('button');
+      btn.className = 'journal-tab-btn' + (this._journalTab === id ? ' active' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => { this._journalTab = id; this.openJournal(); });
+      tabBar.appendChild(btn);
+    });
+    content.appendChild(tabBar);
+
+    if (this._journalTab === 'diary') {
+      this._renderDiary(content);
+    } else {
+      this._renderCats(content);
+    }
+
+    modal.classList.remove('hidden');
+  }
+
+  _renderCats(content) {
+    const grid = document.createElement('div');
+    grid.className = 'journal-cat-grid';
+    content.appendChild(grid);
+
     CAT_DEFS.forEach(def => {
       const seen = this.game.catManager.seenCats[def.id];
       const visits = this.game.catManager.visitCounts[def.id] || 0;
-      const locked = !def.unlocked;
 
       const el = document.createElement('div');
       el.className = 'journal-entry' + (!seen ? ' unseen' : '');
@@ -145,7 +346,49 @@ class UI {
 
       const nameEl = document.createElement('div');
       nameEl.className = 'journal-cat-name';
-      nameEl.textContent = seen ? def.name : '???';
+      if (!seen) {
+        nameEl.textContent = '???';
+      } else {
+        const nickname = this.game.nicknames[def.id];
+        if (nickname) {
+          nameEl.textContent = '🏷 ' + nickname;
+          const origSpan = document.createElement('span');
+          origSpan.className = 'journal-cat-original-name';
+          origSpan.textContent = ` (${def.name})`;
+          nameEl.appendChild(origSpan);
+        } else {
+          nameEl.textContent = def.name;
+        }
+        nameEl.title = 'Tap to set a nickname';
+        nameEl.style.cursor = 'pointer';
+        nameEl.addEventListener('click', () => {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 12;
+          input.value = this.game.nicknames[def.id] || '';
+          input.placeholder = def.name;
+          input.className = 'nickname-input';
+          nameEl.replaceWith(input);
+          input.focus();
+          input.select();
+          let done = false;
+          const commit = () => {
+            if (done) return;
+            done = true;
+            this.game.setNickname(def.id, input.value);
+            this.openJournal();
+          };
+          input.addEventListener('blur', commit);
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            if (e.key === 'Escape') {
+              done = true;
+              input.removeEventListener('blur', commit);
+              input.replaceWith(nameEl);
+            }
+          });
+        });
+      }
       el.appendChild(nameEl);
 
       const traitEl = document.createElement('div');
@@ -165,6 +408,15 @@ class UI {
           const s = SEASONS[def.favSeason];
           favSeasonEl.textContent = `Loves ${s.emoji} ${s.name}`;
           el.appendChild(favSeasonEl);
+        }
+
+        if (def.birthday !== undefined) {
+          const bdEl = document.createElement('div');
+          bdEl.className = 'journal-cat-season';
+          const bs = SEASONS[def.birthday];
+          const isBdSeason = def.birthday === this.game.garden.season;
+          bdEl.textContent = `Birthday ${bs.emoji} ${bs.name}${isBdSeason ? ' 🎂' : ''}`;
+          el.appendChild(bdEl);
         }
       }
 
@@ -191,10 +443,99 @@ class UI {
         el.style.cursor = 'pointer';
       }
 
-      content.appendChild(el);
+      grid.appendChild(el);
     });
 
-    modal.classList.remove('hidden');
+    // Trophy section
+    const trophySection = document.createElement('div');
+    trophySection.className = 'trophy-section';
+    const trophyTitle = document.createElement('h3');
+    trophyTitle.className = 'trophy-title';
+    trophyTitle.textContent = '🏆 Season Trophies';
+    trophySection.appendChild(trophyTitle);
+    const trophyGrid = document.createElement('div');
+    trophyGrid.className = 'trophy-grid';
+
+    TROPHIES.forEach(t => {
+      const earned = this.game.trophies.has(t.season);
+      const slot = document.createElement('div');
+      slot.className = 'trophy-slot' + (earned ? ' earned' : '');
+      const icon = document.createElement('div');
+      icon.className = 'trophy-icon';
+      icon.textContent = earned ? t.emoji : '🔒';
+      const label = document.createElement('div');
+      label.className = 'trophy-label';
+      label.textContent = earned ? t.label : SEASONS[t.season].name;
+      const desc = document.createElement('div');
+      desc.className = 'trophy-desc';
+      if (earned) {
+        desc.textContent = t.desc;
+      } else {
+        const parts = [];
+        if (t.condition.yarn > 0) parts.push(`${t.condition.yarn}🧶 in a season`);
+        if (t.condition.visits > 0) parts.push(`${t.condition.visits} visits in a season`);
+        desc.textContent = parts.join(' & ');
+      }
+      slot.appendChild(icon);
+      slot.appendChild(label);
+      slot.appendChild(desc);
+      trophyGrid.appendChild(slot);
+    });
+
+    trophySection.appendChild(trophyGrid);
+    content.appendChild(trophySection);
+  }
+
+  _renderDiary(content) {
+    const log = this.game.visitLog;
+    if (!log.length) {
+      const empty = document.createElement('p');
+      empty.className = 'diary-empty';
+      empty.textContent = 'No visits yet — cats will leave their mark here!';
+      content.appendChild(empty);
+      return;
+    }
+
+    const TIME_LABELS = [
+      { max: 0.25, emoji: '🌅', label: 'Morning' },
+      { max: 0.5,  emoji: '☀️', label: 'Afternoon' },
+      { max: 0.75, emoji: '🌇', label: 'Dusk' },
+      { max: 1,    emoji: '🌙', label: 'Night' },
+    ];
+
+    log.forEach(entry => {
+      const def = CAT_DEFS.find(d => d.id === entry.catId);
+      if (!def) return;
+      const name = this.game.nicknames[entry.catId] || def.name;
+      const season = SEASONS[entry.season];
+      const tl = TIME_LABELS.find(l => entry.timeOfDay <= l.max) || TIME_LABELS[3];
+
+      let action;
+      if (entry.gifted && entry.petted) {
+        action = `was petted and left ${entry.yarn}🧶`;
+      } else if (entry.gifted) {
+        action = `left you ${entry.yarn}🧶`;
+      } else if (entry.petted) {
+        action = `was petted but left no gift`;
+      } else {
+        action = `visited but left no gift`;
+      }
+
+      const el = document.createElement('div');
+      el.className = 'diary-entry';
+
+      const time = document.createElement('span');
+      time.className = 'diary-time';
+      time.textContent = `${tl.emoji} ${tl.label} ${season.emoji}`;
+      el.appendChild(time);
+
+      const text = document.createElement('span');
+      text.className = 'diary-text';
+      text.textContent = ` — ${name} ${action}.`;
+      el.appendChild(text);
+
+      content.appendChild(el);
+    });
   }
 
   notify(msg, duration = 2500, isAchievement = false) {

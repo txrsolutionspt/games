@@ -9,6 +9,7 @@ class Game {
     this.soundEnabled = false;
     this.unlockedItems = new Set();
     this.particles = new ParticleSystem();
+    this.ambience = new AmbienceSystem();
     this.catManager = new CatManager();
     this.garden = null;
     this.ui = null;
@@ -20,8 +21,20 @@ class Game {
     this.SEASON_PLAY_DURATION = 600;
     this.totalYarnEarned = 0;
     this.pettedCount = 0;
+    this.birthdayPetsCount = 0;
     this.achievements = new Set();
     this.seasonChanges = 0;
+    this.trophies = new Set();
+    this.seasonYarn = 0;
+    this.seasonStartVisits = 0;
+    // Trophy passive bonuses (recomputed from this.trophies)
+    this.giftBonus = 1.0;
+    this.moodBonus = 0;
+    this.offlineRewardBonus = 0;
+    this.nicknames = {};
+    this.visitLog = [];
+    this.lastTreatTime = 0;
+    this.ambienceMode = 0;
 
     this._initUnlocks();
     this._resize();
@@ -95,12 +108,18 @@ class Game {
           this.pettedCount++;
           canvas.className = 'petting';
           setTimeout(() => { if (!this.ui.selectedItem) canvas.className = ''; }, 1500);
+          if (cat.isBirthday) this.birthdayPetsCount++;
           const yarn = cat.tryGift(this.particles, this.garden.season);
           if (yarn > 0) {
-            this.yarn += yarn;
-            this.totalYarnEarned += yarn;
+            const boosted = Math.ceil(yarn * this.giftBonus);
+            this.yarn += boosted;
+            this.totalYarnEarned += boosted;
+            this.seasonYarn += boosted;
             this.ui.updateYarnDisplay();
-            this.ui.notify(`${cat.def.name} left you ${yarn}🧶!`);
+            const msg = cat.isBirthday
+              ? `🎂 ${this._catDisplayName(cat.def)}'s birthday gift: ${boosted}🧶!`
+              : `${this._catDisplayName(cat.def)} left you ${boosted}🧶!`;
+            this.ui.notify(msg);
             this.save();
           }
           this._checkAchievements();
@@ -108,12 +127,16 @@ class Game {
         return;
       }
 
-      // Right-click or long-press: remove item
+      // Right-click or long-press: item context menu
       if (e.button === 2 || e.type === 'contextmenu') {
         e.preventDefault();
-        if (this.garden.removeItemAt(pos.x, pos.y)) {
+        const item = this.garden.getItemAt(pos.x, pos.y);
+        if (item) {
+          this._showItemMenu(pos, item);
+        } else if (this.garden.placedItems.length) {
+          this.garden.placedItems.pop();
           this.save();
-          this.ui.notify('Item removed');
+          this.ui.notify('↩️ Last item removed');
         }
         return;
       }
@@ -135,7 +158,8 @@ class Game {
           el.style.top = (pos.y / (this.canvas.height / this.canvas.getBoundingClientRect().height)) - 30 + 'px';
           const moodEmoji = cat.mood < 0.4 ? '😾' : cat.mood < 0.65 ? '😺' : cat.mood < 0.85 ? '😸' : '😻';
           const seasonBonus = cat.def.favSeason === this.garden.season ? ' ✨' : '';
-          el.textContent = `${cat.def.name} — ${cat.def.personality} ${moodEmoji}${seasonBonus}`;
+          const bdTag = cat.isBirthday ? ' 🎂' : '';
+          el.textContent = `${this._catDisplayName(cat.def)} — ${cat.def.personality} ${moodEmoji}${seasonBonus}${bdTag}`;
         } else {
           el.style.display = 'none';
         }
@@ -228,18 +252,51 @@ class Game {
       this.garden.placedItems,
       this.particles,
       (yarn, cat) => {
-        this.yarn += yarn;
-        this.totalYarnEarned += yarn;
+        const boosted = Math.ceil(yarn * this.giftBonus);
+        this.yarn += boosted;
+        this.totalYarnEarned += boosted;
+        this.seasonYarn += boosted;
         this.ui.updateYarnDisplay();
-        this.ui.notify(`${cat.def.name} left you ${yarn}🧶!`);
+        const msg = cat.isBirthday
+          ? `🎂 ${this._catDisplayName(cat.def)}'s birthday gift: ${boosted}🧶!`
+          : `${this._catDisplayName(cat.def)} left you ${boosted}🧶!`;
+        this.ui.notify(msg);
         this.save();
         this._checkAchievements();
       },
       this.canvas.width,
       this.canvas.height,
       this.zenMode,
-      this.garden.season
+      this.garden.season,
+      (cat) => {
+        const s = SEASONS[this.garden.season];
+        this.ui.notify(`🎂 It's ${this._catDisplayName(cat.def)}'s birthday! ${s.emoji} Tap them for a special gift!`, 4500);
+      },
+      this.moodBonus,
+      this.garden.isGoldenHour,
+      (cat) => this._logVisit(cat),
+      (cat) => {
+        if (this.garden.treat) {
+          cat.targetX = this.garden.treat.x;
+          cat.targetY = this.garden.treat.y;
+          cat.treatGuaranteed = true;
+          cat.visitDuration += 60;
+          this.garden.treat = null;
+          this.ui._updateTreatBtn();
+          this.ui.notify(`🍪 ${this._catDisplayName(cat.def)} found the treat!`, 3000);
+        }
+      }
     );
+
+    // Shimmer particles during golden hour
+    if (this.garden.isGoldenHour) {
+      const gp = this.garden._goldenProgress();
+      if (Math.random() < gp * 0.12 * dt * 60) {
+        const x = 20 + Math.random() * (this.canvas.width - 40);
+        const y = this.canvas.height * 0.35 + Math.random() * this.canvas.height * 0.45;
+        this.particles.spawnSingle(x, y, 'shimmer', (Math.random() - 0.5) * 0.4, -0.7);
+      }
+    }
 
     this.hintTimer += dt;
     if (this.hintTimer >= this.hintInterval) {
@@ -252,6 +309,24 @@ class Game {
   }
 
   _advanceSeason() {
+    // Evaluate trophy for the season that just ended
+    const justEnded = this.garden.season;
+    const trophy = TROPHIES[justEnded];
+    if (trophy && !this.trophies.has(justEnded)) {
+      const totalVisits = Object.values(this.catManager.visitCounts).reduce((a, b) => a + b, 0);
+      const seasonVisits = totalVisits - this.seasonStartVisits;
+      const yarnOk = trophy.condition.yarn === 0 || this.seasonYarn >= trophy.condition.yarn;
+      const visitsOk = trophy.condition.visits === 0 || seasonVisits >= trophy.condition.visits;
+      if (yarnOk && visitsOk) {
+        this.trophies.add(justEnded);
+        this._applyTrophyPassives();
+        this.ui.notifyAchievement(`🏆 ${trophy.emoji} ${trophy.label}! ${trophy.desc}`);
+      }
+    }
+    // Reset season stats for the incoming season
+    this.seasonYarn = 0;
+    this.seasonStartVisits = Object.values(this.catManager.visitCounts).reduce((a, b) => a + b, 0);
+
     this.garden.season = (this.garden.season + 1) % 4;
     this.seasonChanges++;
     const s = SEASONS[this.garden.season];
@@ -259,6 +334,61 @@ class Game {
     this.ui.notify(`${s.emoji} ${s.name} has arrived in your garden!`);
     this._checkAchievements();
     this.save();
+  }
+
+  _catDisplayName(def) {
+    return this.nicknames[def.id] || def.name;
+  }
+
+  setNickname(catId, name) {
+    const trimmed = name.trim().slice(0, 12);
+    if (trimmed) this.nicknames[catId] = trimmed;
+    else delete this.nicknames[catId];
+    this.save();
+  }
+
+  _logVisit(cat) {
+    this.visitLog.unshift({
+      catId: cat.def.id,
+      season: this.garden.season,
+      timeOfDay: this.garden.timeOfDay,
+      gifted: cat.leftGift,
+      yarn: cat.giftYarnAmount || 0,
+      petted: cat.petted,
+      ts: Date.now(),
+    });
+    if (this.visitLog.length > 50) this.visitLog.length = 50;
+    this.save();
+  }
+
+  _canUseTreat() {
+    return !this.garden.treat && Date.now() - this.lastTreatTime >= 86400000;
+  }
+
+  placeTreat() {
+    const cx = this.canvas.width  / 2 + (Math.random() - 0.5) * 100;
+    const cy = this.canvas.height * 0.55 + (Math.random() - 0.5) * 50;
+    this.garden.treat = { x: cx, y: cy };
+    this.lastTreatTime = Date.now();
+    this.save();
+    this.ui._updateTreatBtn();
+    this.ui.notify('🍪 Treat left out — the next visitor will love it!');
+  }
+
+  _applyTrophyPassives() {
+    let spawnMult = 1, giftMult = 1, offlineBonus = 0, moodBonus = 0;
+    for (const seasonIdx of this.trophies) {
+      const t = TROPHIES[seasonIdx];
+      if (!t) continue;
+      if (t.spawnMult)    spawnMult    *= t.spawnMult;
+      if (t.giftMult)     giftMult     *= t.giftMult;
+      if (t.offlineBonus) offlineBonus += t.offlineBonus;
+      if (t.moodBonus)    moodBonus    += t.moodBonus;
+    }
+    this.catManager.spawnInterval = 18 * spawnMult;
+    this.giftBonus = giftMult;
+    this.offlineRewardBonus = offlineBonus;
+    this.moodBonus = moodBonus;
   }
 
   _checkAchievements() {
@@ -270,6 +400,78 @@ class Game {
     }
   }
 
+  _showItemMenu(pos, item) {
+    this._hideItemMenu();
+    const def = Object.values(ITEMS).flat().find(d => d.id === item.itemId);
+    const menu = document.createElement('div');
+    menu.id = 'item-menu';
+    menu.style.left = `${Math.min(pos.x + 8, this.canvas.width - 150)}px`;
+    menu.style.top  = `${Math.max(pos.y - 8, 8)}px`;
+
+    if (item.tier === 0) {
+      const upBtn = document.createElement('button');
+      upBtn.className = 'item-menu-btn';
+      upBtn.textContent = '⬆️ Upgrade 20🧶';
+      upBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (this.yarn >= 20) {
+          item.tier = 1;
+          this.yarn -= 20;
+          this.ui.updateYarnDisplay();
+          this.save();
+          this.ui.notify(`✨ ${def ? def.name : 'Item'} upgraded!`);
+        } else {
+          this.ui.notify('Need 20🧶 to upgrade');
+        }
+        this._hideItemMenu();
+      });
+      menu.appendChild(upBtn);
+    } else {
+      const badge = document.createElement('div');
+      badge.className = 'item-menu-badge';
+      badge.textContent = '✨ Upgraded';
+      menu.appendChild(badge);
+    }
+
+    const rmBtn = document.createElement('button');
+    rmBtn.className = 'item-menu-btn item-menu-btn--danger';
+    rmBtn.textContent = '🗑️ Remove';
+    rmBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = this.garden.placedItems.indexOf(item);
+      if (idx >= 0) this.garden.placedItems.splice(idx, 1);
+      this.save();
+      this.ui.notify('Item removed');
+      this._hideItemMenu();
+    });
+    menu.appendChild(rmBtn);
+
+    document.getElementById('main-area').appendChild(menu);
+
+    setTimeout(() => {
+      const dismiss = ev => {
+        if (!menu.contains(ev.target)) { this._hideItemMenu(); document.removeEventListener('pointerdown', dismiss); }
+      };
+      document.addEventListener('pointerdown', dismiss);
+    }, 0);
+  }
+
+  _hideItemMenu() {
+    const m = document.getElementById('item-menu');
+    if (m) m.remove();
+  }
+
+  cycleAmbience() {
+    this.ambience.next();
+    this.ambienceMode = this.ambience.mode;
+    this.garden.ambienceMode = this.ambienceMode;
+    this.catManager.rainMode = (this.ambienceMode === 2);
+    this.ui._updateAmbienceBtn();
+    this.save();
+    const labels = ['🔇 Ambience off', '🐦 Birds chirping', '🌧️ Rainy garden', '🍃 Gentle breeze'];
+    this.ui.notify(labels[this.ambienceMode]);
+  }
+
   _render() {
     const ctx = this.ctx;
     const W = this.canvas.width;
@@ -278,6 +480,7 @@ class Game {
 
     this.garden.drawBackground(this.time);
     this.garden.drawItems(this.time);
+    this.garden.drawTreat(ctx, this.time);
 
     // Draw cats sorted by y
     const cats = [...this.catManager.cats].sort((a, b) => a.y - b.y);
@@ -315,6 +518,10 @@ class Game {
       `💡 ${season.emoji} ${season.name}: cats love their favourite season — gifts x1.5!`,
       '💡 Hover over a cat to see their mood.',
       '💡 A ✨ in the tooltip means it\'s their favourite season!',
+      '💡 ✨ During Golden Hour (sunset), rare cats love to visit!',
+      '💡 Right-click a placed item to upgrade it for 20🧶 — cats linger longer!',
+      '💡 Tap 🔇 to cycle garden ambience — birds, rain, or breeze!',
+      '💡 🌧️ Rainy mode makes the mysterious Shadow cat appear more often!',
     ];
     this.ui.showHint(hints[Math.floor(this.time / this.hintInterval) % hints.length]);
   }
@@ -325,7 +532,8 @@ class Game {
     const now = Date.now();
     const elapsed = (now - last) / 1000 / 60; // minutes
     if (last && elapsed > 2) {
-      const reward = Math.min(50, Math.floor(elapsed * 0.8));
+      const cap = 50 + this.offlineRewardBonus;
+      const reward = Math.min(cap, Math.floor(elapsed * 0.8));
       if (reward > 0) {
         this.yarn += reward;
         this.ui?.updateYarnDisplay();
@@ -348,8 +556,16 @@ class Game {
         activePlayTime: this.activePlayTime,
         totalYarnEarned: this.totalYarnEarned,
         pettedCount: this.pettedCount,
+        birthdayPetsCount: this.birthdayPetsCount,
         achievements: [...this.achievements],
         seasonChanges: this.seasonChanges,
+        trophies: [...this.trophies],
+        seasonYarn: this.seasonYarn,
+        seasonStartVisits: this.seasonStartVisits,
+        nicknames: this.nicknames,
+        visitLog: this.visitLog,
+        lastTreatTime: this.lastTreatTime,
+        ambienceMode: this.ambienceMode,
       };
       localStorage.setItem('catgarden_save', JSON.stringify(data));
     } catch (e) { /* ignore */ }
@@ -378,12 +594,34 @@ class Game {
       if (typeof data.activePlayTime === 'number') this.activePlayTime = data.activePlayTime;
       if (typeof data.totalYarnEarned === 'number') this.totalYarnEarned = data.totalYarnEarned;
       if (typeof data.pettedCount === 'number') this.pettedCount = data.pettedCount;
+      if (typeof data.birthdayPetsCount === 'number') this.birthdayPetsCount = data.birthdayPetsCount;
       if (typeof data.seasonChanges === 'number') this.seasonChanges = data.seasonChanges;
       if (data.achievements) data.achievements.forEach(id => this.achievements.add(id));
+      if (data.trophies) data.trophies.forEach(s => this.trophies.add(s));
+      if (typeof data.seasonYarn === 'number') this.seasonYarn = data.seasonYarn;
+      if (typeof data.seasonStartVisits === 'number') this.seasonStartVisits = data.seasonStartVisits;
+      if (data.nicknames && typeof data.nicknames === 'object') this.nicknames = data.nicknames;
+      if (Array.isArray(data.visitLog)) this.visitLog = data.visitLog.slice(0, 50);
+      if (typeof data.lastTreatTime === 'number') this.lastTreatTime = data.lastTreatTime;
+      if (typeof data.ambienceMode === 'number') {
+        this.ambienceMode = data.ambienceMode;
+        this.ambience.mode = data.ambienceMode;
+        this.garden.ambienceMode = data.ambienceMode;
+        this.catManager.rainMode = (data.ambienceMode === 2);
+      }
+      this._applyTrophyPassives();
       this.ui.updateYarnDisplay();
+      this.ui._updateTreatBtn();
+      this.ui._updateAmbienceBtn();
     } catch (e) {
       this._newGame();
     }
+  }
+
+  resetGame() {
+    try { localStorage.removeItem('catgarden_save'); } catch(e) {}
+    try { localStorage.removeItem('catgarden_lastvisit'); } catch(e) {}
+    window.location.reload();
   }
 
   _newGame() {

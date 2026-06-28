@@ -16,9 +16,12 @@
         <h1>Cat Garden Haven</h1>
       </div>
       <div id="header-right">
+        <button id="btn-ambience" class="hdr-btn" title="Garden ambience: Off">🔇</button>
+        <button id="btn-treat" class="hdr-btn" title="Leave a daily treat for the next visitor">🍪</button>
         <button id="btn-journal" class="hdr-btn" title="Cat Journal">📖</button>
         <button id="btn-undo" class="hdr-btn" title="Remove last placed item">↩️</button>
         <button id="btn-zen" class="hdr-btn" title="Zen Mode">🌿</button>
+        <button id="btn-menu" class="hdr-btn" title="Menu">☰</button>
       </div>
     </div>
 
@@ -48,6 +51,17 @@
       </div>
     </div>
 
+    <!-- Game Menu Modal -->
+    <div id="game-menu-modal" class="modal hidden">
+      <div class="modal-inner">
+        <div class="modal-header">
+          <h2>☰ Menu</h2>
+          <button class="close-modal" data-modal="game-menu-modal">✕</button>
+        </div>
+        <div id="game-menu-content"></div>
+      </div>
+    </div>
+
     <!-- Notification -->
     <div id="notification" class="hidden"></div>
   </div>
@@ -64,6 +78,7 @@
     window.addEventListener('resize', applyRealHeight);
   </script>
   <script src="data.js"></script>
+  <script src="ambience.js"></script>
   <script src="particles.js"></script>
   <script src="cats.js"></script>
   <script src="garden.js"></script>
