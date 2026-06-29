@@ -183,6 +183,7 @@ class Game {
             if (placed) {
               this.particles.spawn(ghostPos.x, ghostPos.y, 'sparkle');
               this.save();
+              this._checkAchievements();
               this.ui.notify(`Placed ${dragItem.name}! Tap again to place more, or tap the item to deselect.`);
             }
           } else {

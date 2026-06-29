@@ -324,6 +324,41 @@ html, body {
 .journal-cat-visits { font-size: 0.65rem; color: var(--accent); font-weight: 700; }
 .journal-cat-season { font-size: 0.6rem; color: var(--text-light); }
 
+/* Achievement viewer in journal */
+.ach-summary {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  padding: 6px 0 2px;
+  font-weight: 600;
+}
+.ach-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ach-slot {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  opacity: 0.42;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.ach-slot.earned {
+  opacity: 1;
+  border-color: #d4a820;
+  background: linear-gradient(135deg, #fffbe8 0%, #fff8f0 100%);
+  box-shadow: 0 2px 8px rgba(212,168,32,0.15);
+}
+.ach-icon { font-size: 1.5rem; line-height: 1; }
+.ach-label { font-size: 0.72rem; font-weight: 700; color: var(--text); }
+.ach-desc  { font-size: 0.6rem; color: var(--text-light); line-height: 1.35; }
+
 /* Notification — sits above bottom panel, aware of safe area */
 #notification {
   position: fixed;
