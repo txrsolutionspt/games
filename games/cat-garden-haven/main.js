@@ -527,7 +527,7 @@ class Game {
       '💡 Watch for falling petals in Spring, butterflies in Summer, leaves in Autumn, and snow in Winter!',
       '💡 The coloured bar below the header shows how close the next season change is — it pulses when near!',
     ];
-    this.ui.showHint(hints[Math.floor(this.time / this.hintInterval) % hints.length]);
+    this.ui.showHint(hints[Math.floor(Math.random() * hints.length)]);
   }
 
   _startOfflineReward() {

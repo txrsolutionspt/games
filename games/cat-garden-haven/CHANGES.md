@@ -5,6 +5,29 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 15 — 2026-06-28
+
+### Features Added
+
+**Cats Enter from Both Sides**
+- Cats now randomly enter from either the left or the right canvas edge (50/50 chance).
+- Entry side sets `cat.x` (`-60` or `canvasW + 60`) and `cat.facing` (`1` or `-1`) so they walk toward the garden interior from whichever side they appeared on.
+- `_startLeaving` already used `this.facing` to pick the exit direction, so departures are unaffected.
+
+**Favourite-Season Spawn Boost**
+- Cats are now 30 % more likely to visit during their favourite season (`def.favSeason === season` → weight ×1.3), stacking with the existing attraction and golden-hour multipliers.
+- Previously `favSeason` only affected gift size; now it also influences visit frequency, making the season system feel more connected.
+
+**Randomised Hint Order**
+- `_showHint` previously cycled hints in fixed index order (predictable after a few minutes of play). It now picks a random hint each interval, so the garden feels less scripted.
+
+### Architecture changes
+- `Cat` constructor: `fromRight` local variable drives both `this.x` and `this.facing`.
+- `CatManager._trySpawnCat`: one new weight multiplier line for `favSeason`.
+- `Game._showHint`: `Math.floor(this.time / this.hintInterval) % hints.length` → `Math.floor(Math.random() * hints.length)`.
+
+---
+
 ## Session 14 — 2026-06-28
 
 ### Features Added
