@@ -1,0 +1,112 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 12px;
+    overflow: hidden;
+}
+
+#container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 520px;
+}
+
+#hud {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    color: #a0a0c0;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border: 2px solid #2e2e4e;
+    border-radius: 4px;
+    touch-action: none;
+    image-rendering: pixelated;
+}
+
+/* Touch controls — hidden on mouse devices */
+#controls {
+    display: none;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 8px;
+    margin-top: 4px;
+}
+
+#move-btns {
+    display: flex;
+    gap: 10px;
+}
+
+.ctrl-btn {
+    background: rgba(46, 46, 78, 0.85);
+    border: 2px solid #4a4a7a;
+    border-radius: 12px;
+    color: #c0c0e0;
+    font-size: 1.4rem;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.08s, transform 0.08s;
+}
+
+.ctrl-btn:active,
+.ctrl-btn.pressed {
+    background: rgba(90, 90, 160, 0.9);
+    transform: scale(0.93);
+}
+
+#btn-jump {
+    width: 80px;
+    height: 80px;
+    font-size: 1.6rem;
+    background: rgba(60, 40, 100, 0.85);
+    border-color: #7a4ab0;
+    color: #d0a0ff;
+}
+
+#btn-jump:active,
+#btn-jump.pressed {
+    background: rgba(120, 80, 180, 0.9);
+}
+
+@media (pointer: coarse) {
+    #controls {
+        display: flex;
+    }
+    body {
+        align-items: center;
+    }
+}
+
+@media (max-height: 600px) and (pointer: coarse) {
+    .ctrl-btn { width: 60px; height: 60px; font-size: 1.2rem; }
+    #btn-jump  { width: 68px; height: 68px; }
+}
