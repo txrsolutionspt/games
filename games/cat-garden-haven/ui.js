@@ -318,7 +318,7 @@ class UI {
     // Tab bar
     const tabBar = document.createElement('div');
     tabBar.className = 'journal-tabs';
-    [['cats', '🐾 Cats'], ['diary', '📖 Diary']].forEach(([id, label]) => {
+    [['cats', '🐾 Cats'], ['diary', '📖 Diary'], ['achievements', '⭐ Achievements']].forEach(([id, label]) => {
       const btn = document.createElement('button');
       btn.className = 'journal-tab-btn' + (this._journalTab === id ? ' active' : '');
       btn.textContent = label;
@@ -329,6 +329,8 @@ class UI {
 
     if (this._journalTab === 'diary') {
       this._renderDiary(content);
+    } else if (this._journalTab === 'achievements') {
+      this._renderAchievements(content);
     } else {
       this._renderCats(content);
     }
@@ -493,6 +495,45 @@ class UI {
 
     trophySection.appendChild(trophyGrid);
     content.appendChild(trophySection);
+  }
+
+  _renderAchievements(content) {
+    const earned = this.game.achievements;
+    const total = ACHIEVEMENTS.length;
+    const earnedCount = earned.size;
+
+    const summary = document.createElement('p');
+    summary.className = 'ach-summary';
+    summary.textContent = `${earnedCount} / ${total} earned`;
+    content.appendChild(summary);
+
+    const grid = document.createElement('div');
+    grid.className = 'ach-grid';
+
+    ACHIEVEMENTS.forEach(ach => {
+      const isEarned = earned.has(ach.id);
+      const slot = document.createElement('div');
+      slot.className = 'ach-slot' + (isEarned ? ' earned' : '');
+
+      const icon = document.createElement('div');
+      icon.className = 'ach-icon';
+      icon.textContent = isEarned ? ach.emoji : '🔒';
+
+      const label = document.createElement('div');
+      label.className = 'ach-label';
+      label.textContent = isEarned ? ach.label : '???';
+
+      const desc = document.createElement('div');
+      desc.className = 'ach-desc';
+      desc.textContent = ach.desc;
+
+      slot.appendChild(icon);
+      slot.appendChild(label);
+      slot.appendChild(desc);
+      grid.appendChild(slot);
+    });
+
+    content.appendChild(grid);
   }
 
   _renderDiary(content) {

@@ -5,6 +5,38 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 14 — 2026-06-28
+
+### Features Added
+
+**Achievement Viewer**
+- The Cat Journal now has three tabs: 🐾 Cats, 📖 Diary, ⭐ Achievements.
+- Achievements tab shows all 15 achievements in a 2-column grid.
+- Earned slots glow gold with the achievement emoji, label, and description.
+- Locked slots are dimmed to 42% opacity showing `🔒 ???` and the unlock hint text.
+- A summary line at the top shows `N / 15 earned`.
+
+**7 New Achievements** (total raised from 8 → 15):
+| ID | Emoji | Label | Condition |
+|---|---|---|---|
+| `yarn_500` | 🏆 | Yarn Master | Earn 500🧶 total |
+| `yarn_1000` | 👑 | Yarn Royalty | Earn 1000🧶 total |
+| `all_seasons` | 🌍 | Four Seasons | See all four seasons (4 changes) |
+| `all_uncommon` | 🌙 | Uncommon Friends | See all uncommon cats |
+| `all_rare` | 💎 | Rare Collector | See both rare cats |
+| `pets_10` | 🤝 | Garden Favourite | Pet cats 10 times |
+| `full_garden` | 🌳 | Full House | Place 20 items at once |
+
+**`desc` field added to all ACHIEVEMENTS entries** — short plain-text hint shown in the viewer for both earned and locked achievements.
+
+### Architecture changes
+- `data.js`: `ACHIEVEMENTS` entries now include a `desc` string; 7 new entries added.
+- `UI._renderAchievements(content)` — renders the achievement grid.
+- `UI.openJournal` — tab bar now includes `⭐ Achievements`; routing updated.
+- `Game._bindInput` (`onUp`) — `_checkAchievements()` called after placing an item so `full_garden` can trigger immediately.
+
+---
+
 ## Session 13 — 2026-06-28
 
 ### Features Added

@@ -174,14 +174,21 @@ const CAT_DEFS = [
 ];
 
 const ACHIEVEMENTS = [
-  { id: 'first_visitor', emoji: '🐱', label: 'First Visitor', check: (g) => Object.keys(g.catManager.seenCats).length >= 1 },
-  { id: 'first_pet',     emoji: '😻', label: 'Cat Whisperer', check: (g) => g.pettedCount >= 1 },
-  { id: 'yarn_50',       emoji: '🧶', label: 'Yarn Collector', check: (g) => g.totalYarnEarned >= 50 },
-  { id: 'yarn_250',      emoji: '💰', label: 'Yarn Hoarder', check: (g) => g.totalYarnEarned >= 250 },
-  { id: 'visits_20',     emoji: '🌸', label: 'Popular Garden', check: (g) => Object.values(g.catManager.visitCounts).reduce((a,b)=>a+b,0) >= 20 },
-  { id: 'season_change', emoji: '🍂', label: 'Through the Seasons', check: (g) => g.seasonChanges >= 1 },
-  { id: 'all_common',    emoji: '📖', label: 'Cat Friend', check: (g) => CAT_DEFS.filter(d => d.rarity === 'common').every(d => g.catManager.seenCats[d.id]) },
-  { id: 'birthday_pet',  emoji: '🎂', label: 'Happy Birthday!', check: (g) => g.birthdayPetsCount >= 1 },
+  { id: 'first_visitor', emoji: '🐱', label: 'First Visitor',       desc: 'A cat discovered your garden.',          check: (g) => Object.keys(g.catManager.seenCats).length >= 1 },
+  { id: 'first_pet',     emoji: '😻', label: 'Cat Whisperer',        desc: 'Pet your first visitor.',                check: (g) => g.pettedCount >= 1 },
+  { id: 'yarn_50',       emoji: '🧶', label: 'Yarn Collector',       desc: 'Earn 50🧶 in total.',                    check: (g) => g.totalYarnEarned >= 50 },
+  { id: 'yarn_250',      emoji: '💰', label: 'Yarn Hoarder',         desc: 'Earn 250🧶 in total.',                   check: (g) => g.totalYarnEarned >= 250 },
+  { id: 'yarn_500',      emoji: '🏆', label: 'Yarn Master',          desc: 'Earn 500🧶 in total.',                   check: (g) => g.totalYarnEarned >= 500 },
+  { id: 'yarn_1000',     emoji: '👑', label: 'Yarn Royalty',         desc: 'Earn 1000🧶 in total.',                  check: (g) => g.totalYarnEarned >= 1000 },
+  { id: 'visits_20',     emoji: '🌸', label: 'Popular Garden',       desc: 'Host 20 cat visits.',                    check: (g) => Object.values(g.catManager.visitCounts).reduce((a,b)=>a+b,0) >= 20 },
+  { id: 'season_change', emoji: '🍂', label: 'First Season',         desc: 'See your first season change.',          check: (g) => g.seasonChanges >= 1 },
+  { id: 'all_seasons',   emoji: '🌍', label: 'Four Seasons',         desc: 'Live through all four seasons.',         check: (g) => g.seasonChanges >= 4 },
+  { id: 'all_common',    emoji: '📖', label: 'Cat Friend',           desc: 'See all common-rarity cats.',            check: (g) => CAT_DEFS.filter(d => d.rarity === 'common').every(d => g.catManager.seenCats[d.id]) },
+  { id: 'all_uncommon',  emoji: '🌙', label: 'Uncommon Friends',     desc: 'See all uncommon-rarity cats.',          check: (g) => CAT_DEFS.filter(d => d.rarity === 'uncommon').every(d => g.catManager.seenCats[d.id]) },
+  { id: 'all_rare',      emoji: '💎', label: 'Rare Collector',       desc: 'See both rare cats.',                    check: (g) => CAT_DEFS.filter(d => d.rarity === 'rare').every(d => g.catManager.seenCats[d.id]) },
+  { id: 'birthday_pet',  emoji: '🎂', label: 'Happy Birthday!',      desc: 'Pet a cat on their birthday.',           check: (g) => g.birthdayPetsCount >= 1 },
+  { id: 'pets_10',       emoji: '🤝', label: 'Garden Favourite',     desc: 'Pet cats 10 times total.',               check: (g) => g.pettedCount >= 10 },
+  { id: 'full_garden',   emoji: '🌳', label: 'Full House',           desc: 'Place 20 items in your garden at once.', check: (g) => g.garden.placedItems.length >= 20 },
 ];
 
 const SEASONS = [
