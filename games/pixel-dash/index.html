@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pixel Dash</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <div id="hud">
+            <span>SCORE: <span id="score">0</span></span>
+            <span id="level-display">LEVEL 1</span>
+            <span>❤ <span id="lives">3</span></span>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="controls">
+            <div id="move-btns">
+                <button class="ctrl-btn" id="btn-left">◀</button>
+                <button class="ctrl-btn" id="btn-right">▶</button>
+            </div>
+            <button class="ctrl-btn" id="btn-jump">▲</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
