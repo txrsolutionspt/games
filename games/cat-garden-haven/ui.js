@@ -16,6 +16,7 @@ class UI {
     this._bindButtons();
     this._bindModal();
     this._bindGameMenu();
+    this._bindSwipeShop();
     this.renderShop();
   }
 
@@ -47,6 +48,13 @@ class UI {
       }
     });
     setInterval(() => this._updateTreatBtn(), 60000);
+
+    document.getElementById('btn-cancel-place')?.addEventListener('click', () => {
+      this.selectedItem = null;
+      document.getElementById('garden-canvas').className = '';
+      this.renderShop();
+      this._showCancelBtn(false);
+    });
 
     document.getElementById('btn-journal').addEventListener('click', () => this.openJournal());
     document.getElementById('btn-undo').addEventListener('click', () => {
@@ -206,6 +214,31 @@ class UI {
     return btn;
   }
 
+  _showCancelBtn(show) {
+    const btn = document.getElementById('btn-cancel-place');
+    if (btn) btn.classList.toggle('hidden', !show);
+  }
+
+  _bindSwipeShop() {
+    const panel = document.getElementById('bottom-panel');
+    const TABS = ['plants', 'furniture', 'toys', 'decor'];
+    let sx = 0, sy = 0;
+    panel.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    panel.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > 50 && Math.abs(dy) < 40) {
+        const idx = TABS.indexOf(this.activeTab);
+        const next = dx < 0 ? TABS[Math.min(idx + 1, TABS.length - 1)] : TABS[Math.max(idx - 1, 0)];
+        if (next !== this.activeTab) {
+          this.activeTab = next;
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === next));
+          this.renderShop();
+        }
+      }
+    }, { passive: true });
+  }
+
   renderShop() {
     const container = document.getElementById('shop-items');
     container.innerHTML = '';
@@ -261,9 +294,11 @@ class UI {
         if (this.selectedItem?.id === item.id) {
           this.selectedItem = null;
           document.getElementById('garden-canvas').className = '';
+          this._showCancelBtn(false);
         } else {
           this.selectedItem = item;
           document.getElementById('garden-canvas').className = 'placing';
+          this._showCancelBtn(true);
         }
         this.renderShop();
       });
@@ -352,7 +387,7 @@ class UI {
 
       const emojiDiv = document.createElement('div');
       emojiDiv.style.fontSize = '2rem';
-      emojiDiv.textContent = seen ? (def.id === 'muffin' ? '🐱' : def.id === 'shadow' ? '🐈‍⬛' : def.id === 'zoom' ? '🧡' : def.id === 'princess' ? '🎀' : '🐾') : '❓';
+      emojiDiv.textContent = seen ? (def.emoji || '🐾') : '❓';
       el.appendChild(emojiDiv);
 
       const nameEl = document.createElement('div');
@@ -382,6 +417,7 @@ class UI {
           nameEl.replaceWith(input);
           input.focus();
           input.select();
+          setTimeout(() => input.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
           let done = false;
           const commit = () => {
             if (done) return;
@@ -406,6 +442,14 @@ class UI {
       traitEl.className = 'journal-cat-trait';
       traitEl.textContent = seen ? def.personality : '...';
       el.appendChild(traitEl);
+
+      if (seen) {
+        const rarityEl = document.createElement('div');
+        rarityEl.className = 'journal-cat-rarity rarity-' + def.rarity;
+        const stars = def.rarity === 'rare' ? '⭐⭐⭐' : def.rarity === 'uncommon' ? '⭐⭐' : '⭐';
+        rarityEl.textContent = `${stars} ${def.rarity.charAt(0).toUpperCase() + def.rarity.slice(1)}`;
+        el.appendChild(rarityEl);
+      }
 
       if (seen) {
         const visitEl = document.createElement('div');
@@ -594,6 +638,7 @@ class UI {
   }
 
   notifyAchievement(msg) {
+    navigator.vibrate?.([15, 20, 50]);
     this.notify('⭐ ' + msg, 4000, true);
   }
 

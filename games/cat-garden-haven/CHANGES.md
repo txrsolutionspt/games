@@ -5,6 +5,75 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 16 — 2026-06-30
+
+### Features Added
+
+**Unique Emoji per Cat**
+- Each `CAT_DEFS` entry now has an `emoji` field: 🍞 Muffin, 🐈‍⬛ Shadow, ⚡ Zoom, 👑 Princess, 🍪 Biscuit, 💧 Bubbles, 🎩 Duke, 🔮 Marble.
+- Journal `_renderCats` uses `def.emoji` instead of the previous hardcoded per-id switch.
+
+**Rarity Indicator in Journal and Tooltip**
+- Journal entries now display ⭐ Common / ⭐⭐ Uncommon / ⭐⭐⭐ Rare below the personality, colour-coded (grey / purple / gold).
+- Desktop hover tooltip appends the same stars so players learn rarity on first discovery.
+
+**Tooltip Boundary Clamping**
+- Tooltip `left` is now clamped so it never overflows the right edge of `#main-area`; `top` is clamped at 4 px so it never clips above the canvas.
+
+**Undo Button Title Clarified**
+- `btn-undo` title changed from "Remove last placed item" to "Undo last placed item" to distinguish it from right-click removal.
+
+**Cancel Item Placement Button**
+- A floating `✕ Cancel` pill button appears in the top-centre of the canvas whenever an item is selected for placement.
+- Tapping it (or pressing Escape on desktop) deselects the item and hides the button.
+- Visible always when placing — no need to scroll back to the shop to deselect.
+
+**Haptic Feedback**
+- `navigator.vibrate?.()` (Android only; silently ignored on iOS/desktop) added for:
+  - Cat petted: `[18]` — single light tap
+  - Gift received: `[25, 12, 25]` — double pulse
+  - Achievement unlocked: `[15, 20, 50]` — rising emphasis
+  - Season changes: `[40]`
+  - Item placed: `[12]`
+  - Long-press confirmed: `[25]`
+
+**Swipe to Switch Shop Tabs**
+- Horizontal swipe on `#bottom-panel` (|ΔX| > 50 px, |ΔY| < 40 px) advances or retreats the active tab, making tab switching easy when an item is selected and mis-taps would otherwise place items.
+
+**Touch Long-Press for Item Context Menu** *(CRITICAL mobile fix)*
+- On `touchstart` a 480 ms timer starts. If the finger hasn't moved > 8 px when it fires, the item context menu opens at that position (same as desktop right-click). Suppresses the subsequent `touchend` to avoid a spurious pet tap.
+
+**Cat Info Label on Touch** *(CRITICAL mobile fix)*
+- On `touchstart` over a cat, a 160 ms timer starts. Lifting before 160 ms → pet the cat (normal tap). Holding beyond 160 ms → a floating tooltip-style label appears above the cat with name, mood, season bonus, birthday, and rarity. Dismisses after 2 s or on the next tap.
+
+**Ghost Placement Offset on Touch** *(CRITICAL mobile fix)*
+- During a touch drag, the ghost item and `canPlace` check are calculated at `y − 64 px` so the ghost floats above the fingertip and is visible. Mouse drags keep offset 0.
+
+**Touch Target Sizes**
+- `.hdr-btn`: padding increased to `5px 9px`, `min-width: 36px`, `min-height: 36px`.
+- `.close-modal`: padding increased to `8px 14px`.
+- All buttons and tab elements gain `touch-action: manipulation` to eliminate the 300 ms tap delay on older Android browsers.
+
+**Shop Scroll Containment**
+- `#shop-items` gains `overscroll-behavior-x: contain` (prevents browser back/forward swipe-back) and `scroll-snap-type: x proximity` with `.shop-item { scroll-snap-align: start }` for soft snap-scrolling.
+
+**Rubber-Band Prevention**
+- `body` and `#main-area` gain `overscroll-behavior: none` to stop iOS page-bounce when dragging on the canvas.
+
+**Landscape Phone Compact Layout**
+- New `@media (max-height: 420px) and (orientation: landscape)` rule hides the `h1` title, reduces the header to 32 px, collapses the season bar to 2 px, and shrinks the shop panel — recovering ~40 px of garden height on small phones in landscape.
+
+**Nickname Input Scroll-into-View**
+- After opening the inline nickname `<input>`, `scrollIntoView({ behavior: 'smooth', block: 'center' })` is called one tick later so the virtual keyboard doesn't cover the field.
+
+### Architecture changes
+- `data.js`: `emoji` field added to all 8 `CAT_DEFS` entries.
+- `index.html`: `#touch-label` div and `#btn-cancel-place` button added inside `#main-area`.
+- `main.js` `_bindInput`: fully restructured — mouse handlers (`onDown/onMove/onUp`) are now separate from touch handlers, which implement long-press and info-label delay logic. Shared `_catTooltipText` and `_petCat` helpers extracted to avoid duplication.
+- `ui.js`: `_showCancelBtn(show)` and `_bindSwipeShop()` methods added; `renderShop` calls `_showCancelBtn` on selection change; `notifyAchievement` calls `vibrate`.
+
+---
+
 ## Session 15 — 2026-06-28
 
 ### Features Added
