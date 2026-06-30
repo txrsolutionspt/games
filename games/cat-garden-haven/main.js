@@ -35,6 +35,8 @@ class Game {
     this.visitLog = [];
     this.lastTreatTime = 0;
     this.ambienceMode = 0;
+    this._hoveredCat = null;
+    this._nameTagAlpha = 0;
 
     this._initUnlocks();
     this._resize();
@@ -164,6 +166,7 @@ class Game {
       if (!this.ui.selectedItem && !dragging) {
         const cat = this.catManager.getCatAt(pos.x, pos.y);
         if (cat) {
+          this._hoveredCat = cat;
           el.style.display = 'block';
           const cssx = pos.x / pos._scaleX;
           const cssy = pos.y / pos._scaleY;
@@ -172,9 +175,11 @@ class Game {
           el.style.top  = Math.max(4, cssy - 30) + 'px';
           el.textContent = _catTooltipText(cat);
         } else {
+          this._hoveredCat = null;
           el.style.display = 'none';
         }
       } else {
+        this._hoveredCat = null;
         el.style.display = 'none';
       }
     };
@@ -217,7 +222,7 @@ class Game {
         this._ghost.active = false;
       }
     });
-    canvas.addEventListener('mouseleave', () => { this._ghost.active = false; });
+    canvas.addEventListener('mouseleave', () => { this._ghost.active = false; this._hoveredCat = null; });
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
@@ -587,6 +592,29 @@ class Game {
     this.ui.notify(labels[this.ambienceMode]);
   }
 
+  _drawCatNameTag(cat) {
+    const ctx = this.ctx;
+    const label = `${cat.def.emoji || '🐾'} ${this._catDisplayName(cat.def)}`;
+    ctx.save();
+    ctx.font = 'bold 10px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    const tw = ctx.measureText(label).width;
+    const padX = 7, tagH = 16;
+    const tagW = tw + padX * 2;
+    const tagX = cat.x - tagW / 2;
+    const tagY = cat.y - 46 - tagH;
+    ctx.globalAlpha = 0.58;
+    ctx.fillStyle = 'rgba(30,20,12,0.85)';
+    ctx.beginPath();
+    ctx.roundRect(tagX, tagY, tagW, tagH, 6);
+    ctx.fill();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#fff8f0';
+    ctx.fillText(label, cat.x, tagY + tagH - 3);
+    ctx.restore();
+  }
+
   _render() {
     const ctx = this.ctx;
     const W = this.canvas.width;
@@ -600,6 +628,11 @@ class Game {
     // Draw cats sorted by y
     const cats = [...this.catManager.cats].sort((a, b) => a.y - b.y);
     for (const cat of cats) cat.draw(ctx);
+
+    // Name tag above hovered cat
+    if (this._hoveredCat && this.catManager.cats.includes(this._hoveredCat)) {
+      this._drawCatNameTag(this._hoveredCat);
+    }
 
     this.particles.draw(ctx);
 

@@ -5,6 +5,23 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 18 — 2026-06-30
+
+### Features Added
+
+**Cat Name Tag on Hover**
+- Hovering the mouse over a cat now draws a small canvas-native pill label directly above the cat's head (approximately 46 px above sprite origin, above the ear tips).
+- The label shows the cat's emoji and display name (nickname if set, otherwise default name) — e.g. `🍞 Muffin`.
+- Rendered with `globalAlpha 0.58` for the dark background pill (`rgba(30,20,12,0.85)`) and `0.85` for the warm-white text (`#fff8f0`), making it legible but unobtrusive.
+- `Game._hoveredCat` is set in the `onMove` mouse handler and cleared on `mouseleave` and when no cat is under the cursor.
+- The HTML tooltip (`#tooltip`) continues to appear alongside for full details (mood, rarity stars, etc.).
+
+### Architecture changes
+- `Game._drawCatNameTag(cat)` — new canvas drawing method in `main.js`
+- `Game._render()` — calls `_drawCatNameTag` for `this._hoveredCat` after the cats layer, before particles
+
+---
+
 ## Session 17 — 2026-06-30
 
 ### Features Added
