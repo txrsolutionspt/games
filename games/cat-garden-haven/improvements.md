@@ -115,6 +115,175 @@ Right-click removal works on desktop but not on touch. A long-press handler (poi
 
 ---
 
+## Mobile & Touch UX (Primary Target Platform)
+
+The game is primarily played on tablets and smartphones. The issues below affect core gameplay on touch screens and should be prioritised over polish features. Ordered by severity.
+
+---
+
+### [CRITICAL] Long-press to open item context menu
+
+Right-click (which opens the upgrade/remove menu) is impossible on touch. The `contextmenu` event only fires reliably on desktop; on mobile it never arrives or is swallowed by the browser.
+
+**Spec:** On `touchstart` on the canvas, start a 480 ms `setTimeout`. If the finger hasn't moved more than 8 px **and** the timer fires, treat it as a long-press: cancel any pending pet or drag, then open the item context menu at that position (same as the existing right-click path). Cancel the timer immediately on `touchmove` (> 8 px), `touchend`, or `touchcancel`. After a confirmed long-press, set a flag that suppresses the subsequent `touchend` so it doesn't also fire as a pet tap.
+
+- Files: `main.js` (`_bindInput`)
+- Effort: small
+
+---
+
+### [CRITICAL] Cat info on touch (tooltip is hover-only)
+
+The cat tooltip (name, mood emoji, season bonus ✨, birthday 🎂) is driven by `mousemove` and never fires on touch. Players on phones can't tell which cat is which before committing to a pet.
+
+**Spec:** On `touchstart` landing on a cat, start a 160 ms delay. If the finger hasn't moved by then, show a floating label above the cat — same content as the desktop tooltip — as a `<div id="touch-label">` positioned in `#main-area`. Dismiss it after 2 s or on the next `touchend`/`touchstart`. If the finger lifts before 160 ms with no movement, treat it as a normal pet-tap (suppress the label). Short tap = pet; slow-then-hold = info. The 160 ms threshold is below the human reaction floor for deliberate taps, so accidental info-shows are rare.
+
+- Files: `main.js` (`_bindInput`), `style.css`
+- Effort: small
+
+---
+
+### [CRITICAL] Ghost placement visible above the finger
+
+During item drag, the ghost emoji renders at the exact touch coordinate — directly under the player's thumb and invisible. The player can't see where the item will land or whether placement is valid (green/grey ghost).
+
+**Spec:** Detect touch drags via `e.touches` in `onMove`. When the source event is a touch, apply a −64 px Y offset to the ghost render position so it floats above the fingertip. Apply the **same offset** when computing `garden.canPlace()` and when committing the drop in `onUp`, so the visual matches the actual placement point. Mouse drags keep offset 0.
+
+- Files: `main.js` (`onMove`, `onUp`, ghost rendering in `_render`)
+- Effort: small
+
+---
+
+### [HIGH] Touch targets — minimum 44 × 44 px
+
+Several interactive elements fall below the iOS HIG / Material Design recommended 44 × 44 px minimum:
+
+| Element | Current approx. hit area | Problem |
+|---|---|---|
+| `.hdr-btn` | ~28 × 30 px | All six header buttons |
+| `.close-modal` ✕ | ~28 × 28 px | Easy to miss |
+| `.journal-tab-btn` | ~32 × 36 px | Three tabs now, crowded |
+| `.tab-btn` (shop) | ~36 × 36 px | Four tabs, small phones |
+
+**Spec:** Increase `.hdr-btn` to `min-width: 36px; min-height: 36px; padding: 5px 9px`. Increase `.close-modal` padding to `8px 14px`. Add `touch-action: manipulation` to all buttons and tab elements to eliminate the 300 ms tap-delay on older Android browsers.
+
+- Files: `style.css`
+- Effort: small
+
+---
+
+### [HIGH] Cancel item selection — visible on-canvas button
+
+Escape deselects a chosen shop item on desktop. Mobile users have no keyboard. The only current option is tapping the item again in the shop list, which is not discoverable — especially after the player has scrolled the shop or switched tabs.
+
+**Spec:** When an item is selected, show a floating pill button (`<button id="btn-cancel-place">✕ Cancel</button>`) anchored to the top-centre of `#main-area`, above the canvas. Tapping it clears `ui.selectedItem`, resets the canvas cursor, and hides itself. Hide it whenever no item is selected. Style as a rounded chip with semi-transparent background so it doesn't obscure too much garden space.
+
+- Files: `main.js`, `ui.js`, `style.css`
+- Effort: small
+
+---
+
+### [HIGH] Haptic feedback
+
+Physical confirmation of actions dramatically improves feel on touch. The Vibration API is available on Android Chrome/Firefox; iOS Safari silently ignores it — no harm done.
+
+**Spec:** Guard every call: `navigator.vibrate?.([...])`. Pulse durations:
+
+| Action | Pattern |
+|---|---|
+| Cat petted | `[18]` — single light tap |
+| Gift received | `[25, 12, 25]` — double pulse |
+| Achievement unlocked | `[15, 20, 50]` — rising emphasis |
+| Season changes | `[40]` |
+| Item placed | `[12]` |
+| Treat placed | `[20]` |
+
+- Files: `main.js`, `ui.js`
+- Effort: tiny
+
+---
+
+### [HIGH] Swipe to switch shop tabs
+
+Tapping tiny tab buttons while an item is selected (canvas in `placing` mode) is error-prone — a mis-tap places an item instead of switching tabs. Horizontal swipe on the shop area is far more natural on touch.
+
+**Spec:** Track `touchstart` X on `#bottom-panel`. On `touchend`, if `|ΔX| > 50 px` and `|ΔY| < 40 px` (to exclude vertical scrolls), advance (`ΔX < 0`) or retreat (`ΔX > 0`) the active tab in the tabs array `['plants','furniture','toys','decor']`, apply the `.active` class, and call `renderShop()`. Add a faint gradient shadow on the left/right edges of `#shop-items` when more items exist in that direction.
+
+- Files: `ui.js`, `style.css`
+- Effort: small–medium
+
+---
+
+### [MEDIUM] Swipe-down to dismiss modals
+
+The native mobile pattern for dismissing bottom-sheet-style panels is a downward swipe. Currently the only options are the ✕ button or tapping the backdrop — both require precise tapping of a small target.
+
+**Spec:** On `.modal-header` `touchstart`, record Y. On `touchmove`, apply `transform: translateY(Math.max(0, ΔY))` to `.modal-inner` (no upward movement). On `touchend`: if `ΔY > 80 px` or swipe velocity > 300 px/s, slide the modal to `translateY(100%)` then `classList.add('hidden')` and reset `transform`. Otherwise snap back with `transition: transform 0.22s ease`. The backdrop tap path remains unchanged.
+
+- Files: `ui.js`, `style.css`
+- Effort: medium
+
+---
+
+### [MEDIUM] Landscape phone — recover canvas height
+
+On phones in landscape orientation the canvas collapses to ~180–240 px tall after the header, season bar, and bottom panel — barely enough to see any garden. 
+
+**Spec:** At `@media (max-height: 420px) and (orientation: landscape)`:
+- `#game-header`: reduce to `min-height: 32px; padding: 2px 8px`.
+- `#header-center h1`: `display: none` (save space; the game is already loaded, the title isn't needed mid-session).
+- `#bottom-panel`: collapse to a single-row height of 52 px with no visible tab labels (icons only or abbreviated).
+- `#season-bar`: reduce to 2 px.
+
+This recovers ~40–50 px of garden height.
+
+- Files: `style.css`
+- Effort: small
+
+---
+
+### [MEDIUM] Shop scroll — containment and snap
+
+Swiping the horizontal shop row on iOS/Android can accidentally trigger the browser's back/forward gesture or page-bounce.
+
+**Spec:** Add to `#shop-items`:
+```css
+overscroll-behavior-x: contain;        /* prevent browser swipe-back */
+scroll-snap-type: x proximity;         /* soft snapping */
+```
+Add to `.shop-item`:
+```css
+scroll-snap-align: start;
+```
+The `proximity` variant only snaps when the item is close to a snap point, avoiding interference with fast flick-scrolling.
+
+- Files: `style.css`
+- Effort: tiny
+
+---
+
+### [LOW] Nickname input — scroll into view on keyboard open
+
+When a player taps a cat name in the journal to edit a nickname, the virtual keyboard opens and can push the modal content up or cover the input entirely.
+
+**Spec:** After inserting the `<input>` element, wait one tick (`setTimeout(..., 0)`) then call `input.scrollIntoView({ behavior: 'smooth', block: 'center' })`. This lets the browser finish resizing the viewport before we scroll. No resize listener needed.
+
+- Files: `ui.js`
+- Effort: tiny
+
+---
+
+### [LOW] Prevent rubber-band scroll on canvas
+
+On iOS, vertically dragging on the canvas can trigger the page rubber-band effect even though `touch-action: none` is set on `#garden-canvas`. This happens because `#main-area` or `body` still participates in scroll.
+
+**Spec:** Add `overscroll-behavior: none` to `body` and `#main-area`. This is a one-line CSS addition that stops all elastic overscroll without affecting any interactive element.
+
+- Files: `style.css`
+- Effort: tiny
+
+---
+
 ## Stretch / Bigger Ideas
 
 ### Cat relationships
