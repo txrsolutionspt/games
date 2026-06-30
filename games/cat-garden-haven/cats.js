@@ -6,7 +6,8 @@ class Cat {
   constructor(def, canvasW, canvasH, moodBonus = 0) {
     this.def = def;
     this.id = def.id + '_' + Date.now();
-    this.x = -60;
+    const fromRight = Math.random() < 0.5;
+    this.x = fromRight ? canvasW + 60 : -60;
     this.y = 80 + Math.random() * (canvasH - 200);
     this.targetX = 80 + Math.random() * (canvasW - 160);
     this.targetY = 80 + Math.random() * (canvasH - 200);
@@ -19,7 +20,7 @@ class Cat {
     this.thoughtTimer = 0;
     this.thought = null;
     this.thoughtDuration = 0;
-    this.facing = 1;
+    this.facing = fromRight ? -1 : 1;
     this.bobOffset = Math.random() * Math.PI * 2;
     this.tailAngle = 0;
     this.tailDir = 1;
@@ -545,6 +546,7 @@ class CatManager {
     const weights = unlockedDefs.map(def => {
       let w = def.rarity === 'common' ? 3 : def.rarity === 'uncommon' ? 2 : 1;
       if (this._isAttracted(def, placedItems)) w *= 2;
+      if (def.favSeason === season) w *= 1.3;
       if (goldenHour && def.rarity === 'rare') w *= 2;
       if (this.rainMode && def.id === 'shadow') w *= 2;
       return w;
