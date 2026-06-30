@@ -23,6 +23,8 @@ class Garden {
     this.fireflies = this._genFireflies();
     this._time = 0;
     this.ambientParts = this._genAmbientParts();
+    this._shootStar = null;
+    this._shootTimer = 6 + Math.random() * 10;
   }
 
   _genTrees() {
@@ -206,6 +208,27 @@ class Garden {
 
     this._updateAmbientParts(dt);
 
+    // Shooting star — only during deep night
+    const isDeepNight = this.timeOfDay > 0.68 && this.timeOfDay < 0.95;
+    if (isDeepNight) {
+      this._shootTimer -= dt;
+      if (this._shootTimer <= 0 && !this._shootStar) {
+        this._shootStar = {
+          x: this.W * (0.05 + Math.random() * 0.55),
+          y: this.H * (0.02 + Math.random() * 0.13),
+          angle: Math.PI * (0.12 + Math.random() * 0.14),
+          dist: 0,
+          totalDist: 90 + Math.random() * 80,
+          speed: 380 + Math.random() * 200,
+        };
+        this._shootTimer = 9 + Math.random() * 13;
+      }
+    }
+    if (this._shootStar) {
+      this._shootStar.dist += this._shootStar.speed * dt;
+      if (this._shootStar.dist >= this._shootStar.totalDist) this._shootStar = null;
+    }
+
     this.fireflies.forEach(ff => {
       ff.x += Math.cos(ff.dir) * ff.speed * dt;
       ff.y += Math.sin(ff.dir) * ff.speed * dt * 0.35;
@@ -296,24 +319,74 @@ class Garden {
       const moonT = (t - 0.5) * 2;
       const moonX = this.W * 0.1 + moonT * (this.W * 0.8);
       const moonY = this.H * 0.2 - Math.sin(moonT * Math.PI) * this.H * 0.15;
-      ctx.beginPath();
-      ctx.arc(moonX, moonY, 16, 0, Math.PI * 2);
-      ctx.fillStyle = '#e8e8d0';
-      ctx.globalAlpha = 0.85;
-      ctx.fill();
-      ctx.globalAlpha = 1;
 
-      // Stars
-      ctx.fillStyle = '#fff';
-      for (let i = 0; i < 20; i++) {
+      // Stars — varied sizes, warm/cool tints, gentle twinkle
+      for (let i = 0; i < 30; i++) {
         const sx = (i * 137.5 * 3.7) % this.W;
-        const sy = (i * 73.1) % (this.H * 0.35);
-        ctx.globalAlpha = 0.4 + Math.sin(time + i) * 0.2;
+        const sy = (i * 73.1) % (this.H * 0.38);
+        const size = i % 6 === 0 ? 2.1 : i % 3 === 0 ? 1.55 : 0.95;
+        const twinkle = 0.32 + Math.sin(time * 0.9 + i * 1.83) * 0.24;
+        ctx.globalAlpha = twinkle;
+        ctx.fillStyle = i % 7 === 0 ? '#ffeedd' : i % 5 === 0 ? '#ddeeff' : '#ffffff';
         ctx.beginPath();
-        ctx.arc(sx, sy, 1.2, 0, Math.PI * 2);
+        ctx.arc(sx, sy, size, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
+
+      // Moon glow halo
+      const moonGlow = ctx.createRadialGradient(moonX, moonY, 10, moonX, moonY, 55);
+      moonGlow.addColorStop(0,    'rgba(240,240,210,0.24)');
+      moonGlow.addColorStop(0.42, 'rgba(210,225,245,0.11)');
+      moonGlow.addColorStop(1,    'rgba(180,200,255,0)');
+      ctx.fillStyle = moonGlow;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, 55, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Moon body
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, 16, 0, Math.PI * 2);
+      ctx.fillStyle = '#f2f2dc';
+      ctx.globalAlpha = 0.92;
+      ctx.fill();
+
+      // Crescent shadow — offset circle in night-sky colour to suggest phase
+      ctx.beginPath();
+      ctx.arc(moonX + 6, moonY - 2, 13, 0, Math.PI * 2);
+      ctx.fillStyle = '#1a2240';
+      ctx.globalAlpha = 0.30;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Shooting star
+      if (this._shootStar) {
+        const ss = this._shootStar;
+        const progress = ss.dist / ss.totalDist;
+        const hx = ss.x + Math.cos(ss.angle) * ss.dist;
+        const hy = ss.y + Math.sin(ss.angle) * ss.dist;
+        const tailLen = Math.min(ss.dist, 65);
+        const tx = hx - Math.cos(ss.angle) * tailLen;
+        const ty = hy - Math.sin(ss.angle) * tailLen;
+        const fadeA = progress < 0.18 ? progress / 0.18 : progress > 0.72 ? (1 - progress) / 0.28 : 1;
+        ctx.save();
+        const grad = ctx.createLinearGradient(tx, ty, hx, hy);
+        grad.addColorStop(0, 'rgba(255,255,255,0)');
+        grad.addColorStop(1, `rgba(255,252,230,${0.92 * fadeA})`);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(hx, hy);
+        ctx.stroke();
+        ctx.fillStyle = '#fffef0';
+        ctx.globalAlpha = fadeA * 0.95;
+        ctx.beginPath();
+        ctx.arc(hx, hy, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     // Seasonal ambient particles (petals/butterflies/leaves/snow)

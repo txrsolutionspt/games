@@ -5,6 +5,23 @@ Update it whenever game logic, data shape, or architecture changes.
 
 ---
 
+## Session 17 — 2026-06-30
+
+### Features Added
+
+**Night Sky Improvements**
+- **Moon glow halo**: the moon now has a soft radial gradient halo (warm inner → cool blue outer) giving it a realistic atmospheric glow.
+- **Crescent phase**: a partially-offset dark circle overlaid on the moon disc creates the impression of a crescent phase without extra sprites.
+- **Enhanced stars**: 30 stars (up from 20) with three size tiers (0.95 / 1.55 / 2.1 px), warm/cool colour tints (#ffeedd / #ddeeff / white), and a slower, more organic twinkle frequency.
+- **Shooting stars**: periodic shooting stars arc across the upper sky during deep night (timeOfDay 0.68–0.95). Each has a gradient tail that fades in/out, a bright head pixel, and a random angle in the 20–47° range. Timing: first fires 6–16 s into nightfall, then every 9–22 s.
+
+### Architecture changes
+- `Garden` constructor: `this._shootStar = null; this._shootTimer = 6 + Math.random() * 10`
+- `Garden.update()`: shooting star spawn/advance logic (runs only during deep night)
+- `Garden.drawBackground()`: moon+stars block fully replaced with enhanced version
+
+---
+
 ## Session 16 — 2026-06-30
 
 ### Features Added
