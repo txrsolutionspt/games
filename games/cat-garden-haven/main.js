@@ -211,7 +211,7 @@ class Game {
     canvas.addEventListener('mousedown', onDown);
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseup', onUp);
-    canvas.addEventListener('contextmenu', e => { e.preventDefault(); onDown(e); });
+    canvas.addEventListener('contextmenu', e => { e.preventDefault(); if (!touchActive) onDown(e); });
 
     this._ghost = { active: false, item: null, pos: null, valid: false };
     canvas.addEventListener('mousemove', (e) => {
@@ -240,6 +240,7 @@ class Game {
     let lpFired = false;
     let infoShown = false;
     let touchCat = null;
+    let touchActive = false;  // true while any finger is on the canvas
 
     const clearTouchTimers = () => { clearTimeout(lpTimer); clearTimeout(infoTimer); lpTimer = null; infoTimer = null; };
 
@@ -265,6 +266,7 @@ class Game {
     };
 
     canvas.addEventListener('touchstart', e => {
+      touchActive = true;
       e.preventDefault();
       clearTouchTimers();
       hideTouchLabel();
@@ -316,6 +318,7 @@ class Game {
     }, { passive: false });
 
     canvas.addEventListener('touchend', e => {
+      touchActive = false;
       e.preventDefault();
       clearTouchTimers();
       if (lpFired) { lpFired = false; return; }
@@ -350,6 +353,15 @@ class Game {
       const cat = this.catManager.getCatAt(pos.x, pos.y);
       if (cat) _petCat(cat);
     }, { passive: false });
+
+    canvas.addEventListener('touchcancel', () => {
+      touchActive = false;
+      clearTouchTimers();
+      hideTouchLabel();
+      lpFired = false; infoShown = false;
+      dragging = false; dragItem = null; dragStart = null;
+      this._ghost.active = !!this.ui.selectedItem;
+    });
   }
 
   _loop(ts) {
