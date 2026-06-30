@@ -15,9 +15,9 @@
 
 html, body {
   height: 100%;
-  /* fill behind notch/nav bar */
   background: var(--panel-bg);
   overflow: hidden;
+  overscroll-behavior: none;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: var(--text);
 }
@@ -82,12 +82,15 @@ html, body {
   background: none;
   border: 2px solid var(--border);
   border-radius: 8px;
-  padding: 3px 7px;
+  padding: 5px 9px;
   font-size: 1rem;
   cursor: pointer;
   margin-left: 5px;
   transition: background 0.15s;
   line-height: 1;
+  min-width: 36px;
+  min-height: 36px;
+  touch-action: manipulation;
 }
 .hdr-btn:hover { background: var(--border); }
 .hdr-btn.active { background: var(--accent2); border-color: var(--accent2); }
@@ -120,8 +123,9 @@ html, body {
   flex: 1;
   position: relative;
   overflow: hidden;
+  overscroll-behavior: none;
   background: #c8e6c4;
-  min-height: 0; /* critical: lets flex child shrink */
+  min-height: 0;
 }
 
 #garden-canvas {
@@ -174,6 +178,7 @@ html, body {
   transition: all 0.15s;
   border-bottom: 3px solid transparent;
   white-space: nowrap;
+  touch-action: manipulation;
 }
 .tab-btn.active {
   color: var(--accent);
@@ -189,7 +194,9 @@ html, body {
   overflow-y: hidden;
   height: 82px;
   align-items: center;
-  scrollbar-width: none; /* hide scrollbar on mobile — swipe to scroll */
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
 }
 #shop-items::-webkit-scrollbar { display: none; }
 
@@ -209,6 +216,8 @@ html, body {
   transition: all 0.15s;
   flex-shrink: 0;
   position: relative;
+  scroll-snap-align: start;
+  touch-action: manipulation;
 }
 .shop-item:hover { border-color: var(--accent); transform: scale(1.04); }
 .shop-item.selected { border-color: var(--accent); background: #fff3ee; box-shadow: 0 0 0 3px rgba(255,158,122,0.3); }
@@ -260,8 +269,9 @@ html, body {
   font-size: 1.2rem;
   cursor: pointer;
   color: var(--text-light);
-  padding: 4px 8px;
+  padding: 8px 14px;
   border-radius: 6px;
+  touch-action: manipulation;
 }
 .close-modal:hover { background: var(--border); }
 
@@ -296,6 +306,7 @@ html, body {
   cursor: pointer;
   color: var(--text-light);
   transition: all 0.15s;
+  touch-action: manipulation;
 }
 .journal-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 .journal-tab-btn:hover { background: var(--bg); }
@@ -323,6 +334,10 @@ html, body {
 .journal-cat-trait { font-size: 0.7rem; color: var(--text-light); }
 .journal-cat-visits { font-size: 0.65rem; color: var(--accent); font-weight: 700; }
 .journal-cat-season { font-size: 0.6rem; color: var(--text-light); }
+.journal-cat-rarity { font-size: 0.6rem; font-weight: 700; }
+.journal-cat-rarity.rarity-common   { color: var(--text-light); }
+.journal-cat-rarity.rarity-uncommon { color: #7b68c8; }
+.journal-cat-rarity.rarity-rare     { color: #d4950a; }
 
 /* Achievement viewer in journal */
 .ach-summary {
@@ -598,12 +613,53 @@ html, body {
   padding: 24px 0;
 }
 
+/* Cancel placement button */
+#btn-cancel-place {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(74,55,40,0.82);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 55;
+  touch-action: manipulation;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+  transition: background 0.15s;
+}
+#btn-cancel-place:hover { background: rgba(74,55,40,0.96); }
+#btn-cancel-place.hidden { display: none; }
+
+/* Touch cat info label */
+#touch-label {
+  position: absolute;
+  background: rgba(74,55,40,0.9);
+  color: #fff;
+  padding: 5px 11px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  pointer-events: none;
+  display: none;
+  z-index: 55;
+  white-space: nowrap;
+  max-width: 220px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
-/* Landscape phones — extra compact */
+/* Landscape phones — compact (500px threshold for general phones) */
 @media (max-height: 500px) {
   #game-header { min-height: 36px; padding: 3px 10px; }
   #header-center h1 { font-size: 0.85rem; }
@@ -611,4 +667,15 @@ html, body {
   .shop-item { height: 58px; min-width: 56px; }
   .shop-item canvas { width: 28px; height: 28px; }
   .tab-btn { padding: 4px 2px; font-size: 0.7rem; }
+}
+
+/* Very short landscape — recover maximum canvas height */
+@media (max-height: 420px) and (orientation: landscape) {
+  #game-header { min-height: 32px; padding: 2px 8px; }
+  #header-center h1 { display: none; }
+  #season-bar { height: 2px; }
+  #shop-items { height: 64px; }
+  .shop-item { height: 54px; min-width: 52px; }
+  .tab-btn { padding: 4px 2px; font-size: 0.65rem; }
+  .hdr-btn { padding: 3px 6px; min-height: 28px; }
 }

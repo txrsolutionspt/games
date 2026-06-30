@@ -36,6 +36,7 @@ const CAT_DEFS = [
   {
     id: 'muffin',
     name: 'Muffin',
+    emoji: '🍞',
     personality: 'Lazy',
     color: '#e8c49a',
     markings: 'tabby',
@@ -53,6 +54,7 @@ const CAT_DEFS = [
   {
     id: 'shadow',
     name: 'Shadow',
+    emoji: '🐈‍⬛',
     personality: 'Shy',
     color: '#5a5a7a',
     markings: 'solid',
@@ -70,6 +72,7 @@ const CAT_DEFS = [
   {
     id: 'zoom',
     name: 'Zoom',
+    emoji: '⚡',
     personality: 'Energetic',
     color: '#f4a261',
     markings: 'striped',
@@ -87,6 +90,7 @@ const CAT_DEFS = [
   {
     id: 'princess',
     name: 'Princess',
+    emoji: '👑',
     personality: 'Elegant',
     color: '#f9c6d0',
     markings: 'bicolor',
@@ -104,6 +108,7 @@ const CAT_DEFS = [
   {
     id: 'biscuit',
     name: 'Biscuit',
+    emoji: '🍪',
     personality: 'Curious',
     color: '#d4a76a',
     markings: 'calico',
@@ -121,6 +126,7 @@ const CAT_DEFS = [
   {
     id: 'bubbles',
     name: 'Bubbles',
+    emoji: '💧',
     personality: 'Gentle',
     color: '#a8d8ea',
     markings: 'tuxedo',
@@ -138,6 +144,7 @@ const CAT_DEFS = [
   {
     id: 'duke',
     name: 'Duke',
+    emoji: '🎩',
     personality: 'Royal',
     color: '#6b4c3b',
     markings: 'solid',
@@ -156,6 +163,7 @@ const CAT_DEFS = [
   {
     id: 'marble',
     name: 'Marble',
+    emoji: '🔮',
     personality: 'Mysterious',
     color: '#c0c0c0',
     markings: 'spotted',

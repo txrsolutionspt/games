@@ -74,19 +74,56 @@ class Game {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
       const scaleY = canvas.height / rect.height;
-      const src = e.touches ? e.touches[0] : e;
+      const src = (e.touches && e.touches.length) ? e.touches[0]
+                : (e.changedTouches && e.changedTouches.length) ? e.changedTouches[0]
+                : e;
       return {
         x: (src.clientX - rect.left) * scaleX,
         y: (src.clientY - rect.top) * scaleY,
+        _rect: rect, _scaleX: scaleX, _scaleY: scaleY,
       };
+    };
+
+    const _catTooltipText = (cat) => {
+      const moodEmoji = cat.mood < 0.4 ? '😾' : cat.mood < 0.65 ? '😺' : cat.mood < 0.85 ? '😸' : '😻';
+      const seasonBonus = cat.def.favSeason === this.garden.season ? ' ✨' : '';
+      const bdTag = cat.isBirthday ? ' 🎂' : '';
+      const stars = cat.def.rarity === 'rare' ? ' ⭐⭐⭐' : cat.def.rarity === 'uncommon' ? ' ⭐⭐' : ' ⭐';
+      return `${this._catDisplayName(cat.def)} — ${cat.def.personality} ${moodEmoji}${seasonBonus}${bdTag}${stars}`;
+    };
+
+    const _petCat = (cat) => {
+      const petted = cat.pet(this.particles);
+      if (!petted) return;
+      this.pettedCount++;
+      navigator.vibrate?.([18]);
+      canvas.className = 'petting';
+      setTimeout(() => { if (!this.ui.selectedItem) canvas.className = ''; }, 1500);
+      if (cat.isBirthday) this.birthdayPetsCount++;
+      const yarn = cat.tryGift(this.particles, this.garden.season);
+      if (yarn > 0) {
+        const boosted = Math.ceil(yarn * this.giftBonus);
+        this.yarn += boosted;
+        this.totalYarnEarned += boosted;
+        this.seasonYarn += boosted;
+        this.ui.updateYarnDisplay();
+        navigator.vibrate?.([25, 12, 25]);
+        const msg = cat.isBirthday
+          ? `🎂 ${this._catDisplayName(cat.def)}'s birthday gift: ${boosted}🧶!`
+          : `${this._catDisplayName(cat.def)} left you ${boosted}🧶!`;
+        this.ui.notify(msg);
+        this.save();
+      }
+      this._checkAchievements();
     };
 
     let dragging = false;
     let dragItem = null;
     let ghostPos = null;
     let dragStart = null;
-    const MIN_DRAG_PX = 18; // must move this far before placement commits
+    const MIN_DRAG_PX = 18;
 
+    // ── Mouse ────────────────────────────────────────────────────────
     const onDown = (e) => {
       e.preventDefault();
       const pos = getPos(e);
@@ -100,34 +137,9 @@ class Game {
         return;
       }
 
-      // Try petting a cat
       const cat = this.catManager.getCatAt(pos.x, pos.y);
-      if (cat) {
-        const petted = cat.pet(this.particles);
-        if (petted) {
-          this.pettedCount++;
-          canvas.className = 'petting';
-          setTimeout(() => { if (!this.ui.selectedItem) canvas.className = ''; }, 1500);
-          if (cat.isBirthday) this.birthdayPetsCount++;
-          const yarn = cat.tryGift(this.particles, this.garden.season);
-          if (yarn > 0) {
-            const boosted = Math.ceil(yarn * this.giftBonus);
-            this.yarn += boosted;
-            this.totalYarnEarned += boosted;
-            this.seasonYarn += boosted;
-            this.ui.updateYarnDisplay();
-            const msg = cat.isBirthday
-              ? `🎂 ${this._catDisplayName(cat.def)}'s birthday gift: ${boosted}🧶!`
-              : `${this._catDisplayName(cat.def)} left you ${boosted}🧶!`;
-            this.ui.notify(msg);
-            this.save();
-          }
-          this._checkAchievements();
-        }
-        return;
-      }
+      if (cat) { _petCat(cat); return; }
 
-      // Right-click or long-press: item context menu
       if (e.button === 2 || e.type === 'contextmenu') {
         e.preventDefault();
         const item = this.garden.getItemAt(pos.x, pos.y);
@@ -138,7 +150,6 @@ class Game {
           this.save();
           this.ui.notify('↩️ Last item removed');
         }
-        return;
       }
     };
 
@@ -154,12 +165,12 @@ class Game {
         const cat = this.catManager.getCatAt(pos.x, pos.y);
         if (cat) {
           el.style.display = 'block';
-          el.style.left = (pos.x / (this.canvas.width / this.canvas.getBoundingClientRect().width)) + 10 + 'px';
-          el.style.top = (pos.y / (this.canvas.height / this.canvas.getBoundingClientRect().height)) - 30 + 'px';
-          const moodEmoji = cat.mood < 0.4 ? '😾' : cat.mood < 0.65 ? '😺' : cat.mood < 0.85 ? '😸' : '😻';
-          const seasonBonus = cat.def.favSeason === this.garden.season ? ' ✨' : '';
-          const bdTag = cat.isBirthday ? ' 🎂' : '';
-          el.textContent = `${this._catDisplayName(cat.def)} — ${cat.def.personality} ${moodEmoji}${seasonBonus}${bdTag}`;
+          const cssx = pos.x / pos._scaleX;
+          const cssy = pos.y / pos._scaleY;
+          const tw = el.offsetWidth || 160;
+          el.style.left = Math.max(4, Math.min(cssx + 10, pos._rect.width - tw - 4)) + 'px';
+          el.style.top  = Math.max(4, cssy - 30) + 'px';
+          el.textContent = _catTooltipText(cat);
         } else {
           el.style.display = 'none';
         }
@@ -173,10 +184,7 @@ class Game {
       if (dragging && dragItem && ghostPos && dragStart) {
         const dx = ghostPos.x - dragStart.x;
         const dy = ghostPos.y - dragStart.y;
-        const moved = Math.sqrt(dx * dx + dy * dy);
-
-        if (moved >= MIN_DRAG_PX) {
-          // Real drag — place the item
+        if (Math.sqrt(dx*dx + dy*dy) >= MIN_DRAG_PX) {
           const valid = this.garden.canPlace(ghostPos.x, ghostPos.y, dragItem.id);
           if (valid) {
             const placed = this.garden.placeItem(ghostPos.x, ghostPos.y, dragItem.id);
@@ -190,48 +198,152 @@ class Game {
             this.ui.notify('Cannot place there');
           }
         }
-        // Short tap with item selected = do nothing (keep item selected for next drag)
       }
-      dragging = false;
-      dragItem = null;
-      dragStart = null;
+      dragging = false; dragItem = null; dragStart = null;
       this._ghost.active = !!this.ui.selectedItem;
     };
 
     canvas.addEventListener('mousedown', onDown);
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseup', onUp);
-    canvas.addEventListener('touchstart', onDown, { passive: false });
-    canvas.addEventListener('touchmove', onMove, { passive: false });
-    canvas.addEventListener('touchend', onUp, { passive: false });
     canvas.addEventListener('contextmenu', e => { e.preventDefault(); onDown(e); });
+
+    this._ghost = { active: false, item: null, pos: null, valid: false };
+    canvas.addEventListener('mousemove', (e) => {
+      if (this.ui.selectedItem) {
+        const pos = getPos(e);
+        this._ghost = { active: true, item: this.ui.selectedItem, pos, valid: this.garden.canPlace(pos.x, pos.y, this.ui.selectedItem.id) };
+      } else if (!dragging) {
+        this._ghost.active = false;
+      }
+    });
+    canvas.addEventListener('mouseleave', () => { this._ghost.active = false; });
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         this.ui.selectedItem = null;
         canvas.className = '';
         this.ui.renderShop();
+        this.ui._showCancelBtn(false);
       }
     });
 
-    // Store ghost info for rendering
-    this._ghost = { active: false, item: null, pos: null, valid: false };
-    canvas.addEventListener('mousemove', (e) => {
-      if (this.ui.selectedItem) {
-        const pos = getPos(e);
-        this._ghost = { active: true, item: this.ui.selectedItem, pos, valid: this.garden.canPlace(pos.x, pos.y, this.ui.selectedItem.id) };
-      } else {
-        this._ghost.active = false;
-      }
-    });
-    canvas.addEventListener('mouseleave', () => { this._ghost.active = false; });
+    // ── Touch ────────────────────────────────────────────────────────
+    let lpTimer = null;    // 480 ms long-press → item context menu
+    let infoTimer = null;  // 160 ms hold on cat → info label
+    let lpStart = null;
+    let lpFired = false;
+    let infoShown = false;
+    let touchCat = null;
 
-    // Touch ghost
-    canvas.addEventListener('touchmove', (e) => {
+    const clearTouchTimers = () => { clearTimeout(lpTimer); clearTimeout(infoTimer); lpTimer = null; infoTimer = null; };
+
+    const hideTouchLabel = () => {
+      const el = document.getElementById('touch-label');
+      if (el) { clearTimeout(el._hideTimer); el.style.display = 'none'; }
+      infoShown = false;
+    };
+
+    const showTouchLabel = (cat, pos) => {
+      const el = document.getElementById('touch-label');
+      if (!el) return;
+      el.textContent = _catTooltipText(cat);
+      const rect = canvas.getBoundingClientRect();
+      const cssx = pos.x / (canvas.width / rect.width);
+      const cssy = pos.y / (canvas.height / rect.height);
+      const tw = el.offsetWidth || 160;
+      el.style.left = Math.max(4, Math.min(cssx - tw / 2, rect.width - tw - 4)) + 'px';
+      el.style.top  = Math.max(4, cssy - 70) + 'px';
+      el.style.display = 'block';
+      infoShown = true;
+      el._hideTimer = setTimeout(hideTouchLabel, 2000);
+    };
+
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      clearTouchTimers();
+      hideTouchLabel();
+      lpFired = false; infoShown = false;
+      lpStart = getPos(e);
+      touchCat = this.catManager.getCatAt(lpStart.x, lpStart.y);
+
+      // Item selected — start drag immediately with −64 px Y offset above finger
       if (this.ui.selectedItem) {
-        const pos = getPos(e);
-        this._ghost = { active: true, item: this.ui.selectedItem, pos, valid: this.garden.canPlace(pos.x, pos.y, this.ui.selectedItem.id) };
+        dragging = true;
+        dragItem = this.ui.selectedItem;
+        const ty = lpStart.y - 64;
+        ghostPos = { x: lpStart.x, y: ty };
+        dragStart = { x: lpStart.x, y: ty };
+        this._ghost = { active: true, item: dragItem, pos: ghostPos, valid: this.garden.canPlace(lpStart.x, ty, dragItem.id) };
+        return;
       }
+
+      // Cat under finger → 160 ms delay: lift=pet, hold=info label
+      if (touchCat) {
+        infoTimer = setTimeout(() => { infoShown = true; showTouchLabel(touchCat, lpStart); }, 160);
+      }
+
+      // Long-press → item context menu (480 ms)
+      lpTimer = setTimeout(() => {
+        lpFired = true;
+        clearTimeout(infoTimer);
+        hideTouchLabel();
+        const item = this.garden.getItemAt(lpStart.x, lpStart.y);
+        if (item) { this._showItemMenu(lpStart, item); navigator.vibrate?.([25]); }
+      }, 480);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const pos = getPos(e);
+      if (lpStart) {
+        const dx = pos.x - lpStart.x, dy = pos.y - lpStart.y;
+        if (Math.sqrt(dx*dx + dy*dy) > 8) { clearTouchTimers(); hideTouchLabel(); }
+      }
+      if (dragging && dragItem) {
+        const ty = pos.y - 64;
+        ghostPos = { x: pos.x, y: ty };
+        this._ghost = { active: true, item: dragItem, pos: ghostPos, valid: this.garden.canPlace(pos.x, ty, dragItem.id) };
+      } else if (this.ui.selectedItem) {
+        const ty = pos.y - 64;
+        this._ghost = { active: true, item: this.ui.selectedItem, pos: { x: pos.x, y: ty }, valid: this.garden.canPlace(pos.x, ty, this.ui.selectedItem.id) };
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', e => {
+      e.preventDefault();
+      clearTouchTimers();
+      if (lpFired) { lpFired = false; return; }
+
+      if (dragging && dragItem && ghostPos && dragStart) {
+        const dx = ghostPos.x - dragStart.x, dy = ghostPos.y - dragStart.y;
+        if (Math.sqrt(dx*dx + dy*dy) >= MIN_DRAG_PX) {
+          const valid = this.garden.canPlace(ghostPos.x, ghostPos.y, dragItem.id);
+          if (valid) {
+            const placed = this.garden.placeItem(ghostPos.x, ghostPos.y, dragItem.id);
+            if (placed) {
+              this.particles.spawn(ghostPos.x, ghostPos.y, 'sparkle');
+              this.save();
+              this._checkAchievements();
+              navigator.vibrate?.([12]);
+              this.ui.notify(`Placed ${dragItem.name}! Tap again to place more, or tap the item to deselect.`);
+            }
+          } else {
+            this.ui.notify('Cannot place there');
+          }
+        }
+        dragging = false; dragItem = null; dragStart = null;
+        this._ghost.active = !!this.ui.selectedItem;
+        return;
+      }
+      dragging = false; dragItem = null; dragStart = null;
+
+      if (infoShown) { hideTouchLabel(); return; }
+
+      // Quick tap → pet cat
+      const pos = getPos(e);
+      const cat = this.catManager.getCatAt(pos.x, pos.y);
+      if (cat) _petCat(cat);
     }, { passive: false });
   }
 
@@ -331,6 +443,7 @@ class Game {
 
     this.garden.season = (this.garden.season + 1) % 4;
     this.seasonChanges++;
+    navigator.vibrate?.([40]);
     const s = SEASONS[this.garden.season];
     this.particles.spawn(this.canvas.width / 2, this.canvas.height / 3, 'leaves');
     this.ui.notify(`${s.emoji} ${s.name} has arrived in your garden!`);
