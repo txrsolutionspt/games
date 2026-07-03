@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tower Defense</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <div id="hud">
+            <span>WAVE <span id="wave">0</span></span>
+            <span>♦ <span id="gold">150</span></span>
+            <span>♥ <span id="lives">20</span></span>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="tower-panel">
+            <button class="tbtn" data-type="archer">
+                <span class="tbadge" style="background:#6bbf3e"></span>
+                <span class="tname">Archer</span>
+                <span class="tcost">50♦</span>
+            </button>
+            <button class="tbtn" data-type="cannon">
+                <span class="tbadge" style="background:#c87c35"></span>
+                <span class="tname">Cannon</span>
+                <span class="tcost">100♦</span>
+            </button>
+            <button class="tbtn" data-type="frost">
+                <span class="tbadge" style="background:#35a8d0"></span>
+                <span class="tname">Frost</span>
+                <span class="tcost">80♦</span>
+            </button>
+            <button class="tbtn" data-type="laser">
+                <span class="tbadge" style="background:#d035a8"></span>
+                <span class="tname">Laser</span>
+                <span class="tcost">175♦</span>
+            </button>
+        </div>
+
+        <div id="action-bar">
+            <span id="info-text">Select a tower type, then tap the map to place</span>
+            <button id="sell-btn" class="hidden">Sell</button>
+        </div>
+
+        <button id="wave-btn">▶ START WAVE 1</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
