@@ -564,6 +564,20 @@ function initializeGame() {
             });
             gameState.towerMgr = towerManager;
             gameState.towers = towerManager.towers;
+
+            const projectileManager = new ProjectileManager();
+            gameState.projectiles.forEach(p => {
+                projectileManager.projectiles.push(p);
+            });
+            gameState.projectileMgr = projectileManager;
+            gameState.projectiles = projectileManager.projectiles;
+
+            const particleManager = new ParticleManager();
+            gameState.particles.forEach(p => {
+                particleManager.particles.push(p);
+            });
+            gameState.particleMgr = particleManager;
+            gameState.particles = particleManager.particles;
             updateHUD(); updateWaveBtn(); setInfo('Game resumed!');
             sellBtn.classList.add('hidden');
         };
