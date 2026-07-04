@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defense - Integration Tests</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 {
+            color: #4ecca3;
+            margin-bottom: 10px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #252525;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        .status.running {
+            background: #2a3f35;
+            border-color: #4ecca3;
+            color: #4ecca3;
+        }
+        .status.complete {
+            background: #2a3f35;
+            border-color: #4ecca3;
+            color: #4ecca3;
+        }
+        .canvas {
+            display: none;
+        }
+        #test-output {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .pass {
+            color: #4ecca3;
+        }
+        .fail {
+            color: #ff6b6b;
+        }
+        .benchmark {
+            color: #70c0ff;
+        }
+        button {
+            background: #4ecca3;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #3db893;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Tower Defense - Integration Tests</h1>
+        <p>Performance validation for Phase 2 optimizations</p>
+
+        <div class="status running" id="status">
+            ⏳ Preparing tests...
+        </div>
+
+        <button onclick="runTests()">Run Tests</button>
+
+        <div id="test-output"></div>
+    </div>
+
+    <!-- Hidden canvas for game context -->
+    <canvas id="gameCanvas" class="canvas"></canvas>
+
+    <!-- Minimal HTML structure needed by game.js -->
+    <script>
+        // Create minimal DOM elements game.js needs
+        const createDummyElements = () => {
+            if (!document.getElementById('gold')) {
+                const dummy = document.createElement('div');
+                dummy.id = 'dummy-container';
+                dummy.style.display = 'none';
+
+                ['gold', 'lives', 'wave', 'wave-btn', 'info-text', 'sell-btn',
+                 'difficulty-modal', 'settings-modal', 'resume-modal', 'settings-btn',
+                 'resume-info', 'resume-continue-btn', 'resume-new-btn',
+                 'difficulty-start-btn', 'settings-resume-btn', 'settings-new-btn']
+                .forEach(id => {
+                    const el = document.createElement('div');
+                    el.id = id;
+                    el.className = 'hidden';
+                    el.style.display = 'none';
+                    dummy.appendChild(el);
+                });
+
+                const difficultyBtns = document.createElement('div');
+                ['easy', 'normal', 'hard'].forEach(diff => {
+                    const btn = document.createElement('button');
+                    btn.className = 'difficulty-btn';
+                    btn.dataset.difficulty = diff;
+                    btn.textContent = diff;
+                    difficultyBtns.appendChild(btn);
+                });
+                dummy.appendChild(difficultyBtns);
+
+                document.body.appendChild(dummy);
+            }
+        };
+
+        createDummyElements();
+    </script>
+
+    <!-- Load game.js with TEST_MODE set -->
+    <script src="game.js"></script>
+
+    <!-- Load integration tests -->
+    <script src="test.integration.js"></script>
+
+    <script>
+        const outputEl = document.getElementById('test-output');
+        const statusEl = document.getElementById('status');
+
+        // Capture console output
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        const capturedOutput = [];
+
+        console.log = function(...args) {
+            const message = args.map(arg => {
+                if (typeof arg === 'object') return JSON.stringify(arg);
+                return String(arg);
+            }).join(' ');
+            capturedOutput.push(message);
+            outputEl.textContent += message + '\n';
+            outputEl.scrollTop = outputEl.scrollHeight;
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            const message = args.map(arg => {
+                if (typeof arg === 'object') return JSON.stringify(arg);
+                return String(arg);
+            }).join(' ');
+            capturedOutput.push(message);
+            outputEl.textContent += message + '\n';
+            outputEl.scrollTop = outputEl.scrollHeight;
+            originalError.apply(console, args);
+        };
+
+        function runTests() {
+            outputEl.textContent = '';
+            capturedOutput.length = 0;
+            statusEl.textContent = '⏳ Running tests...';
+
+            setTimeout(async () => {
+                try {
+                    await runner.run();
+                    if (runner.failed === 0) {
+                        statusEl.textContent = `✅ All tests passed! (${runner.passed}/${runner.passed + runner.failed})`;
+                        statusEl.classList.remove('running');
+                        statusEl.classList.add('complete');
+                    } else {
+                        statusEl.textContent = `⚠️  Tests complete: ${runner.passed} passed, ${runner.failed} failed`;
+                        statusEl.classList.remove('running');
+                        statusEl.classList.add('complete');
+                    }
+                } catch (error) {
+                    statusEl.textContent = `❌ Test error: ${error.message}`;
+                    console.error(error);
+                }
+            }, 100);
+        }
+
+        // Run on page load
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 500);
+        });
+    </script>
+</body>
+</html>
