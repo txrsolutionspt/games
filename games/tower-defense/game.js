@@ -604,7 +604,7 @@ function draw(ts) {
     drawEnemies(ts);
     drawProjectiles();
     drawParticles();
-    if (gameOver) drawGameOver();
+    if (gameState.gameOver) drawGameOver();
 }
 
 function drawMap() {
