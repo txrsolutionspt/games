@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defense - Test Suite</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #ffd700;
+            text-align: center;
+        }
+        #test-output {
+            background: #0a0a1a;
+            border: 2px solid #3a3a6a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .test-pass { color: #88ff88; }
+        .test-fail { color: #ff8888; }
+        .test-info { color: #88aaff; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Tower Defense - Test Suite</h1>
+    <p>Running comprehensive tests of game functionality...</p>
+    <div id="test-output">Loading tests...</div>
+
+    <!-- Load test.js first to set TEST_MODE, then game.js for dependencies, then run tests -->
+    <script>window.TEST_MODE = true;</script>
+    <script src="game.js"></script>
+    <script src="test.js"></script>
+</body>
+</html>

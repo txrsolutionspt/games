@@ -187,9 +187,17 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.2s;
 }
 
-.modal.hidden { display: none; }
+.modal.hidden {
+    display: flex;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
 
 .modal-content {
     background: #24244a;

@@ -223,6 +223,14 @@ let WAYPOINTS = createMapWaypoints(gameState.mapId);
 // PHASE 1: UI AND SETTINGS
 // ════════════════════════════════════════════════════════════════════════════════
 
+// ── Debug mode for troubleshooting ─────────────────────────────────────────────
+const DEBUG = typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE;
+function debugLog(message, data) {
+    if (DEBUG) {
+        console.log(`[TD] ${message}`, data || '');
+    }
+}
+
 // ── DOM refs for modals ────────────────────────────────────────────────────────
 const difficultyModal = document.getElementById('difficulty-modal');
 const settingsModal = document.getElementById('settings-modal');
@@ -829,17 +837,24 @@ function canvasXY(e) {
 }
 
 function onTap(px, py) {
+    debugLog('onTap called', { px, py, gameOverActive: gameState.gameOver });
+
     initAudio();
     if (gameState.gameOver) return;
 
     const c = Math.floor(px / CELL), r = Math.floor(py / CELL);
-    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return;
+    debugLog('Grid cell', { c, r, COLS, ROWS });
+
+    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) {
+        debugLog('Click outside grid');
+        return;
+    }
 
     // Tapped a placed tower?
     const hit = gameState.towers.find(t => t.col === c && t.row === r);
     if (hit) {
+        debugLog('Hit tower', { type: hit.type });
         if (gameState.selectedTower === hit) {
-            // Deselect
             gameState.selectedTower = null;
             sellBtn.classList.add('hidden');
             setInfo('');
@@ -864,14 +879,41 @@ function onTap(px, py) {
     }
 
     // Place a tower
-    if (!gameState.selectedType) { setInfo('Pick a tower type from the panel below'); return; }
-    if (PATH_SET.has(`${c},${r}`)) { setInfo("Can't build on the path!"); return; }
-    if (gameState.towers.find(t => t.col===c && t.row===r)) { setInfo('Cell already occupied!'); return; }
+    debugLog('Attempting to place tower', {
+        selectedType: gameState.selectedType,
+        isPath: PATH_SET.has(`${c},${r}`),
+        gold: gameState.gold,
+        towerCount: gameState.towers.length
+    });
+
+    if (!gameState.selectedType) {
+        debugLog('No tower type selected');
+        setInfo('Pick a tower type from the panel below');
+        return;
+    }
+
+    if (PATH_SET.has(`${c},${r}`)) {
+        debugLog('Attempting to place on path');
+        setInfo("Can't build on the path!");
+        return;
+    }
+
+    if (gameState.towers.find(t => t.col===c && t.row===r)) {
+        debugLog('Cell already occupied');
+        setInfo('Cell already occupied!');
+        return;
+    }
 
     const def = TOWER_DEFS[gameState.selectedType];
-    if (gameState.gold < def.cost) { setInfo(`Need ${def.cost}♦ (you have ${gameState.gold}♦)`); return; }
+    if (gameState.gold < def.cost) {
+        debugLog('Insufficient gold', { need: def.cost, have: gameState.gold });
+        setInfo(`Need ${def.cost}♦ (you have ${gameState.gold}♦)`);
+        return;
+    }
 
-    gameState.gold -= def.cost; updateHUD();
+    debugLog('Tower placed successfully', { type: gameState.selectedType });
+    gameState.gold -= def.cost;
+    updateHUD();
     gameState.towers.push({
         id: ++gameState.entityIds.tid, type: gameState.selectedType, col: c, row: r,
         x: c*CELL + CELL/2, y: r*CELL + CELL/2,
@@ -897,17 +939,24 @@ canvas.addEventListener('mouseleave', () => { gameState.hoverCell = null; });
 document.querySelectorAll('.tbtn').forEach(btn => {
     btn.addEventListener('click', () => {
         initAudio();
+        debugLog('Tower button clicked', { type: btn.dataset.type });
         if (gameState.gameOver) return;
         const type = btn.dataset.type;
         if (gameState.selectedType === type) {
-            gameState.selectedType = null; deselectBtns(); setInfo(''); return;
+            gameState.selectedType = null;
+            deselectBtns();
+            setInfo('');
+            debugLog('Tower deselected', { type });
+            return;
         }
         gameState.selectedType  = type;
         gameState.selectedTower = null;
-        deselectBtns(); btn.classList.add('active');
+        deselectBtns();
+        btn.classList.add('active');
         sellBtn.classList.add('hidden');
         const def = TOWER_DEFS[type];
         setInfo(`${def.name} · ${def.cost}♦ · ${def.desc}`);
+        debugLog('Tower selected', { type, cost: def.cost });
     });
 });
 
@@ -942,5 +991,8 @@ function loop(ts) {
     requestAnimationFrame(loop);
 }
 
-initializeGame();
-requestAnimationFrame(loop);
+// Only initialize if not in test mode
+if (typeof TEST_MODE === 'undefined' || !TEST_MODE) {
+    initializeGame();
+    requestAnimationFrame(loop);
+}
