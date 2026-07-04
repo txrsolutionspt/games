@@ -5,7 +5,37 @@
  * - Spatial grid (tower targeting optimization)
  */
 
-window.TEST_MODE = true;
+// Set up mocks for Node.js environment if not already done
+if (typeof global !== 'undefined' && !global.document) {
+    const mockCanvasContext = {
+        fillStyle: '', fillRect: () => null, clearRect: () => null, beginPath: () => null, arc: () => null, fill: () => null,
+        stroke: () => null, strokeRect: () => null, moveTo: () => null, lineTo: () => null, drawImage: () => null,
+        globalAlpha: 1, globalCompositeOperation: '', textAlign: '', font: '', fillText: () => null,
+        save: () => null, restore: () => null, translate: () => null, rotate: () => null, scale: () => null, transform: () => null
+    };
+
+    const mockElement = {
+        classList: { add: () => null, remove: () => null, toggle: () => null },
+        addEventListener: () => null, removeEventListener: () => null, textContent: '', disabled: false
+    };
+
+    global.localStorage = { setItem: () => null, getItem: () => null, removeItem: () => null };
+    global.document = {
+        getElementById: (id) => {
+            if (id === 'gameCanvas') return { getContext: () => mockCanvasContext, width: 400, height: 320, addEventListener: () => null, removeEventListener: () => null };
+            return { ...mockElement };
+        },
+        addEventListener: () => null, querySelectorAll: () => [], querySelector: () => ({ ...mockElement }), createElement: () => ({ ...mockElement })
+    };
+    global.window = { addEventListener: () => null, localStorage: global.localStorage };
+    global.requestAnimationFrame = (cb) => null;
+    global.performance = { now: () => Date.now() };
+
+    require('./version.js');
+    require('./game.js');
+}
+
+global.TEST_MODE = true;
 
 class IntegrationTestRunner {
     constructor() {
@@ -445,8 +475,14 @@ runner.test('Data Integrity - Spatial grid matches enemies', function() {
 // ════════════════════════════════════════════════════════════════════════════════
 
 // Auto-run if in browser
-if (typeof window !== 'undefined' && document.currentScript) {
+if (typeof document !== 'undefined' && document.currentScript) {
     window.addEventListener('load', () => {
         setTimeout(() => runner.run(), 100);
+    });
+} else if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    // Auto-run if in Node.js
+    runner.run().catch(err => {
+        console.error('Test runner error:', err);
+        process.exit(1);
     });
 }
