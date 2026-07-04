@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defense - Diagnostics</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 { color: #ffd700; }
+        .section {
+            background: #0a0a1a;
+            border: 1px solid #3a3a6a;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .status { margin: 8px 0; font-size: 0.95rem; }
+        .pass { color: #88ff88; }
+        .fail { color: #ff8888; }
+        .info { color: #88aaff; }
+        button {
+            background: #4a5a9a;
+            border: 1px solid #6a7aba;
+            color: #e0e0e0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+            font-family: inherit;
+        }
+        button:hover { background: #5a6aaa; }
+        code {
+            background: #1a1a3a;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Tower Defense - Diagnostics</h1>
+    <p>Run this to diagnose the tower placement issue</p>
+
+    <div class="section">
+        <h2>1. Game Environment Check</h2>
+        <div id="env-check"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. Game State Check</h2>
+        <div id="state-check"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. Event Listener Check</h2>
+        <div id="event-check"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. Canvas & DOM Check</h2>
+        <div id="dom-check"></div>
+    </div>
+
+    <div class="section">
+        <h2>5. Interactive Tests</h2>
+        <p>These buttons test specific functionality:</p>
+        <button onclick="testTowerSelection()">Test Tower Selection</button>
+        <button onclick="testCanvasTap()">Test Canvas Tap</button>
+        <button onclick="testTowerPlacement()">Test Tower Placement</button>
+        <button onclick="testGameState()">Dump Game State</button>
+        <button onclick="testWaveStart()">Test Wave Start</button>
+        <div id="interactive-results"></div>
+    </div>
+
+    <div class="section">
+        <h2>6. Console Instructions</h2>
+        <p>After running this diagnostic, open Browser DevTools (F12) and run:</p>
+        <code>window.DEBUG_MODE = true; location.reload();</code>
+        <p>Then try placing towers and check the console output.</p>
+    </div>
+
+    <script src="game.js"></script>
+    <script>
+        // Suppress game initialization
+        window.TEST_MODE = true;
+
+        const log = (element, message, type = 'info') => {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            document.getElementById(element).appendChild(div);
+        };
+
+        // Check 1: Environment
+        window.addEventListener('DOMContentLoaded', () => {
+            const envDiv = document.getElementById('env-check');
+
+            try {
+                if (typeof gameState === 'object') {
+                    log('env-check', '✅ gameState exists', 'pass');
+                } else {
+                    log('env-check', '❌ gameState not defined', 'fail');
+                }
+            } catch (e) {
+                log('env-check', '❌ Error accessing gameState: ' + e.message, 'fail');
+            }
+
+            try {
+                if (typeof MAPS === 'object') {
+                    log('env-check', '✅ MAPS exists', 'pass');
+                } else {
+                    log('env-check', '❌ MAPS not defined', 'fail');
+                }
+            } catch (e) {
+                log('env-check', '❌ Error accessing MAPS: ' + e.message, 'fail');
+            }
+
+            try {
+                const canvas = document.getElementById('gameCanvas');
+                if (canvas && canvas.getContext) {
+                    log('env-check', '✅ Canvas exists and is valid', 'pass');
+                } else {
+                    log('env-check', '❌ Canvas missing or invalid', 'fail');
+                }
+            } catch (e) {
+                log('env-check', '❌ Error accessing canvas: ' + e.message, 'fail');
+            }
+
+            // Check 2: Game State
+            try {
+                if (gameState && gameState.gold !== undefined) {
+                    log('state-check', `✅ Game gold: ${gameState.gold}`, 'pass');
+                } else {
+                    log('state-check', '❌ Gold not accessible', 'fail');
+                }
+
+                if (gameState && gameState.towers !== undefined) {
+                    log('state-check', `✅ Towers array exists (count: ${gameState.towers.length})`, 'pass');
+                } else {
+                    log('state-check', '❌ Towers array not accessible', 'fail');
+                }
+
+                if (gameState && gameState.selectedType !== undefined) {
+                    log('state-check', `✅ selectedType accessible (current: ${gameState.selectedType})`, 'pass');
+                } else {
+                    log('state-check', '❌ selectedType not accessible', 'fail');
+                }
+            } catch (e) {
+                log('state-check', `❌ Error: ${e.message}`, 'fail');
+            }
+
+            // Check 3: Event Listeners
+            try {
+                const towerBtns = document.querySelectorAll('.tbtn');
+                log('event-check', `✅ Found ${towerBtns.length} tower buttons`, 'pass');
+
+                const canvas = document.getElementById('gameCanvas');
+                if (canvas) {
+                    log('event-check', '✅ Canvas element accessible for events', 'pass');
+                }
+
+                const waveBtn = document.getElementById('wave-btn');
+                if (waveBtn) {
+                    log('event-check', '✅ Wave button accessible', 'pass');
+                }
+            } catch (e) {
+                log('event-check', `❌ Error: ${e.message}`, 'fail');
+            }
+
+            // Check 4: DOM
+            const domChecks = [
+                { id: 'gameCanvas', name: 'Canvas' },
+                { id: 'gold', name: 'Gold display' },
+                { id: 'lives', name: 'Lives display' },
+                { id: 'tower-panel', name: 'Tower panel' },
+                { id: 'wave-btn', name: 'Wave button' },
+                { id: 'settings-btn', name: 'Settings button' },
+                { id: 'difficulty-modal', name: 'Difficulty modal' },
+            ];
+
+            domChecks.forEach(({ id, name }) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    log('dom-check', `✅ ${name} (id="${id}") found`, 'pass');
+                } else {
+                    log('dom-check', `❌ ${name} (id="${id}") missing`, 'fail');
+                }
+            });
+        });
+
+        // Interactive tests
+        function testTowerSelection() {
+            const results = document.getElementById('interactive-results');
+            results.innerHTML = '';
+
+            try {
+                // Get a tower button
+                const btn = document.querySelector('[data-type="archer"]');
+                if (!btn) throw new Error('Archer button not found');
+
+                // Simulate click
+                const event = new MouseEvent('click', { bubbles: true });
+                btn.dispatchEvent(event);
+
+                setTimeout(() => {
+                    if (gameState.selectedType === 'archer') {
+                        log('interactive-results', '✅ Tower selection works! Archer selected.', 'pass');
+                    } else {
+                        log('interactive-results', `❌ Tower not selected. selectedType = ${gameState.selectedType}`, 'fail');
+                    }
+                }, 100);
+            } catch (e) {
+                log('interactive-results', `❌ Error: ${e.message}`, 'fail');
+            }
+        }
+
+        function testCanvasTap() {
+            const results = document.getElementById('interactive-results');
+            results.innerHTML = '';
+
+            try {
+                const canvas = document.getElementById('gameCanvas');
+                if (!canvas) throw new Error('Canvas not found');
+
+                // Simulate click at center
+                const rect = canvas.getBoundingClientRect();
+                const x = rect.left + rect.width / 2;
+                const y = rect.top + rect.height / 2;
+
+                const event = new MouseEvent('click', {
+                    bubbles: true,
+                    clientX: x,
+                    clientY: y
+                });
+
+                canvas.dispatchEvent(event);
+                log('interactive-results', '✅ Canvas tap event fired', 'pass');
+            } catch (e) {
+                log('interactive-results', `❌ Error: ${e.message}`, 'fail');
+            }
+        }
+
+        function testTowerPlacement() {
+            const results = document.getElementById('interactive-results');
+            results.innerHTML = '';
+
+            try {
+                const initialCount = gameState.towers.length;
+
+                // Select archer
+                gameState.selectedType = 'archer';
+                log('interactive-results', `ℹ️  Selected tower: archer`, 'info');
+
+                // Try to place tower
+                onTap(100, 100);
+
+                const finalCount = gameState.towers.length;
+                if (finalCount > initialCount) {
+                    log('interactive-results', `✅ Tower placed! Count: ${initialCount} → ${finalCount}`, 'pass');
+                } else {
+                    log('interactive-results', `⚠️  No tower placed. Check console for reasons.`, 'fail');
+                    log('interactive-results', `   Gold: ${gameState.gold}, SelectedType: ${gameState.selectedType}`, 'info');
+                }
+            } catch (e) {
+                log('interactive-results', `❌ Error: ${e.message}`, 'fail');
+            }
+        }
+
+        function testGameState() {
+            const results = document.getElementById('interactive-results');
+            results.innerHTML = '';
+
+            try {
+                const state = {
+                    gold: gameState.gold,
+                    lives: gameState.lives,
+                    waveNum: gameState.waveNum,
+                    selectedType: gameState.selectedType,
+                    towersCount: gameState.towers.length,
+                    enemiesCount: gameState.enemies.length,
+                    mapId: gameState.mapId,
+                    difficulty: gameState.difficulty,
+                    gameOver: gameState.gameOver
+                };
+
+                log('interactive-results', `<strong>Current Game State:</strong>`, 'info');
+                Object.entries(state).forEach(([key, value]) => {
+                    log('interactive-results', `${key}: ${value}`, 'info');
+                });
+
+                log('interactive-results', `<br><strong>Copy to console:</strong>`, 'info');
+                log('interactive-results', `<code>copy(${JSON.stringify(state)})</code>`, 'info');
+            } catch (e) {
+                log('interactive-results', `❌ Error: ${e.message}`, 'fail');
+            }
+        }
+
+        function testWaveStart() {
+            const results = document.getElementById('interactive-results');
+            results.innerHTML = '';
+
+            try {
+                const initialWave = gameState.waveNum;
+                gameState.waveActive = false;
+                gameState.gameOver = false;
+
+                startWave();
+
+                setTimeout(() => {
+                    if (gameState.waveNum > initialWave) {
+                        log('interactive-results', `✅ Wave started! Wave: ${initialWave} → ${gameState.waveNum}`, 'pass');
+                    } else {
+                        log('interactive-results', `❌ Wave did not start`, 'fail');
+                    }
+                }, 100);
+            } catch (e) {
+                log('interactive-results', `❌ Error: ${e.message}`, 'fail');
+            }
+        }
+    </script>
+</body>
+</html>
