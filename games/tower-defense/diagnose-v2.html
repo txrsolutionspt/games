@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defense - Diagnostics V2</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 { color: #ffd700; }
+        .section {
+            background: #0a0a1a;
+            border: 1px solid #3a3a6a;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .status { margin: 8px 0; font-size: 0.95rem; }
+        .pass { color: #88ff88; }
+        .fail { color: #ff8888; }
+        .warn { color: #ffaa44; }
+        .info { color: #88aaff; }
+        button {
+            background: #4a5a9a;
+            border: 1px solid #6a7aba;
+            color: #e0e0e0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+            font-family: inherit;
+        }
+        button:hover { background: #5a6aaa; }
+        code {
+            background: #1a1a3a;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        pre {
+            background: #1a1a3a;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Tower Defense - Diagnostics V2</h1>
+    <p>Checking if game.js loads and initializes properly</p>
+
+    <div class="section">
+        <h2>Step 1: Check game.js Loading</h2>
+        <div id="load-check"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 2: Check for JavaScript Errors</h2>
+        <button onclick="checkErrors()">Check Console Errors</button>
+        <div id="error-check"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 3: Manual Initialization Test</h2>
+        <button onclick="manualInit()">Attempt Manual Init</button>
+        <div id="manual-init"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 4: Test Game Functions</h2>
+        <button onclick="testFunctions()">Test Functions</button>
+        <div id="function-check"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 5: DOM Check</h2>
+        <div id="dom-check"></div>
+    </div>
+
+    <!-- Load the actual game HTML elements -->
+    <div id="container" style="display:none;">
+        <div id="hud">
+            <span>WAVE <span id="wave">0</span></span>
+            <span>♦ <span id="gold">150</span></span>
+            <span>♥ <span id="lives">20</span></span>
+            <button id="settings-btn" class="hud-btn" title="Settings">⚙</button>
+        </div>
+
+        <canvas id="gameCanvas" width="400" height="320"></canvas>
+
+        <div id="tower-panel">
+            <button class="tbtn" data-type="archer">
+                <span class="tbadge" style="background:#6bbf3e"></span>
+                <span class="tname">Archer</span>
+                <span class="tcost">50♦</span>
+            </button>
+        </div>
+
+        <div id="action-bar">
+            <span id="info-text">Select a tower type, then tap the map to place</span>
+            <button id="sell-btn" class="hidden">Sell</button>
+        </div>
+
+        <button id="wave-btn">▶ START WAVE 1</button>
+    </div>
+
+    <script>
+        // Trap errors
+        const errors = [];
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            errors.push({
+                message: msg,
+                source: url,
+                line: lineNo,
+                column: columnNo,
+                error: error ? error.stack : 'No stack trace'
+            });
+            return false;
+        };
+
+        const log = (element, message, type = 'info') => {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            document.getElementById(element).appendChild(div);
+        };
+
+        // Check 1: Load game.js
+        document.addEventListener('DOMContentLoaded', () => {
+            log('load-check', '⏳ game.js should be loading...', 'info');
+
+            setTimeout(() => {
+                // Check if game loaded
+                if (typeof createGameState === 'function') {
+                    log('load-check', '✅ game.js loaded successfully', 'pass');
+                    log('load-check', '✅ createGameState function exists', 'pass');
+                } else {
+                    log('load-check', '❌ game.js failed to load', 'fail');
+                    log('load-check', '❌ createGameState function NOT FOUND', 'fail');
+                }
+
+                if (typeof MAPS === 'object') {
+                    log('load-check', '✅ MAPS object exists', 'pass');
+                } else {
+                    log('load-check', '❌ MAPS object NOT found', 'fail');
+                }
+
+                if (typeof gameState === 'object') {
+                    log('load-check', '✅ gameState object exists', 'pass');
+                } else {
+                    log('load-check', '❌ gameState object NOT found', 'fail');
+                }
+
+                // DOM checks
+                const elements = {
+                    'gameCanvas': 'Canvas',
+                    'gold': 'Gold',
+                    'lives': 'Lives',
+                    'wave': 'Wave',
+                    'tower-panel': 'Tower Panel',
+                    'wave-btn': 'Wave Button',
+                    'difficulty-modal': 'Difficulty Modal'
+                };
+
+                Object.entries(elements).forEach(([id, name]) => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        log('dom-check', `✅ ${name} (id="${id}") found`, 'pass');
+                    } else {
+                        log('dom-check', `❌ ${name} (id="${id}") NOT found`, 'fail');
+                    }
+                });
+
+                // Check tower buttons
+                const towerBtns = document.querySelectorAll('.tbtn');
+                log('dom-check', `ℹ️  Found ${towerBtns.length} tower button(s)`, towerBtns.length > 0 ? 'pass' : 'fail');
+            }, 100);
+
+            // Check for errors
+            setTimeout(() => {
+                if (errors.length > 0) {
+                    log('error-check', `❌ Found ${errors.length} JavaScript error(s):`, 'fail');
+                    errors.forEach((err, i) => {
+                        log('error-check', `<strong>Error ${i+1}:</strong> ${err.message}`, 'fail');
+                        if (err.line) {
+                            log('error-check', `Line ${err.line}: ${err.error ? err.error.split('\n')[0] : 'Unknown'}`, 'info');
+                        }
+                    });
+                } else {
+                    log('error-check', '✅ No JavaScript errors detected', 'pass');
+                }
+            }, 200);
+        });
+
+        function checkErrors() {
+            const el = document.getElementById('error-check');
+            el.innerHTML = '';
+
+            if (errors.length === 0) {
+                log('error-check', '✅ No errors recorded', 'pass');
+            } else {
+                errors.forEach(err => {
+                    log('error-check', `<pre>${err.message}\n${err.error}</pre>`, 'fail');
+                });
+            }
+        }
+
+        function manualInit() {
+            const el = document.getElementById('manual-init');
+            el.innerHTML = '';
+
+            try {
+                if (typeof createGameState !== 'function') {
+                    throw new Error('createGameState is not a function');
+                }
+
+                log('manual-init', '✅ Calling createGameState()...', 'info');
+                const state = createGameState();
+
+                log('manual-init', `✅ GameState created: gold=${state.gold}, lives=${state.lives}`, 'pass');
+
+                if (typeof createMapPathSet !== 'function') {
+                    throw new Error('createMapPathSet is not a function');
+                }
+
+                const pathSet = createMapPathSet('classic');
+                log('manual-init', `✅ Path set created with ${pathSet.size} tiles`, 'pass');
+
+                if (typeof createMapWaypoints !== 'function') {
+                    throw new Error('createMapWaypoints is not a function');
+                }
+
+                const waypoints = createMapWaypoints('classic');
+                log('manual-init', `✅ Waypoints created: ${waypoints.length} waypoints`, 'pass');
+
+            } catch (e) {
+                log('manual-init', `❌ Error: ${e.message}`, 'fail');
+                log('manual-init', `<pre>${e.stack}</pre>`, 'info');
+            }
+        }
+
+        function testFunctions() {
+            const el = document.getElementById('function-check');
+            el.innerHTML = '';
+
+            const functions = [
+                'createGameState',
+                'createMapPathSet',
+                'createMapWaypoints',
+                'buildQueue',
+                'spawnEnemy',
+                'updateEnemies',
+                'updateTowers',
+                'updateProjectiles',
+                'drawMap',
+                'onTap',
+                'startWave'
+            ];
+
+            functions.forEach(name => {
+                if (typeof window[name] === 'function') {
+                    log('function-check', `✅ ${name} exists`, 'pass');
+                } else {
+                    log('function-check', `❌ ${name} NOT found`, 'fail');
+                }
+            });
+        }
+    </script>
+
+    <!-- Load game.js AFTER setting up error trapping -->
+    <script src="game.js"></script>
+</body>
+</html>
