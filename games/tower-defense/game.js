@@ -188,6 +188,9 @@ const GameStorage = {
 function createGameState(mapId = 'classic', difficulty = 'normal') {
   const diffDef = DIFFICULTY_DEFS[difficulty];
   const enemyManager = new EnemyManager();
+  const towerManager = new TowerManager();
+  const projectileManager = new ProjectileManager();
+  const particleManager = new ParticleManager();
   return {
     mapId,
     difficulty,
@@ -200,9 +203,12 @@ function createGameState(mapId = 'classic', difficulty = 'normal') {
     enemies: enemyManager.enemies,
     enemyMap: enemyManager.enemyMap,
     spatialGrid: enemyManager.spatialGrid,
-    towers: [],
-    projectiles: [],
-    particles: [],
+    towerMgr: towerManager,
+    towers: towerManager.towers,
+    projectileMgr: projectileManager,
+    projectiles: projectileManager.projectiles,
+    particleMgr: particleManager,
+    particles: particleManager.particles,
     selectedType: null,
     selectedTower: null,
     spawnQueue: [],
@@ -353,6 +359,145 @@ class EnemyManager {
   }
 }
 
+class TowerManager {
+  constructor() {
+    this.towers = [];
+  }
+
+  add(type, col, row, entityIds) {
+    const tower = {
+      id: ++entityIds.tid,
+      type,
+      col,
+      row,
+      x: col * CELL + CELL / 2,
+      y: row * CELL + CELL / 2,
+      lastFired: 0
+    };
+    this.towers.push(tower);
+    return tower;
+  }
+
+  getAll() {
+    return this.towers;
+  }
+
+  remove(towerId) {
+    this.towers = this.towers.filter(t => t.id !== towerId);
+  }
+
+  updateLastFired(towerId, timestamp) {
+    const tower = this.towers.find(t => t.id === towerId);
+    if (tower) {
+      tower.lastFired = timestamp;
+    }
+  }
+
+  count() {
+    return this.towers.length;
+  }
+
+  clear() {
+    this.towers = [];
+  }
+}
+
+class ProjectileManager {
+  constructor() {
+    this.projectiles = [];
+  }
+
+  fire(x, y, tx, ty, targetId, type, entityIds) {
+    const def = TOWER_DEFS[type];
+    const projectile = {
+      id: ++entityIds.pid,
+      type,
+      x,
+      y,
+      tx,
+      ty,
+      targetId: def.splash > 0 ? null : targetId,
+      spd: def.pSpd,
+      dmg: def.dmg,
+      splash: def.splash,
+      slow: def.slow,
+      color: def.pColor,
+      r: def.pR,
+      done: false
+    };
+    this.projectiles.push(projectile);
+    return projectile;
+  }
+
+  getAll() {
+    return this.projectiles;
+  }
+
+  getActive() {
+    return this.projectiles.filter(p => !p.done);
+  }
+
+  markDone(projectileId) {
+    const p = this.projectiles.find(pr => pr.id === projectileId);
+    if (p) p.done = true;
+  }
+
+  removeFinished() {
+    this.projectiles = this.projectiles.filter(p => !p.done);
+  }
+
+  count() {
+    return this.projectiles.length;
+  }
+
+  clear() {
+    this.projectiles = [];
+  }
+}
+
+class ParticleManager {
+  constructor() {
+    this.particles = [];
+  }
+
+  burst(x, y, color, count, baseR) {
+    const particles = [];
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count;
+      const r = baseR * (0.5 + Math.random() * 0.5);
+      const vx = Math.cos(angle) * r;
+      const vy = Math.sin(angle) * r;
+      particles.push({
+        x,
+        y,
+        vx,
+        vy,
+        color,
+        life: 0.6 + Math.random() * 0.3,
+        r: baseR * 0.3
+      });
+    }
+    this.particles.push(...particles);
+    return particles;
+  }
+
+  getAll() {
+    return this.particles;
+  }
+
+  removeExpired() {
+    this.particles = this.particles.filter(p => p.life > 0);
+  }
+
+  count() {
+    return this.particles.length;
+  }
+
+  clear() {
+    this.particles = [];
+  }
+}
+
 // ════════════════════════════════════════════════════════════════════════════════
 // PHASE 1: UI AND SETTINGS
 // ════════════════════════════════════════════════════════════════════════════════
@@ -401,7 +546,7 @@ function initializeGame() {
             gameState = savedGame;
             PATH_SET = createMapPathSet(gameState.mapId);
             WAYPOINTS = createMapWaypoints(gameState.mapId);
-            // Rebuild manager and spatial structures (not persisted)
+            // Rebuild managers and spatial structures (not persisted)
             const enemyManager = new EnemyManager();
             gameState.enemies.forEach(e => {
                 enemyManager.enemies.push(e);
@@ -412,6 +557,13 @@ function initializeGame() {
             gameState.enemyMap = enemyManager.enemyMap;
             gameState.spatialGrid = enemyManager.spatialGrid;
             gameState.enemyMgr.updateSpatialGrid();
+
+            const towerManager = new TowerManager();
+            gameState.towers.forEach(t => {
+                towerManager.towers.push(t);
+            });
+            gameState.towerMgr = towerManager;
+            gameState.towers = towerManager.towers;
             updateHUD(); updateWaveBtn(); setInfo('Game resumed!');
             sellBtn.classList.add('hidden');
         };
@@ -1058,11 +1210,7 @@ function onTap(px, py) {
     debugLog('Tower placed successfully', { type: gameState.selectedType });
     gameState.gold -= def.cost;
     updateHUD();
-    gameState.towers.push({
-        id: ++gameState.entityIds.tid, type: gameState.selectedType, col: c, row: r,
-        x: c*CELL + CELL/2, y: r*CELL + CELL/2,
-        lastFired: 0,
-    });
+    gameState.towerMgr.add(gameState.selectedType, c, r, gameState.entityIds);
     gameState.selectedTower = null;
     sellBtn.classList.add('hidden');
     sfxPlace();
