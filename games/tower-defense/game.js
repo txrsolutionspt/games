@@ -197,6 +197,7 @@ function createGameState(mapId = 'classic', difficulty = 'normal') {
     gameOver: false,
     towers: [],
     enemies: [],
+    enemyMap: new Map(),
     projectiles: [],
     particles: [],
     selectedType: null,
@@ -421,7 +422,7 @@ function spawnEnemy(type) {
     const def    = ENEMY_DEFS[type];
     const diffMult = DIFFICULTY_DEFS[gameState.difficulty].healthMult;
     const hpMult = (1 + (gameState.waveNum - 1) * 0.13) * diffMult;
-    gameState.enemies.push({
+    const enemy = {
         id: ++gameState.entityIds.eid, type,
         hp: Math.round(def.hp * hpMult), maxHp: Math.round(def.hp * hpMult),
         spd: def.spd, reward: Math.round(def.reward * DIFFICULTY_DEFS[gameState.difficulty].goldMult),
@@ -429,7 +430,9 @@ function spawnEnemy(type) {
         x: WAYPOINTS[0].x, y: WAYPOINTS[0].y,
         wpIdx: 1, slowUntil: 0,
         dead: false, escaped: false,
-    });
+    };
+    gameState.enemies.push(enemy);
+    gameState.enemyMap.set(enemy.id, enemy);
 }
 
 // ── Update: enemies ────────────────────────────────────────────────────────────
@@ -475,6 +478,8 @@ function updateEnemies(ts, dt) {
         sfxDie();
     });
 
+    // Remove dead and escaped enemies from map and array
+    gameState.enemies.filter(e => e.dead || e.escaped).forEach(e => gameState.enemyMap.delete(e.id));
     gameState.enemies = gameState.enemies.filter(e => !e.dead && !e.escaped);
 
     if (gameState.waveActive && !gameState.spawnQueue.length && !gameState.enemies.length) {
@@ -528,8 +533,8 @@ function updateProjectiles(ts, dt) {
 
         // Homing: track target (only if alive)
         if (p.targetId) {
-            const e = gameState.enemies.find(e => e.id === p.targetId && !e.dead && !e.escaped);
-            if (e) { p.tx = e.x; p.ty = e.y; }
+            const e = gameState.enemyMap.get(p.targetId);
+            if (e && !e.dead && !e.escaped) { p.tx = e.x; p.ty = e.y; }
         }
 
         const dx = p.tx - p.x, dy = p.ty - p.y;
@@ -549,8 +554,8 @@ function updateProjectiles(ts, dt) {
                     }
                 });
             } else {
-                const e = p.targetId ? gameState.enemies.find(e => e.id === p.targetId && !e.dead && !e.escaped) : null;
-                if (e) hit(e, p.dmg, ts, p.slow);
+                const e = p.targetId ? gameState.enemyMap.get(p.targetId) : null;
+                if (e && !e.dead && !e.escaped) hit(e, p.dmg, ts, p.slow);
             }
         } else {
             p.x += (dx/dist)*move;
