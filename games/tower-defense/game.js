@@ -436,8 +436,12 @@ function spawnEnemy(type) {
 function updateEnemies(ts, dt) {
     if (gameState.waveActive && gameState.spawnQueue.length) {
         const elapsed = ts - gameState.waveStartTime;
-        while (gameState.spawnQueue.length && gameState.spawnQueue[0].t <= elapsed)
+        // Cap spawns per frame to avoid dumping entire wave if tab freezes
+        let spawnedThisFrame = 0;
+        while (gameState.spawnQueue.length && gameState.spawnQueue[0].t <= elapsed && spawnedThisFrame < 5) {
             spawnEnemy(gameState.spawnQueue.shift().type);
+            spawnedThisFrame++;
+        }
     }
 
     gameState.enemies.forEach(e => {
@@ -522,9 +526,9 @@ function updateProjectiles(ts, dt) {
     gameState.projectiles.forEach(p => {
         if (p.done) return;
 
-        // Homing: track target
+        // Homing: track target (only if alive)
         if (p.targetId) {
-            const e = gameState.enemies.find(e => e.id === p.targetId);
+            const e = gameState.enemies.find(e => e.id === p.targetId && !e.dead && !e.escaped);
             if (e) { p.tx = e.x; p.ty = e.y; }
         }
 
@@ -536,14 +540,16 @@ function updateProjectiles(ts, dt) {
             p.x = p.tx; p.y = p.ty;
             p.done = true;
             if (p.splash > 0) {
-                // Cannon splash
+                // Cannon splash (only hit alive enemies)
                 burst(p.x, p.y, '#ffaa40', 14, 5);
                 gameState.enemies.forEach(e => {
-                    const ddx=e.x-p.x, ddy=e.y-p.y;
-                    if (Math.sqrt(ddx*ddx+ddy*ddy) <= p.splash) hit(e, p.dmg, ts, p.slow);
+                    if (!e.dead && !e.escaped) {
+                        const ddx=e.x-p.x, ddy=e.y-p.y;
+                        if (Math.sqrt(ddx*ddx+ddy*ddy) <= p.splash) hit(e, p.dmg, ts, p.slow);
+                    }
                 });
             } else {
-                const e = p.targetId ? gameState.enemies.find(e => e.id === p.targetId) : null;
+                const e = p.targetId ? gameState.enemies.find(e => e.id === p.targetId && !e.dead && !e.escaped) : null;
                 if (e) hit(e, p.dmg, ts, p.slow);
             }
         } else {
@@ -586,6 +592,7 @@ function triggerGameOver() {
     sfxLose();
     updateWaveBtn();
     setInfo(`Game over — survived ${gameState.waveNum} wave${gameState.waveNum !== 1 ? 's' : ''}`);
+    // Keep loop running to draw game over screen, but game logic has stopped
 }
 
 // ── Drawing ────────────────────────────────────────────────────────────────────
@@ -978,6 +985,7 @@ settingsBtn.addEventListener('click', () => {
 });
 
 // ── Loop ───────────────────────────────────────────────────────────────────────
+let loopRunning = false;
 function loop(ts) {
     const dt = Math.min(ts - gameState.lastTimestamp, 50);
     gameState.lastTimestamp = ts;
@@ -988,11 +996,23 @@ function loop(ts) {
     }
     updateParticles(dt);
     draw(ts);
-    requestAnimationFrame(loop);
+    if (loopRunning) requestAnimationFrame(loop);
+}
+
+function startLoop() {
+    if (!loopRunning) {
+        loopRunning = true;
+        gameState.lastTimestamp = performance.now();
+        requestAnimationFrame(loop);
+    }
+}
+
+function stopLoop() {
+    loopRunning = false;
 }
 
 // Only initialize if not in test mode
 if (typeof TEST_MODE === 'undefined' || !TEST_MODE) {
     initializeGame();
-    requestAnimationFrame(loop);
+    startLoop();
 }
