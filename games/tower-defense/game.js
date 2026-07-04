@@ -1011,6 +1011,11 @@ function stopLoop() {
     loopRunning = false;
 }
 
+// Test helper - expose gameState for testing
+function getGameState() {
+    return gameState;
+}
+
 // Only initialize if not in test mode
 if (typeof TEST_MODE === 'undefined' || !TEST_MODE) {
     initializeGame();
