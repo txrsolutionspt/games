@@ -198,6 +198,7 @@ function createGameState(mapId = 'classic', difficulty = 'normal') {
     towers: [],
     enemies: [],
     enemyMap: new Map(),
+    spatialGrid: new Map(),
     projectiles: [],
     particles: [],
     selectedType: null,
@@ -219,6 +220,45 @@ function createGameState(mapId = 'classic', difficulty = 'normal') {
 let gameState = createGameState();
 let PATH_SET = createMapPathSet(gameState.mapId);
 let WAYPOINTS = createMapWaypoints(gameState.mapId);
+
+// ── Spatial grid helpers ───────────────────────────────────────────────────────
+const GRID_SIZE = CELL; // 40×40 pixel cells
+const GRID_COLS = Math.ceil(W / GRID_SIZE);
+const GRID_ROWS = Math.ceil(H / GRID_SIZE);
+
+function getGridCell(x, y) {
+  const col = Math.floor(x / GRID_SIZE);
+  const row = Math.floor(y / GRID_SIZE);
+  return `${col},${row}`;
+}
+
+function getNearbyGridCells(x, y, range) {
+  const cells = new Set();
+  const cellsToCheck = Math.ceil(range / GRID_SIZE) + 1;
+  const centerCol = Math.floor(x / GRID_SIZE);
+  const centerRow = Math.floor(y / GRID_SIZE);
+  for (let dc = -cellsToCheck; dc <= cellsToCheck; dc++) {
+    for (let dr = -cellsToCheck; dr <= cellsToCheck; dr++) {
+      const col = centerCol + dc;
+      const row = centerRow + dr;
+      if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
+        cells.add(`${col},${row}`);
+      }
+    }
+  }
+  return cells;
+}
+
+function updateSpatialGrid() {
+  gameState.spatialGrid.clear();
+  gameState.enemies.forEach(e => {
+    const cell = getGridCell(e.x, e.y);
+    if (!gameState.spatialGrid.has(cell)) {
+      gameState.spatialGrid.set(cell, []);
+    }
+    gameState.spatialGrid.get(cell).push(e);
+  });
+}
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PHASE 1: UI AND SETTINGS
@@ -268,6 +308,11 @@ function initializeGame() {
             gameState = savedGame;
             PATH_SET = createMapPathSet(gameState.mapId);
             WAYPOINTS = createMapWaypoints(gameState.mapId);
+            // Rebuild spatial structures (not persisted)
+            gameState.enemyMap = new Map();
+            gameState.spatialGrid = new Map();
+            gameState.enemies.forEach(e => gameState.enemyMap.set(e.id, e));
+            updateSpatialGrid();
             updateHUD(); updateWaveBtn(); setInfo('Game resumed!');
             sellBtn.classList.add('hidden');
         };
@@ -482,6 +527,9 @@ function updateEnemies(ts, dt) {
     gameState.enemies.filter(e => e.dead || e.escaped).forEach(e => gameState.enemyMap.delete(e.id));
     gameState.enemies = gameState.enemies.filter(e => !e.dead && !e.escaped);
 
+    // Update spatial grid for tower targeting
+    updateSpatialGrid();
+
     if (gameState.waveActive && !gameState.spawnQueue.length && !gameState.enemies.length) {
         gameState.waveActive = false;
         gameState.gold += 20;
@@ -498,13 +546,18 @@ function updateTowers(ts) {
         const def = TOWER_DEFS[tower.type];
         if (ts - tower.lastFired < def.cd) return;
 
-        // Pick enemy furthest along path within range
+        // Pick enemy furthest along path within range (using spatial grid)
         let target = null, bestWp = -1;
-        gameState.enemies.forEach(e => {
-            const dx = e.x - tower.x, dy = e.y - tower.y;
-            if (Math.sqrt(dx*dx + dy*dy) <= def.range && e.wpIdx > bestWp) {
-                target = e; bestWp = e.wpIdx;
-            }
+        const nearbyCells = getNearbyGridCells(tower.x, tower.y, def.range);
+        nearbyCells.forEach(cellId => {
+            const cellEnemies = gameState.spatialGrid.get(cellId);
+            if (!cellEnemies) return;
+            cellEnemies.forEach(e => {
+                const dx = e.x - tower.x, dy = e.y - tower.y;
+                if (Math.sqrt(dx*dx + dy*dy) <= def.range && e.wpIdx > bestWp) {
+                    target = e; bestWp = e.wpIdx;
+                }
+            });
         });
         if (!target) return;
 
