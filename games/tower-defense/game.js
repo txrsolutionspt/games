@@ -1315,8 +1315,28 @@ function getGameState() {
     return gameState;
 }
 
+// ── Version Display ────────────────────────────────────────────────────────────
+function displayVersion() {
+    const versionEl = document.getElementById('version-display');
+    if (!versionEl) return;
+
+    if (typeof VERSION_INFO === 'undefined') {
+        versionEl.innerHTML = 'Version: Unknown';
+        return;
+    }
+
+    versionEl.innerHTML = `
+        <div>${VERSION_INFO.getVersionString()}</div>
+        <div>${VERSION_INFO.gitHash}</div>
+    `;
+
+    // Tooltip with full info on hover
+    versionEl.title = VERSION_INFO.getDetailedInfo();
+}
+
 // Only initialize if not in test mode
 if (typeof TEST_MODE === 'undefined' || !TEST_MODE) {
     initializeGame();
     startLoop();
+    displayVersion();
 }
