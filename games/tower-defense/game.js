@@ -187,6 +187,7 @@ const GameStorage = {
 
 function createGameState(mapId = 'classic', difficulty = 'normal') {
   const diffDef = DIFFICULTY_DEFS[difficulty];
+  const enemyManager = new EnemyManager();
   return {
     mapId,
     difficulty,
@@ -195,10 +196,11 @@ function createGameState(mapId = 'classic', difficulty = 'normal') {
     waveNum: 0,
     waveActive: false,
     gameOver: false,
+    enemyMgr: enemyManager,
+    enemies: enemyManager.enemies,
+    enemyMap: enemyManager.enemyMap,
+    spatialGrid: enemyManager.spatialGrid,
     towers: [],
-    enemies: [],
-    enemyMap: new Map(),
-    spatialGrid: new Map(),
     projectiles: [],
     particles: [],
     selectedType: null,
@@ -261,6 +263,97 @@ function updateSpatialGrid() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
+// MANAGER CLASSES - Encapsulated subsystems
+// ════════════════════════════════════════════════════════════════════════════════
+
+class EnemyManager {
+  constructor() {
+    this.enemies = [];
+    this.enemyMap = new Map();
+    this.spatialGrid = new Map();
+    this.nextId = 0;
+  }
+
+  spawn(type, entityIds, difficulty, waveNum) {
+    const def = ENEMY_DEFS[type];
+    const diffMult = DIFFICULTY_DEFS[difficulty].healthMult;
+    const hpMult = (1 + (waveNum - 1) * 0.13) * diffMult;
+    const enemy = {
+      id: ++entityIds.eid,
+      type,
+      hp: Math.round(def.hp * hpMult),
+      maxHp: Math.round(def.hp * hpMult),
+      spd: def.spd,
+      reward: Math.round(def.reward * DIFFICULTY_DEFS[difficulty].goldMult),
+      color: def.color,
+      r: def.r,
+      x: WAYPOINTS[0].x,
+      y: WAYPOINTS[0].y,
+      wpIdx: 1,
+      slowUntil: 0,
+      dead: false,
+      escaped: false,
+    };
+    this.enemies.push(enemy);
+    this.enemyMap.set(enemy.id, enemy);
+    return enemy;
+  }
+
+  getById(id) {
+    return this.enemyMap.get(id);
+  }
+
+  getByIdIfAlive(id) {
+    const enemy = this.enemyMap.get(id);
+    return enemy && !enemy.dead && !enemy.escaped ? enemy : null;
+  }
+
+  getNearbyInRange(x, y, range) {
+    const enemies = [];
+    const nearbyCells = getNearbyGridCells(x, y, range);
+    nearbyCells.forEach(cellId => {
+      const cellEnemies = this.spatialGrid.get(cellId);
+      if (cellEnemies) {
+        cellEnemies.forEach(e => enemies.push(e));
+      }
+    });
+    return enemies;
+  }
+
+  updateSpatialGrid() {
+    this.spatialGrid.clear();
+    this.enemies.forEach(e => {
+      const cell = getGridCell(e.x, e.y);
+      if (!this.spatialGrid.has(cell)) {
+        this.spatialGrid.set(cell, []);
+      }
+      this.spatialGrid.get(cell).push(e);
+    });
+  }
+
+  removeDeadAndEscaped() {
+    this.enemies
+      .filter(e => e.dead || e.escaped)
+      .forEach(e => this.enemyMap.delete(e.id));
+    this.enemies = this.enemies.filter(e => !e.dead && !e.escaped);
+  }
+
+  getAll() {
+    return this.enemies;
+  }
+
+  count() {
+    return this.enemies.length;
+  }
+
+  clear() {
+    this.enemies = [];
+    this.enemyMap.clear();
+    this.spatialGrid.clear();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
 // PHASE 1: UI AND SETTINGS
 // ════════════════════════════════════════════════════════════════════════════════
 
@@ -308,11 +401,17 @@ function initializeGame() {
             gameState = savedGame;
             PATH_SET = createMapPathSet(gameState.mapId);
             WAYPOINTS = createMapWaypoints(gameState.mapId);
-            // Rebuild spatial structures (not persisted)
-            gameState.enemyMap = new Map();
-            gameState.spatialGrid = new Map();
-            gameState.enemies.forEach(e => gameState.enemyMap.set(e.id, e));
-            updateSpatialGrid();
+            // Rebuild manager and spatial structures (not persisted)
+            const enemyManager = new EnemyManager();
+            gameState.enemies.forEach(e => {
+                enemyManager.enemies.push(e);
+                enemyManager.enemyMap.set(e.id, e);
+            });
+            gameState.enemyMgr = enemyManager;
+            gameState.enemies = enemyManager.enemies;
+            gameState.enemyMap = enemyManager.enemyMap;
+            gameState.spatialGrid = enemyManager.spatialGrid;
+            gameState.enemyMgr.updateSpatialGrid();
             updateHUD(); updateWaveBtn(); setInfo('Game resumed!');
             sellBtn.classList.add('hidden');
         };
@@ -464,20 +563,7 @@ function buildQueue(n) {
 }
 
 function spawnEnemy(type) {
-    const def    = ENEMY_DEFS[type];
-    const diffMult = DIFFICULTY_DEFS[gameState.difficulty].healthMult;
-    const hpMult = (1 + (gameState.waveNum - 1) * 0.13) * diffMult;
-    const enemy = {
-        id: ++gameState.entityIds.eid, type,
-        hp: Math.round(def.hp * hpMult), maxHp: Math.round(def.hp * hpMult),
-        spd: def.spd, reward: Math.round(def.reward * DIFFICULTY_DEFS[gameState.difficulty].goldMult),
-        color: def.color, r: def.r,
-        x: WAYPOINTS[0].x, y: WAYPOINTS[0].y,
-        wpIdx: 1, slowUntil: 0,
-        dead: false, escaped: false,
-    };
-    gameState.enemies.push(enemy);
-    gameState.enemyMap.set(enemy.id, enemy);
+    gameState.enemyMgr.spawn(type, gameState.entityIds, gameState.difficulty, gameState.waveNum);
 }
 
 // ── Update: enemies ────────────────────────────────────────────────────────────
@@ -523,12 +609,9 @@ function updateEnemies(ts, dt) {
         sfxDie();
     });
 
-    // Remove dead and escaped enemies from map and array
-    gameState.enemies.filter(e => e.dead || e.escaped).forEach(e => gameState.enemyMap.delete(e.id));
-    gameState.enemies = gameState.enemies.filter(e => !e.dead && !e.escaped);
-
-    // Update spatial grid for tower targeting
-    updateSpatialGrid();
+    // Remove dead and escaped enemies and update grid
+    gameState.enemyMgr.removeDeadAndEscaped();
+    gameState.enemyMgr.updateSpatialGrid();
 
     if (gameState.waveActive && !gameState.spawnQueue.length && !gameState.enemies.length) {
         gameState.waveActive = false;
@@ -548,16 +631,12 @@ function updateTowers(ts) {
 
         // Pick enemy furthest along path within range (using spatial grid)
         let target = null, bestWp = -1;
-        const nearbyCells = getNearbyGridCells(tower.x, tower.y, def.range);
-        nearbyCells.forEach(cellId => {
-            const cellEnemies = gameState.spatialGrid.get(cellId);
-            if (!cellEnemies) return;
-            cellEnemies.forEach(e => {
-                const dx = e.x - tower.x, dy = e.y - tower.y;
-                if (Math.sqrt(dx*dx + dy*dy) <= def.range && e.wpIdx > bestWp) {
-                    target = e; bestWp = e.wpIdx;
-                }
-            });
+        const nearbyEnemies = gameState.enemyMgr.getNearbyInRange(tower.x, tower.y, def.range);
+        nearbyEnemies.forEach(e => {
+            const dx = e.x - tower.x, dy = e.y - tower.y;
+            if (Math.sqrt(dx*dx + dy*dy) <= def.range && e.wpIdx > bestWp) {
+                target = e; bestWp = e.wpIdx;
+            }
         });
         if (!target) return;
 
@@ -586,8 +665,8 @@ function updateProjectiles(ts, dt) {
 
         // Homing: track target (only if alive)
         if (p.targetId) {
-            const e = gameState.enemyMap.get(p.targetId);
-            if (e && !e.dead && !e.escaped) { p.tx = e.x; p.ty = e.y; }
+            const e = gameState.enemyMgr.getByIdIfAlive(p.targetId);
+            if (e) { p.tx = e.x; p.ty = e.y; }
         }
 
         const dx = p.tx - p.x, dy = p.ty - p.y;
@@ -600,15 +679,15 @@ function updateProjectiles(ts, dt) {
             if (p.splash > 0) {
                 // Cannon splash (only hit alive enemies)
                 burst(p.x, p.y, '#ffaa40', 14, 5);
-                gameState.enemies.forEach(e => {
+                gameState.enemyMgr.getAll().forEach(e => {
                     if (!e.dead && !e.escaped) {
                         const ddx=e.x-p.x, ddy=e.y-p.y;
                         if (Math.sqrt(ddx*ddx+ddy*ddy) <= p.splash) hit(e, p.dmg, ts, p.slow);
                     }
                 });
             } else {
-                const e = p.targetId ? gameState.enemyMap.get(p.targetId) : null;
-                if (e && !e.dead && !e.escaped) hit(e, p.dmg, ts, p.slow);
+                const e = p.targetId ? gameState.enemyMgr.getByIdIfAlive(p.targetId) : null;
+                if (e) hit(e, p.dmg, ts, p.slow);
             }
         } else {
             p.x += (dx/dist)*move;
