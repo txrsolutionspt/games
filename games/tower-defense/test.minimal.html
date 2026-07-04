@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defense - Minimal Test</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #0a0a1a;
+            border: 1px solid #3a3a6a;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .pass { color: #88ff88; }
+        .fail { color: #ff8888; }
+        .info { color: #88aaff; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Tower Defense - Minimal Test</h1>
+    <p>Simple test to verify game.js loads and initializes</p>
+
+    <div class="section">
+        <h2>Initialization Check</h2>
+        <div id="results"></div>
+    </div>
+
+    <!-- Game HTML structure (simplified) -->
+    <div id="container">
+        <div id="hud">
+            <span>WAVE <span id="wave">0</span></span>
+            <span>♦ <span id="gold">150</span></span>
+            <span>♥ <span id="lives">20</span></span>
+        </div>
+        <canvas id="gameCanvas" width="400" height="320"></canvas>
+        <div id="tower-panel">
+            <button class="tbtn" data-type="archer">Archer</button>
+        </div>
+        <div id="action-bar">
+            <span id="info-text">Test</span>
+            <button id="sell-btn" class="hidden">Sell</button>
+        </div>
+        <button id="wave-btn">Start Wave</button>
+    </div>
+
+    <script>
+        const log = (message, type = 'info') => {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            document.getElementById('results').appendChild(div);
+        };
+
+        // Before loading game.js
+        log('✅ test.minimal.html page loaded');
+        log('ℹ️  About to load game.js...');
+
+        // Check if game.js will be able to access DOM
+        const canvas = document.getElementById('gameCanvas');
+        if (canvas) {
+            log('✅ Canvas element exists before game.js');
+        } else {
+            log('❌ Canvas element NOT found before game.js');
+        }
+
+        // Set up error handler
+        let errorsCaught = [];
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            errorsCaught.push({
+                message: msg,
+                url: url,
+                line: lineNo,
+                stack: error ? error.stack : 'No stack'
+            });
+            console.error('[ERROR]', msg, 'at', url, ':', lineNo);
+            return false;
+        };
+    </script>
+
+    <!-- Load the game.js -->
+    <script src="game.js"></script>
+
+    <script>
+        // After game.js loads - check what was initialized
+        setTimeout(() => {
+            log('═══════════════════════════════════════════════════');
+
+            if (errorsCaught.length > 0) {
+                log(`❌ ${errorsCaught.length} JavaScript error(s) caught:`, 'fail');
+                errorsCaught.forEach(err => {
+                    log(`  Error: ${err.message}`, 'fail');
+                    log(`  File: ${err.url}:${err.line}`, 'info');
+                });
+            } else {
+                log('✅ No JavaScript errors during game.js load', 'pass');
+            }
+
+            // Check if critical variables are defined
+            if (typeof gameState !== 'undefined') {
+                log('✅ gameState is defined', 'pass');
+                log(`   - Gold: ${gameState.gold}`, 'info');
+                log(`   - Lives: ${gameState.lives}`, 'info');
+                log(`   - Towers: ${gameState.towers.length}`, 'info');
+            } else {
+                log('❌ gameState is NOT defined', 'fail');
+            }
+
+            if (typeof MAPS !== 'undefined') {
+                log('✅ MAPS is defined', 'pass');
+                log(`   - Available maps: ${Object.keys(MAPS).join(', ')}`, 'info');
+            } else {
+                log('❌ MAPS is NOT defined', 'fail');
+            }
+
+            if (typeof TOWER_DEFS !== 'undefined') {
+                log('✅ TOWER_DEFS is defined', 'pass');
+                log(`   - Tower types: ${Object.keys(TOWER_DEFS).join(', ')}`, 'info');
+            } else {
+                log('❌ TOWER_DEFS is NOT defined', 'fail');
+            }
+
+            if (typeof createGameState === 'function') {
+                log('✅ createGameState function exists', 'pass');
+            } else {
+                log('❌ createGameState function NOT found', 'fail');
+            }
+
+            if (typeof onTap === 'function') {
+                log('✅ onTap function exists', 'pass');
+            } else {
+                log('❌ onTap function NOT found', 'fail');
+            }
+
+            if (typeof startWave === 'function') {
+                log('✅ startWave function exists', 'pass');
+            } else {
+                log('❌ startWave function NOT found', 'fail');
+            }
+
+            log('═══════════════════════════════════════════════════');
+            log('Test complete. Check browser console for additional details.', 'info');
+        }, 100);
+    </script>
+</body>
+</html>
