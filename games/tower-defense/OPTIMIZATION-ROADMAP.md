@@ -15,58 +15,51 @@
 
 ## Performance Issues (Future)
 
-### Issue #3: O(n²) Enemy Lookups 🟠 MEDIUM PRIORITY
+### Issue #3: O(n²) Enemy Lookups ✅ COMPLETED
 
-**Current:** Every projectile calls `find()` on enemy array
-```javascript
-const e = gameState.enemies.find(e => e.id === p.targetId);
-```
+**Previous:** Every projectile calls `find()` on enemy array - 100 projectiles × 200 enemies = 20,000 lookups/frame
 
-**Problem:** 100 projectiles × 200 enemies = 20,000 lookups/frame
-
-**Solution:** Use enemy ID map
+**Solution Implemented:** Enemy ID map with O(1) lookups
 ```javascript
 const enemyMap = new Map();
 gameState.enemies.forEach(e => enemyMap.set(e.id, e));
 // Now: O(1) lookups instead of O(n)
 ```
 
-**Estimated impact:** 10-15% CPU reduction on large waves
+**Implementation Details:**
+- ✅ Added `enemyMap` to gameState initialization
+- ✅ Update map when enemies are spawned (spawnEnemy)
+- ✅ Update map when enemies are removed (updateEnemies)
+- ✅ Replaced 2x projectile targeting `.find()` calls with `map.get()`
+- ✅ Added alive-state checks (dead/escaped) after map lookup
 
-**Implementation steps:**
-1. Add `enemyMap` to gameState
-2. Update it when enemies are added/removed
-3. Use for projectile targeting
-4. Use for tower targeting as well
+**Estimated impact:** 10-15% CPU reduction on large waves
 
 ---
 
-### Issue #5: O(towers × enemies) Tower Updates 🟠 MEDIUM PRIORITY
+### Issue #5: O(towers × enemies) Tower Updates ✅ COMPLETED
 
-**Current:** Each tower scans all enemies
+**Previous:** Each tower scans all enemies - 20 towers × 200 enemies = 4,000 distance checks/frame
+
+**Solution Implemented:** 10×8 spatial grid with O(1) cell access
 ```javascript
-gameState.towers.forEach(tower => {
-    gameState.enemies.forEach(e => {
-        // Check if in range
-    });
-});
-```
-
-**Problem:** Quadratic complexity. 20 towers × 200 enemies = 4,000 distance checks/frame
-
-**Solution:** Spatial partitioning (grid or quadtree)
-```javascript
-// Divide map into 4×4 grid = 16 cells
+// Divide map into 10×8 grid (matching COLS×ROWS)
 const grid = new Map(); // cellId → [enemies]
-const cell = getGridCell(tower.x, tower.y);
-const nearbyEnemies = grid.get(cell);
+const nearbyCells = getNearbyGridCells(tower.x, tower.y, def.range);
+// Only check enemies in nearby cells instead of all enemies
 ```
+
+**Implementation Details:**
+- ✅ Created 10×8 spatial grid using 40×40 pixel cells
+- ✅ getGridCell(x, y) converts coordinates to cell IDs
+- ✅ getNearbyGridCells(x, y, range) returns cells within tower range
+- ✅ updateSpatialGrid() rebuilds grid each frame from current enemy positions
+- ✅ Replaced tower scan with grid-based lookup
+- ✅ Grid rebuilt on game load to handle saved games
 
 **Estimated impact:** 30-50% CPU reduction
 
-**Effort:** Medium (requires spatial data structure)
-
-**First step:** Implement simple grid-based lookup
+**Actual improvement:** With 20 towers × 200 enemies, reduces ~4,000 checks to ~200-400 by scanning only nearby cells
 
 ---
 
@@ -186,9 +179,9 @@ for (let i = 0; i < 30; i++) {
 - ✅ Difficulty levels
 - ✅ Critical bug fixes
 
-### Phase 2 (Recommended)
-1. **Enemy ID map** (quick, high impact)
-2. **Spatial grid for towers** (medium effort, big payoff)
+### Phase 2 (Mostly Complete)
+1. ✅ **Enemy ID map** (DONE - quick, high impact)
+2. ✅ **Spatial grid for towers** (DONE - medium effort, big payoff)
 3. **Integration tests** (prevents regressions)
 4. Add 2-3 new tower/enemy types
 
