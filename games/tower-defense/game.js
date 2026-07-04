@@ -18,6 +18,59 @@ const sellBtn = document.getElementById('sell-btn');
 // ── Audio ──────────────────────────────────────────────────────────────────────
 let audioCtx = null, masterGain = null;
 
+// ════════════════════════════════════════════════════════════════════════════════
+// PHASE 0: DATA EXTRACTION - GameData Object
+// ════════════════════════════════════════════════════════════════════════════════
+
+const MAPS = {
+  'classic': {
+    id: 'classic',
+    name: 'Classic Winds',
+    pathTiles: [
+      [0,0],[1,0],[2,0],[3,0],[4,0],[5,0],
+      [5,1],[5,2],
+      [4,2],[3,2],[2,2],[1,2],
+      [1,3],[1,4],[1,5],
+      [2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],
+      [8,6],[8,7],[9,7],
+    ],
+    background: { type: 'gradient', colors: ['#162210', '#0a1208'] }
+  }
+};
+
+function createMapWaypoints(mapId) {
+  const pathTiles = MAPS[mapId].pathTiles;
+  return [
+    { x: -20, y: CELL / 2 },
+    ...pathTiles.map(([c,r]) => ({ x: c*CELL + CELL/2, y: r*CELL + CELL/2 })),
+    { x: W + 20, y: 7*CELL + CELL/2 },
+  ];
+}
+
+function createMapPathSet(mapId) {
+  return new Set(MAPS[mapId].pathTiles.map(([c,r]) => `${c},${r}`));
+}
+
+const TOWER_DEFS = {
+  archer: { name:'Archer', cost:50,  range:90,  dmg:10,  cd:900,  splash:0,  slow:0,    color:'#6bbf3e', pColor:'#c8ff70', pSpd:0.35, pR:4, desc:'Fast · single target' },
+  cannon: { name:'Cannon', cost:100, range:80,  dmg:55,  cd:2400, splash:50, slow:0,    color:'#c87c35', pColor:'#ffe070', pSpd:0.20, pR:7, desc:'Slow · area splash' },
+  frost:  { name:'Frost',  cost:80,  range:90,  dmg:5,   cd:1200, splash:0,  slow:2200, color:'#35a8d0', pColor:'#aaddff', pSpd:0.28, pR:5, desc:'Slows enemies' },
+  laser:  { name:'Laser',  cost:175, range:130, dmg:25,  cd:280,  splash:0,  slow:0,    color:'#d035a8', pColor:'#ff88ee', pSpd:0.55, pR:3, desc:'High DPS · long range' },
+};
+
+const ENEMY_DEFS = {
+  basic:   { hp:40,  spd:0.08,  reward:10,  color:'#ee4444', r:8  },
+  fast:    { hp:22,  spd:0.18,  reward:12,  color:'#ffaa22', r:7  },
+  tank:    { hp:180, spd:0.045, reward:35,  color:'#9944cc', r:12 },
+  boss:    { hp:900, spd:0.038, reward:120, color:'#ff2200', r:18 },
+};
+
+const DIFFICULTY_DEFS = {
+  easy:   { name: 'Easy',   healthMult: 0.7,  goldMult: 1.3, waveSpawnMult: 0.8,  startGold: 200, startLives: 25 },
+  normal: { name: 'Normal', healthMult: 1.0,  goldMult: 1.0, waveSpawnMult: 1.0,  startGold: 150, startLives: 20 },
+  hard:   { name: 'Hard',   healthMult: 1.4,  goldMult: 0.85, waveSpawnMult: 1.2, startGold: 100, startLives: 15 },
+};
+
 function initAudio() {
     if (audioCtx) return;
     audioCtx   = new (window.AudioContext || window.webkitAudioContext)();
@@ -47,88 +100,124 @@ function sfxDie()    { tone(180,'sawtooth',0.1,0.25); }
 function sfxLose()   { [200,160,120,90].forEach((f,i)=>tone(f,'sawtooth',0.2,0.4,i*0.12)); }
 function sfxWave()   { [440,550,660].forEach((f,i)=>tone(f,'sine',0.14,0.3,i*0.1)); }
 
-// ── Path definition ────────────────────────────────────────────────────────────
-//
-//  Col: 0  1  2  3  4  5  6  7  8  9
-//  Row 0:  ●  ●  ●  ●  ●  ●  .  .  .  .   → entry from left
-//  Row 1:  .  .  .  .  .  ●  .  .  .  .
-//  Row 2:  .  ●  ●  ●  ●  ●  .  .  .  .   ← turns left
-//  Row 3:  .  ●  .  .  .  .  .  .  .  .
-//  Row 4:  .  ●  .  .  .  .  .  .  .  .
-//  Row 5:  .  ●  ●  ●  ●  ●  ●  ●  ●  .   → turns right
-//  Row 6:  .  .  .  .  .  .  .  .  ●  .
-//  Row 7:  .  .  .  .  .  .  .  .  ●  ●   → exit right
+// ════════════════════════════════════════════════════════════════════════════════
+// PHASE 0: GAME STORAGE - LocalStorage Persistence
+// ════════════════════════════════════════════════════════════════════════════════
 
-const PATH_TILES = [
-    [0,0],[1,0],[2,0],[3,0],[4,0],[5,0],
-    [5,1],[5,2],
-    [4,2],[3,2],[2,2],[1,2],
-    [1,3],[1,4],[1,5],
-    [2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],
-    [8,6],[8,7],[9,7],
-];
-const PATH_SET = new Set(PATH_TILES.map(([c,r]) => `${c},${r}`));
+const GameStorage = {
+  GAME_SAVE_KEY: 'td_game_save',
+  SETTINGS_KEY: 'td_settings',
 
-// Pixel waypoints: off-left spawn → each tile centre → off-right exit
-const WAYPOINTS = [
-    { x: -20,        y: CELL / 2 },
-    ...PATH_TILES.map(([c,r]) => ({ x: c*CELL + CELL/2, y: r*CELL + CELL/2 })),
-    { x: W + 20,     y: 7*CELL + CELL/2 },
-];
+  saveGame(gameState) {
+    try {
+      localStorage.setItem(this.GAME_SAVE_KEY, JSON.stringify(gameState));
+    } catch (e) {
+      console.warn('Failed to save game:', e);
+    }
+  },
 
-// ── Tower definitions ──────────────────────────────────────────────────────────
-const TDEFS = {
-    archer: { name:'Archer', cost:50,  range:90,  dmg:10,  cd:900,  splash:0,  slow:0,    color:'#6bbf3e', pColor:'#c8ff70', pSpd:0.35, pR:4, desc:'Fast · single target' },
-    cannon: { name:'Cannon', cost:100, range:80,  dmg:55,  cd:2400, splash:50, slow:0,    color:'#c87c35', pColor:'#ffe070', pSpd:0.20, pR:7, desc:'Slow · area splash' },
-    frost:  { name:'Frost',  cost:80,  range:90,  dmg:5,   cd:1200, splash:0,  slow:2200, color:'#35a8d0', pColor:'#aaddff', pSpd:0.28, pR:5, desc:'Slows enemies' },
-    laser:  { name:'Laser',  cost:175, range:130, dmg:25,  cd:280,  splash:0,  slow:0,    color:'#d035a8', pColor:'#ff88ee', pSpd:0.55, pR:3, desc:'High DPS · long range' },
+  loadGame() {
+    try {
+      const data = localStorage.getItem(this.GAME_SAVE_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      console.warn('Failed to load game:', e);
+      return null;
+    }
+  },
+
+  deleteGame() {
+    try {
+      localStorage.removeItem(this.GAME_SAVE_KEY);
+    } catch (e) {
+      console.warn('Failed to delete game:', e);
+    }
+  },
+
+  saveSettings(settings) {
+    try {
+      localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(settings));
+    } catch (e) {
+      console.warn('Failed to save settings:', e);
+    }
+  },
+
+  loadSettings() {
+    try {
+      const data = localStorage.getItem(this.SETTINGS_KEY);
+      return data ? JSON.parse(data) : {};
+    } catch (e) {
+      console.warn('Failed to load settings:', e);
+      return {};
+    }
+  }
 };
 
-// ── Enemy definitions ──────────────────────────────────────────────────────────
-const EDEFS = {
-    basic:   { hp:40,  spd:0.08,  reward:10,  color:'#ee4444', r:8  },
-    fast:    { hp:22,  spd:0.18,  reward:12,  color:'#ffaa22', r:7  },
-    tank:    { hp:180, spd:0.045, reward:35,  color:'#9944cc', r:12 },
-    boss:    { hp:900, spd:0.038, reward:120, color:'#ff2200', r:18 },
-};
+// ════════════════════════════════════════════════════════════════════════════════
+// PHASE 0: GAME STATE - Encapsulated Mutable State
+// ════════════════════════════════════════════════════════════════════════════════
 
-// ── State ──────────────────────────────────────────────────────────────────────
-let gold, lives, waveNum, waveActive, gameOver;
-let towers = [], enemies = [], projectiles = [], particles = [];
-let selectedType  = null;   // tower type chosen from panel
-let selectedTower = null;   // placed tower tapped (for sell)
-let spawnQueue    = [];     // { type, t } sorted by t (ms from wave start)
-let waveStartTime = 0;
-let eid = 0, pid = 0, tid = 0;
-let lastTS = 0, hoverCell = null;
+function createGameState(mapId = 'classic', difficulty = 'normal') {
+  const diffDef = DIFFICULTY_DEFS[difficulty];
+  return {
+    mapId,
+    difficulty,
+    gold: diffDef.startGold,
+    lives: diffDef.startLives,
+    waveNum: 0,
+    waveActive: false,
+    gameOver: false,
+    towers: [],
+    enemies: [],
+    projectiles: [],
+    particles: [],
+    selectedType: null,
+    selectedTower: null,
+    spawnQueue: [],
+    waveStartTime: 0,
+    lastTimestamp: 0,
+    hoverCell: null,
+    entityIds: { eid: 0, pid: 0, tid: 0 },
+    stats: {
+      totalKilled: 0,
+      totalGoldEarned: 0,
+      gameStartTime: Date.now()
+    }
+  };
+}
+
+// Game state instance
+let gameState = createGameState();
+let PATH_SET = createMapPathSet(gameState.mapId);
+let WAYPOINTS = createMapWaypoints(gameState.mapId);
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────────
 function newGame() {
-    gold = 150; lives = 20; waveNum = 0; waveActive = false; gameOver = false;
-    towers = []; enemies = []; projectiles = []; particles = [];
-    selectedType = null; selectedTower = null; spawnQueue = [];
-    eid = pid = tid = 0;
+    gameState = createGameState();
+    PATH_SET = createMapPathSet(gameState.mapId);
+    WAYPOINTS = createMapWaypoints(gameState.mapId);
+    GameStorage.deleteGame();
     updateHUD(); updateWaveBtn(); setInfo('Select a tower type, then tap the map to place');
     sellBtn.classList.add('hidden');
 }
 
 function updateHUD() {
-    goldEl.textContent  = gold;
-    livesEl.textContent = lives;
-    waveEl.textContent  = waveNum;
+    goldEl.textContent  = gameState.gold;
+    livesEl.textContent = gameState.lives;
+    waveEl.textContent  = gameState.waveNum;
 }
 
 function updateWaveBtn() {
-    if (gameOver) {
+    if (gameState.gameOver) {
         waveBtn.textContent = '▶ PLAY AGAIN';
         waveBtn.disabled    = false;
         return;
     }
-    if (waveActive) {
-        waveBtn.textContent = `WAVE ${waveNum} IN PROGRESS…`;
+    if (gameState.waveActive) {
+        waveBtn.textContent = `WAVE ${gameState.waveNum} IN PROGRESS…`;
         waveBtn.disabled    = true;
     } else {
-        waveBtn.textContent = `▶ START WAVE ${waveNum + 1}`;
+        waveBtn.textContent = `▶ START WAVE ${gameState.waveNum + 1}`;
         waveBtn.disabled    = false;
     }
 }
@@ -137,21 +226,23 @@ function setInfo(msg) { infoEl.textContent = msg; }
 
 // ── Wave spawning ──────────────────────────────────────────────────────────────
 function startWave() {
-    if (waveActive || gameOver) return;
+    if (gameState.waveActive || gameState.gameOver) return;
     initAudio();
-    waveNum++;
-    waveActive    = true;
-    waveStartTime = performance.now();
-    spawnQueue    = buildQueue(waveNum);
+    gameState.waveNum++;
+    gameState.waveActive    = true;
+    gameState.waveStartTime = performance.now();
+    gameState.spawnQueue    = buildQueue(gameState.waveNum);
     sfxWave();
     updateHUD(); updateWaveBtn();
-    setInfo(`Wave ${waveNum} incoming!`);
+    setInfo(`Wave ${gameState.waveNum} incoming!`);
 }
 
 function buildQueue(n) {
     const q = [];
+    const diffMult = DIFFICULTY_DEFS[gameState.difficulty].waveSpawnMult;
     const add = (type, count, interval, offset = 0) => {
-        for (let i = 0; i < count; i++) q.push({ type, t: offset + i * interval });
+        const scaledCount = Math.round(count * diffMult);
+        for (let i = 0; i < scaledCount; i++) q.push({ type, t: offset + i * interval });
     };
     add('basic', Math.min(5 + n * 2, 22), 1100);
     if (n >= 3) add('fast',  Math.min(Math.floor(n * 0.7), 10), 800,  500);
@@ -162,12 +253,13 @@ function buildQueue(n) {
 }
 
 function spawnEnemy(type) {
-    const def    = EDEFS[type];
-    const hpMult = 1 + (waveNum - 1) * 0.13;
-    enemies.push({
-        id: ++eid, type,
+    const def    = ENEMY_DEFS[type];
+    const diffMult = DIFFICULTY_DEFS[gameState.difficulty].healthMult;
+    const hpMult = (1 + (gameState.waveNum - 1) * 0.13) * diffMult;
+    gameState.enemies.push({
+        id: ++gameState.entityIds.eid, type,
         hp: Math.round(def.hp * hpMult), maxHp: Math.round(def.hp * hpMult),
-        spd: def.spd, reward: def.reward,
+        spd: def.spd, reward: Math.round(def.reward * DIFFICULTY_DEFS[gameState.difficulty].goldMult),
         color: def.color, r: def.r,
         x: WAYPOINTS[0].x, y: WAYPOINTS[0].y,
         wpIdx: 1, slowUntil: 0,
@@ -177,13 +269,13 @@ function spawnEnemy(type) {
 
 // ── Update: enemies ────────────────────────────────────────────────────────────
 function updateEnemies(ts, dt) {
-    if (waveActive && spawnQueue.length) {
-        const elapsed = ts - waveStartTime;
-        while (spawnQueue.length && spawnQueue[0].t <= elapsed)
-            spawnEnemy(spawnQueue.shift().type);
+    if (gameState.waveActive && gameState.spawnQueue.length) {
+        const elapsed = ts - gameState.waveStartTime;
+        while (gameState.spawnQueue.length && gameState.spawnQueue[0].t <= elapsed)
+            spawnEnemy(gameState.spawnQueue.shift().type);
     }
 
-    enemies.forEach(e => {
+    gameState.enemies.forEach(e => {
         if (e.dead || e.escaped) return;
         if (e.wpIdx >= WAYPOINTS.length) { e.escaped = true; return; }
 
@@ -198,39 +290,42 @@ function updateEnemies(ts, dt) {
     });
 
     // Handle escaped
-    enemies.filter(e => e.escaped).forEach(() => {
-        lives = Math.max(0, lives - 1);
+    gameState.enemies.filter(e => e.escaped).forEach(() => {
+        gameState.lives = Math.max(0, gameState.lives - 1);
         updateHUD();
-        if (lives <= 0) triggerGameOver();
+        if (gameState.lives <= 0) triggerGameOver();
     });
 
     // Handle dead (collect gold, particles)
-    enemies.filter(e => e.dead).forEach(e => {
-        gold += e.reward;
+    gameState.enemies.filter(e => e.dead).forEach(e => {
+        gameState.gold += e.reward;
+        gameState.stats.totalGoldEarned += e.reward;
+        gameState.stats.totalKilled++;
         updateHUD();
         burst(e.x, e.y, e.color, 8, 3);
         sfxDie();
     });
 
-    enemies = enemies.filter(e => !e.dead && !e.escaped);
+    gameState.enemies = gameState.enemies.filter(e => !e.dead && !e.escaped);
 
-    if (waveActive && !spawnQueue.length && !enemies.length) {
-        waveActive = false;
-        gold += 20; // end-wave bonus
+    if (gameState.waveActive && !gameState.spawnQueue.length && !gameState.enemies.length) {
+        gameState.waveActive = false;
+        gameState.gold += 20;
+        gameState.stats.totalGoldEarned += 20;
         updateHUD(); updateWaveBtn();
-        setInfo(`Wave ${waveNum} cleared! +20♦ bonus`);
+        setInfo(`Wave ${gameState.waveNum} cleared! +20♦ bonus`);
     }
 }
 
 // ── Update: towers ─────────────────────────────────────────────────────────────
 function updateTowers(ts) {
-    towers.forEach(tower => {
-        const def = TDEFS[tower.type];
+    gameState.towers.forEach(tower => {
+        const def = TOWER_DEFS[tower.type];
         if (ts - tower.lastFired < def.cd) return;
 
         // Pick enemy furthest along path within range
         let target = null, bestWp = -1;
-        enemies.forEach(e => {
+        gameState.enemies.forEach(e => {
             const dx = e.x - tower.x, dy = e.y - tower.y;
             if (Math.sqrt(dx*dx + dy*dy) <= def.range && e.wpIdx > bestWp) {
                 target = e; bestWp = e.wpIdx;
@@ -244,8 +339,8 @@ function updateTowers(ts) {
         else if (tower.type === 'frost')  sfxFrost();
         else sfxLaser();
 
-        projectiles.push({
-            id: ++pid, type: tower.type,
+        gameState.projectiles.push({
+            id: ++gameState.entityIds.pid, type: tower.type,
             x: tower.x, y: tower.y,
             tx: target.x, ty: target.y,
             targetId: def.splash > 0 ? null : target.id,
@@ -258,12 +353,12 @@ function updateTowers(ts) {
 
 // ── Update: projectiles ────────────────────────────────────────────────────────
 function updateProjectiles(ts, dt) {
-    projectiles.forEach(p => {
+    gameState.projectiles.forEach(p => {
         if (p.done) return;
 
         // Homing: track target
         if (p.targetId) {
-            const e = enemies.find(e => e.id === p.targetId);
+            const e = gameState.enemies.find(e => e.id === p.targetId);
             if (e) { p.tx = e.x; p.ty = e.y; }
         }
 
@@ -277,12 +372,12 @@ function updateProjectiles(ts, dt) {
             if (p.splash > 0) {
                 // Cannon splash
                 burst(p.x, p.y, '#ffaa40', 14, 5);
-                enemies.forEach(e => {
+                gameState.enemies.forEach(e => {
                     const ddx=e.x-p.x, ddy=e.y-p.y;
                     if (Math.sqrt(ddx*ddx+ddy*ddy) <= p.splash) hit(e, p.dmg, ts, p.slow);
                 });
             } else {
-                const e = p.targetId ? enemies.find(e => e.id === p.targetId) : null;
+                const e = p.targetId ? gameState.enemies.find(e => e.id === p.targetId) : null;
                 if (e) hit(e, p.dmg, ts, p.slow);
             }
         } else {
@@ -290,7 +385,7 @@ function updateProjectiles(ts, dt) {
             p.y += (dy/dist)*move;
         }
     });
-    projectiles = projectiles.filter(p => !p.done);
+    gameState.projectiles = gameState.projectiles.filter(p => !p.done);
 }
 
 function hit(e, dmg, ts, slow) {
@@ -303,7 +398,7 @@ function hit(e, dmg, ts, slow) {
 function burst(x, y, color, count, baseR) {
     for (let i = 0; i < count; i++) {
         const a = Math.random() * Math.PI * 2, spd = 1 + Math.random() * 3.5;
-        particles.push({
+        gameState.particles.push({
             x, y, vx: Math.cos(a)*spd, vy: Math.sin(a)*spd - 1.2,
             life: 400 + Math.random()*300, maxLife: 700,
             color, r: baseR * (0.5 + Math.random()*0.8),
@@ -312,19 +407,19 @@ function burst(x, y, color, count, baseR) {
 }
 
 function updateParticles(dt) {
-    for (let i = particles.length-1; i >= 0; i--) {
-        const p = particles[i];
+    for (let i = gameState.particles.length-1; i >= 0; i--) {
+        const p = gameState.particles[i];
         p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life -= dt;
-        if (p.life <= 0) particles.splice(i, 1);
+        if (p.life <= 0) gameState.particles.splice(i, 1);
     }
 }
 
 // ── Game over ──────────────────────────────────────────────────────────────────
 function triggerGameOver() {
-    gameOver = true; waveActive = false;
+    gameState.gameOver = true; gameState.waveActive = false;
     sfxLose();
     updateWaveBtn();
-    setInfo(`Game over — survived ${waveNum} wave${waveNum !== 1 ? 's' : ''}`);
+    setInfo(`Game over — survived ${gameState.waveNum} wave${gameState.waveNum !== 1 ? 's' : ''}`);
 }
 
 // ── Drawing ────────────────────────────────────────────────────────────────────
@@ -340,6 +435,9 @@ function draw(ts) {
 }
 
 function drawMap() {
+    const mapData = MAPS[gameState.mapId];
+    const pathTiles = mapData.pathTiles;
+
     // Terrain background
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -359,14 +457,14 @@ function drawMap() {
     }
 
     // Path road
-    PATH_TILES.forEach(([c, r]) => {
+    pathTiles.forEach(([c, r]) => {
         ctx.fillStyle = '#3e3418';
         ctx.fillRect(c*CELL + 5, r*CELL + 5, CELL-10, CELL-10);
     });
 
     // Path connectors (fill gaps between adjacent tiles)
-    for (let i = 0; i < PATH_TILES.length - 1; i++) {
-        const [c1,r1] = PATH_TILES[i], [c2,r2] = PATH_TILES[i+1];
+    for (let i = 0; i < pathTiles.length - 1; i++) {
+        const [c1,r1] = pathTiles[i], [c2,r2] = pathTiles[i+1];
         const dc = c2 - c1, dr = r2 - r1;
         if (dc !== 0) {
             // horizontal connector
@@ -383,8 +481,8 @@ function drawMap() {
 
     // Path directional arrows
     ctx.fillStyle = 'rgba(255,230,120,0.18)';
-    for (let i = 0; i < PATH_TILES.length - 1; i++) {
-        const [c,r] = PATH_TILES[i], [nc,nr] = PATH_TILES[i+1];
+    for (let i = 0; i < pathTiles.length - 1; i++) {
+        const [c,r] = pathTiles[i], [nc,nr] = pathTiles[i+1];
         const cx = c*CELL+CELL/2, cy = r*CELL+CELL/2;
         ctx.save();
         ctx.translate(cx, cy);
@@ -401,9 +499,9 @@ function drawMap() {
 }
 
 function drawTowers(ts) {
-    towers.forEach(t => {
-        const def = TDEFS[t.type];
-        const sel = selectedTower === t;
+    gameState.towers.forEach(t => {
+        const def = TOWER_DEFS[t.type];
+        const sel = gameState.selectedTower === t;
 
         // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -420,7 +518,7 @@ function drawTowers(ts) {
         drawIcon(t.type, t.x, t.y, CELL*0.2);
 
         // Shoot flash
-        const frac = (ts - t.lastFired) / TDEFS[t.type].cd;
+        const frac = (ts - t.lastFired) / TOWER_DEFS[t.type].cd;
         if (frac < 0.18) {
             ctx.globalAlpha = 0.5 * (1 - frac/0.18);
             ctx.fillStyle   = '#ffffff';
@@ -458,11 +556,11 @@ function drawIcon(type, cx, cy, r) {
 }
 
 function drawRangePreview() {
-    if (!selectedType || !hoverCell) return;
-    const { c, r } = hoverCell;
-    const def = TDEFS[selectedType];
+    if (!gameState.selectedType || !gameState.hoverCell) return;
+    const { c, r } = gameState.hoverCell;
+    const def = TOWER_DEFS[gameState.selectedType];
     const cx = c*CELL + CELL/2, cy = r*CELL + CELL/2;
-    const canPlace = !PATH_SET.has(`${c},${r}`) && !towers.find(t => t.col===c && t.row===r);
+    const canPlace = !PATH_SET.has(`${c},${r}`) && !gameState.towers.find(t => t.col===c && t.row===r);
     const clr = canPlace ? def.color : '#ff4444';
 
     ctx.globalAlpha = 0.12;
@@ -480,7 +578,7 @@ function drawRangePreview() {
 }
 
 function drawEnemies(ts) {
-    enemies.forEach(e => {
+    gameState.enemies.forEach(e => {
         const slowed = ts < e.slowUntil;
 
         // Shadow
@@ -520,7 +618,7 @@ function drawEnemies(ts) {
 }
 
 function drawProjectiles() {
-    projectiles.forEach(p => {
+    gameState.projectiles.forEach(p => {
         ctx.shadowColor = p.color; ctx.shadowBlur = 7;
         ctx.fillStyle   = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
@@ -529,7 +627,7 @@ function drawProjectiles() {
 }
 
 function drawParticles() {
-    particles.forEach(p => {
+    gameState.particles.forEach(p => {
         ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
         ctx.fillStyle   = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
@@ -546,7 +644,7 @@ function drawGameOver() {
     ctx.fillText('GAME OVER', W/2, H/2 - 28);
     ctx.fillStyle = '#e0e0e0';
     ctx.font = `17px 'Courier New', monospace`;
-    ctx.fillText(`Survived ${waveNum} wave${waveNum !== 1 ? 's' : ''}`, W/2, H/2 + 8);
+    ctx.fillText(`Survived ${gameState.waveNum} wave${gameState.waveNum !== 1 ? 's' : ''}`, W/2, H/2 + 8);
     ctx.fillStyle = '#888899';
     ctx.font = `13px 'Courier New', monospace`;
     ctx.fillText('Tap ▶ PLAY AGAIN below to restart', W/2, H/2 + 36);
@@ -564,32 +662,32 @@ function canvasXY(e) {
 
 function onTap(px, py) {
     initAudio();
-    if (gameOver) return;
+    if (gameState.gameOver) return;
 
     const c = Math.floor(px / CELL), r = Math.floor(py / CELL);
     if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return;
 
     // Tapped a placed tower?
-    const hit = towers.find(t => t.col === c && t.row === r);
+    const hit = gameState.towers.find(t => t.col === c && t.row === r);
     if (hit) {
-        if (selectedTower === hit) {
+        if (gameState.selectedTower === hit) {
             // Deselect
-            selectedTower = null;
+            gameState.selectedTower = null;
             sellBtn.classList.add('hidden');
             setInfo('');
         } else {
-            selectedTower = hit;
-            selectedType  = null;
+            gameState.selectedTower = hit;
+            gameState.selectedType  = null;
             deselectBtns();
-            const def = TDEFS[hit.type];
+            const def = TOWER_DEFS[hit.type];
             const sv  = Math.floor(def.cost * 0.6);
             setInfo(`${def.name} · ${def.desc}`);
             sellBtn.textContent = `Sell ${sv}♦`;
             sellBtn.classList.remove('hidden');
             sellBtn.onclick = () => {
-                gold += sv; updateHUD();
-                towers = towers.filter(t => t !== selectedTower);
-                selectedTower = null;
+                gameState.gold += sv; updateHUD();
+                gameState.towers = gameState.towers.filter(t => t !== gameState.selectedTower);
+                gameState.selectedTower = null;
                 sellBtn.classList.add('hidden');
                 setInfo('Tower sold');
             };
@@ -598,20 +696,20 @@ function onTap(px, py) {
     }
 
     // Place a tower
-    if (!selectedType) { setInfo('Pick a tower type from the panel below'); return; }
+    if (!gameState.selectedType) { setInfo('Pick a tower type from the panel below'); return; }
     if (PATH_SET.has(`${c},${r}`)) { setInfo("Can't build on the path!"); return; }
-    if (towers.find(t => t.col===c && t.row===r)) { setInfo('Cell already occupied!'); return; }
+    if (gameState.towers.find(t => t.col===c && t.row===r)) { setInfo('Cell already occupied!'); return; }
 
-    const def = TDEFS[selectedType];
-    if (gold < def.cost) { setInfo(`Need ${def.cost}♦ (you have ${gold}♦)`); return; }
+    const def = TOWER_DEFS[gameState.selectedType];
+    if (gameState.gold < def.cost) { setInfo(`Need ${def.cost}♦ (you have ${gameState.gold}♦)`); return; }
 
-    gold -= def.cost; updateHUD();
-    towers.push({
-        id: ++tid, type: selectedType, col: c, row: r,
+    gameState.gold -= def.cost; updateHUD();
+    gameState.towers.push({
+        id: ++gameState.entityIds.tid, type: gameState.selectedType, col: c, row: r,
         x: c*CELL + CELL/2, y: r*CELL + CELL/2,
         lastFired: 0,
     });
-    selectedTower = null;
+    gameState.selectedTower = null;
     sellBtn.classList.add('hidden');
     sfxPlace();
     setInfo(`${def.name} placed`);
@@ -620,27 +718,27 @@ function onTap(px, py) {
 canvas.addEventListener('click',      e => { const { x,y } = canvasXY(e); onTap(x, y); });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); const { x,y } = canvasXY(e); onTap(x, y); }, { passive: false });
 canvas.addEventListener('mousemove',  e => {
-    if (!selectedType) { hoverCell = null; return; }
+    if (!gameState.selectedType) { gameState.hoverCell = null; return; }
     const { x,y } = canvasXY(e);
     const c = Math.floor(x/CELL), r = Math.floor(y/CELL);
-    hoverCell = (c>=0 && c<COLS && r>=0 && r<ROWS) ? { c, r } : null;
+    gameState.hoverCell = (c>=0 && c<COLS && r>=0 && r<ROWS) ? { c, r } : null;
 });
-canvas.addEventListener('mouseleave', () => { hoverCell = null; });
+canvas.addEventListener('mouseleave', () => { gameState.hoverCell = null; });
 
 // Tower buttons
 document.querySelectorAll('.tbtn').forEach(btn => {
     btn.addEventListener('click', () => {
         initAudio();
-        if (gameOver) return;
+        if (gameState.gameOver) return;
         const type = btn.dataset.type;
-        if (selectedType === type) {
-            selectedType = null; deselectBtns(); setInfo(''); return;
+        if (gameState.selectedType === type) {
+            gameState.selectedType = null; deselectBtns(); setInfo(''); return;
         }
-        selectedType  = type;
-        selectedTower = null;
+        gameState.selectedType  = type;
+        gameState.selectedTower = null;
         deselectBtns(); btn.classList.add('active');
         sellBtn.classList.add('hidden');
-        const def = TDEFS[type];
+        const def = TOWER_DEFS[type];
         setInfo(`${def.name} · ${def.cost}♦ · ${def.desc}`);
     });
 });
@@ -651,15 +749,15 @@ function deselectBtns() {
 
 waveBtn.addEventListener('click', () => {
     initAudio();
-    if (gameOver) { newGame(); return; }
+    if (gameState.gameOver) { newGame(); return; }
     startWave();
 });
 
 // ── Loop ───────────────────────────────────────────────────────────────────────
 function loop(ts) {
-    const dt = Math.min(ts - lastTS, 50);
-    lastTS = ts;
-    if (!gameOver) {
+    const dt = Math.min(ts - gameState.lastTimestamp, 50);
+    gameState.lastTimestamp = ts;
+    if (!gameState.gameOver) {
         updateEnemies(ts, dt);
         updateTowers(ts);
         updateProjectiles(ts, dt);
