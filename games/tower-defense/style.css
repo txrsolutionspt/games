@@ -28,11 +28,26 @@ body {
     width: 100%;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 0.82rem;
     letter-spacing: 0.08em;
     color: #a0a0c0;
     padding: 0 2px;
 }
+
+.hud-btn {
+    background: none;
+    border: none;
+    color: #a0a0c0;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.1s;
+}
+
+.hud-btn:hover { color: #d0d0e0; }
+.hud-btn:active { filter: brightness(1.2); }
 
 #gameCanvas {
     display: block;
@@ -159,3 +174,160 @@ body {
     color: #606080;
     cursor: default;
 }
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal.hidden { display: none; }
+
+.modal-content {
+    background: #24244a;
+    border: 2px solid #3a3a6a;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 320px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+}
+
+.modal-content h2 {
+    font-size: 1.2rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+    text-align: center;
+    color: #ffd700;
+}
+
+.modal-info {
+    color: #a0a0c0;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.difficulty-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.difficulty-btn {
+    background: #3a3a6a;
+    border: 2px solid #4a4a7a;
+    border-radius: 8px;
+    color: #c0c0e0;
+    padding: 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.1s;
+    font-family: inherit;
+    font-size: 0.85rem;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.difficulty-btn:active { filter: brightness(1.1); }
+
+.difficulty-btn.active {
+    background: #4a5a9a;
+    border-color: #8080ff;
+    box-shadow: 0 0 10px rgba(120,120,255,0.4);
+}
+
+.diff-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+}
+
+.diff-desc {
+    font-size: 0.75rem;
+    color: #8888aa;
+}
+
+.settings-section {
+    margin-bottom: 16px;
+}
+
+.settings-section label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #d0d0e0;
+    letter-spacing: 0.05em;
+}
+
+.setting-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.setting-btn {
+    background: #3a3a6a;
+    border: 2px solid #4a4a7a;
+    border-radius: 6px;
+    color: #c0c0e0;
+    padding: 8px 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.75rem;
+    transition: all 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    font-weight: bold;
+}
+
+.setting-btn:active { filter: brightness(1.1); }
+
+.setting-btn.active {
+    background: #4a5a9a;
+    border-color: #8080ff;
+    box-shadow: 0 0 8px rgba(120,120,255,0.3);
+}
+
+.settings-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.modal-action-btn {
+    width: 100%;
+    background: #1a4a1a;
+    border: 2px solid #2a8a2a;
+    border-radius: 8px;
+    color: #88ff88;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: bold;
+    padding: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.1s;
+}
+
+.modal-action-btn:hover { background: #255525; }
+.modal-action-btn:active { filter: brightness(1.2); }
+
+.modal-action-btn.danger {
+    background: #7a2020;
+    border-color: #cc4040;
+    color: #ffaaaa;
+}
+
+.modal-action-btn.danger:hover { background: #8a2a2a; }

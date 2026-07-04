@@ -12,6 +12,7 @@
             <span>WAVE <span id="wave">0</span></span>
             <span>♦ <span id="gold">150</span></span>
             <span>♥ <span id="lives">20</span></span>
+            <button id="settings-btn" class="hud-btn" title="Settings">⚙</button>
         </div>
 
         <canvas id="gameCanvas"></canvas>
@@ -45,6 +46,67 @@
         </div>
 
         <button id="wave-btn">▶ START WAVE 1</button>
+    </div>
+
+    <!-- Difficulty Selection Modal -->
+    <div id="difficulty-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>SELECT DIFFICULTY</h2>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn" data-difficulty="easy">
+                    <span class="diff-name">EASY</span>
+                    <span class="diff-desc">More health, more gold</span>
+                </button>
+                <button class="difficulty-btn active" data-difficulty="normal">
+                    <span class="diff-name">NORMAL</span>
+                    <span class="diff-desc">Balanced challenge</span>
+                </button>
+                <button class="difficulty-btn" data-difficulty="hard">
+                    <span class="diff-name">HARD</span>
+                    <span class="diff-desc">Less gold, stronger waves</span>
+                </button>
+            </div>
+            <button id="difficulty-start-btn" class="modal-action-btn">Start Game</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>SETTINGS</h2>
+            <div class="settings-section">
+                <label>Difficulty:</label>
+                <div class="setting-buttons">
+                    <button class="setting-btn" data-setting="difficulty" data-value="easy">Easy</button>
+                    <button class="setting-btn active" data-setting="difficulty" data-value="normal">Normal</button>
+                    <button class="setting-btn" data-setting="difficulty" data-value="hard">Hard</button>
+                </div>
+            </div>
+            <div class="settings-section">
+                <label>Map:</label>
+                <div class="setting-buttons">
+                    <button class="setting-btn active" data-setting="map" data-value="classic">Classic</button>
+                    <button class="setting-btn" data-setting="map" data-value="spiral">Spiral</button>
+                    <button class="setting-btn" data-setting="map" data-value="serpent">Serpent</button>
+                </div>
+            </div>
+            <div class="settings-buttons">
+                <button id="settings-resume-btn" class="modal-action-btn">Resume</button>
+                <button id="settings-new-btn" class="modal-action-btn danger">New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resume Game Modal -->
+    <div id="resume-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>GAME IN PROGRESS</h2>
+            <p id="resume-info" class="modal-info"></p>
+            <div class="settings-buttons">
+                <button id="resume-continue-btn" class="modal-action-btn">Continue</button>
+                <button id="resume-new-btn" class="modal-action-btn danger">New Game</button>
+            </div>
+        </div>
     </div>
 
     <script src="game.js"></script>

@@ -35,6 +35,34 @@ const MAPS = {
       [8,6],[8,7],[9,7],
     ],
     background: { type: 'gradient', colors: ['#162210', '#0a1208'] }
+  },
+  'spiral': {
+    id: 'spiral',
+    name: 'Spiral Challenge',
+    pathTiles: [
+      [5,0],[6,0],[7,0],[8,0],[9,0],
+      [9,1],[9,2],[9,3],
+      [8,3],[7,3],[6,3],[5,3],[4,3],
+      [4,2],[4,1],[4,0],
+      [3,0],[2,0],[1,0],[0,0],
+      [0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],
+      [1,7],[2,7],[3,7],[4,7],[5,7],
+      [5,6],[5,5],[5,4],
+      [6,4],[7,4],[8,4],[9,4],[9,5],[9,6],[9,7],
+    ],
+    background: { type: 'gradient', colors: ['#1a2840', '#0a1520'] }
+  },
+  'serpent': {
+    id: 'serpent',
+    name: 'Serpent Path',
+    pathTiles: [
+      [0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],
+      [9,1],[9,2],[9,3],
+      [8,3],[7,3],[6,3],[5,3],[4,3],[3,3],[2,3],[1,3],[0,3],
+      [0,4],[0,5],[0,6],[0,7],
+      [1,7],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7],[8,7],[9,7],
+    ],
+    background: { type: 'gradient', colors: ['#2a1840', '#1a0a30'] }
   }
 };
 
@@ -191,14 +219,143 @@ let gameState = createGameState();
 let PATH_SET = createMapPathSet(gameState.mapId);
 let WAYPOINTS = createMapWaypoints(gameState.mapId);
 
-// ── Bootstrap ──────────────────────────────────────────────────────────────────
-function newGame() {
-    gameState = createGameState();
+// ════════════════════════════════════════════════════════════════════════════════
+// PHASE 1: UI AND SETTINGS
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ── DOM refs for modals ────────────────────────────────────────────────────────
+const difficultyModal = document.getElementById('difficulty-modal');
+const settingsModal = document.getElementById('settings-modal');
+const resumeModal = document.getElementById('resume-modal');
+const settingsBtn = document.getElementById('settings-btn');
+
+// ── Auto-save on wave completion ─────────────────────────────────────────────
+function autoSaveGame() {
+    GameStorage.saveGame(gameState);
+}
+
+// ── Show/hide modals ────────────────────────────────────────────────────────
+function showModal(modal) {
+    modal.classList.remove('hidden');
+}
+
+function hideModal(modal) {
+    modal.classList.add('hidden');
+}
+
+// ── Initialize game with difficulty/map selection ───────────────────────────
+function initializeGame() {
+    const savedGame = GameStorage.loadGame();
+
+    if (savedGame) {
+        showModal(resumeModal);
+        const diffName = DIFFICULTY_DEFS[savedGame.difficulty].name;
+        const mapName = MAPS[savedGame.mapId].name;
+        document.getElementById('resume-info').textContent =
+            `Wave ${savedGame.waveNum} · ${diffName} · ${mapName}`;
+
+        document.getElementById('resume-continue-btn').onclick = () => {
+            hideModal(resumeModal);
+            gameState = savedGame;
+            PATH_SET = createMapPathSet(gameState.mapId);
+            WAYPOINTS = createMapWaypoints(gameState.mapId);
+            updateHUD(); updateWaveBtn(); setInfo('Game resumed!');
+            sellBtn.classList.add('hidden');
+        };
+
+        document.getElementById('resume-new-btn').onclick = () => {
+            hideModal(resumeModal);
+            showDifficultyModal();
+        };
+    } else {
+        showDifficultyModal();
+    }
+}
+
+function showDifficultyModal() {
+    showModal(difficultyModal);
+
+    document.querySelectorAll('.difficulty-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        };
+    });
+
+    document.getElementById('difficulty-start-btn').onclick = () => {
+        const selectedBtn = document.querySelector('.difficulty-btn.active');
+        const difficulty = selectedBtn.dataset.difficulty;
+        hideModal(difficultyModal);
+        startNewGame(difficulty, 'classic');
+    };
+}
+
+function startNewGame(difficulty = 'normal', mapId = 'classic') {
+    gameState = createGameState(mapId, difficulty);
     PATH_SET = createMapPathSet(gameState.mapId);
     WAYPOINTS = createMapWaypoints(gameState.mapId);
     GameStorage.deleteGame();
     updateHUD(); updateWaveBtn(); setInfo('Select a tower type, then tap the map to place');
     sellBtn.classList.add('hidden');
+}
+
+// ── Settings menu ──────────────────────────────────────────────────────────
+function showSettingsModal() {
+    showModal(settingsModal);
+
+    // Update active buttons to match current game state
+    document.querySelectorAll('.setting-btn').forEach(btn => {
+        btn.classList.remove('active');
+        const setting = btn.dataset.setting;
+        const value = btn.dataset.value;
+        if (setting === 'difficulty' && value === gameState.difficulty) {
+            btn.classList.add('active');
+        }
+        if (setting === 'map' && value === gameState.mapId) {
+            btn.classList.add('active');
+        }
+    });
+
+    // Handle setting changes
+    document.querySelectorAll('.setting-btn').forEach(btn => {
+        btn.onclick = () => {
+            const setting = btn.dataset.setting;
+            const value = btn.dataset.value;
+
+            document.querySelectorAll(`.setting-btn[data-setting="${setting}"]`).forEach(b => {
+                b.classList.remove('active');
+            });
+            btn.classList.add('active');
+
+            if (setting === 'difficulty') {
+                gameState.difficulty = value;
+                GameStorage.saveGame(gameState);
+            }
+            if (setting === 'map') {
+                gameState.mapId = value;
+                PATH_SET = createMapPathSet(gameState.mapId);
+                WAYPOINTS = createMapWaypoints(gameState.mapId);
+                GameStorage.saveGame(gameState);
+            }
+        };
+    });
+
+    document.getElementById('settings-resume-btn').onclick = () => {
+        hideModal(settingsModal);
+        autoSaveGame();
+    };
+
+    document.getElementById('settings-new-btn').onclick = () => {
+        hideModal(settingsModal);
+        startNewGame();
+        showDifficultyModal();
+    };
+}
+
+// ── Bootstrap ──────────────────────────────────────────────────────────────────
+function newGame() {
+    GameStorage.deleteGame();
+    showDifficultyModal();
 }
 
 function updateHUD() {
@@ -314,6 +471,7 @@ function updateEnemies(ts, dt) {
         gameState.stats.totalGoldEarned += 20;
         updateHUD(); updateWaveBtn();
         setInfo(`Wave ${gameState.waveNum} cleared! +20♦ bonus`);
+        autoSaveGame();
     }
 }
 
@@ -437,11 +595,21 @@ function draw(ts) {
 function drawMap() {
     const mapData = MAPS[gameState.mapId];
     const pathTiles = mapData.pathTiles;
+    const bgData = mapData.background;
+
+    // Render map background
+    if (bgData.type === 'gradient') {
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, bgData.colors[0]);
+        grad.addColorStop(1, bgData.colors[1]);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+    }
 
     // Terrain background
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-            ctx.fillStyle = PATH_SET.has(`${c},${r}`) ? '#2e2510' : '#162210';
+            ctx.fillStyle = PATH_SET.has(`${c},${r}`) ? '#3a3210' : 'rgba(0,0,0,0.15)';
             ctx.fillRect(c*CELL, r*CELL, CELL, CELL);
         }
     }
@@ -753,6 +921,13 @@ waveBtn.addEventListener('click', () => {
     startWave();
 });
 
+// Settings button
+settingsBtn.addEventListener('click', () => {
+    initAudio();
+    if (gameState.waveActive || gameState.gameOver) return;
+    showSettingsModal();
+});
+
 // ── Loop ───────────────────────────────────────────────────────────────────────
 function loop(ts) {
     const dt = Math.min(ts - gameState.lastTimestamp, 50);
@@ -767,5 +942,5 @@ function loop(ts) {
     requestAnimationFrame(loop);
 }
 
-newGame();
+initializeGame();
 requestAnimationFrame(loop);
