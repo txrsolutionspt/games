@@ -568,9 +568,28 @@ function hideModal(modal) {
     modal.classList.add('hidden');
 }
 
+// ── Validate that a saved game matches the current save format ─────────────
+function isValidSave(savedGame) {
+    return !!savedGame
+        && !!DIFFICULTY_DEFS[savedGame.difficulty]
+        && !!MAPS[savedGame.mapId]
+        && Array.isArray(savedGame.towers)
+        && Array.isArray(savedGame.enemies)
+        && Array.isArray(savedGame.projectiles)
+        && Array.isArray(savedGame.particles)
+        && !!savedGame.entityIds
+        && !!savedGame.stats;
+}
+
 // ── Initialize game with difficulty/map selection ───────────────────────────
 function initializeGame() {
-    const savedGame = GameStorage.loadGame();
+    let savedGame = GameStorage.loadGame();
+
+    if (savedGame && !isValidSave(savedGame)) {
+        // Incompatible save from an older version of the game — discard it.
+        GameStorage.deleteGame();
+        savedGame = null;
+    }
 
     if (savedGame) {
         showModal(resumeModal);
