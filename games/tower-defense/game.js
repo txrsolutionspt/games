@@ -243,6 +243,18 @@ let gameState;
 let PATH_SET;
 let WAYPOINTS;
 
+// Filters an array in place so its object identity never changes — required
+// because gameState.<list> and gameState.<x>Mgr.<list> alias the same array;
+// reassigning (arr = arr.filter(...)) breaks that alias for one side.
+function filterInPlace(arr, predicate) {
+  let write = 0;
+  for (let read = 0; read < arr.length; read++) {
+    if (predicate(arr[read])) arr[write++] = arr[read];
+  }
+  arr.length = write;
+  return arr;
+}
+
 // ── Spatial grid helpers ───────────────────────────────────────────────────────
 const GRID_SIZE = CELL; // 40×40 pixel cells
 const GRID_COLS = Math.ceil(W / GRID_SIZE);
@@ -355,7 +367,7 @@ class EnemyManager {
     this.enemies
       .filter(e => e.dead || e.escaped)
       .forEach(e => this.enemyMap.delete(e.id));
-    this.enemies = this.enemies.filter(e => !e.dead && !e.escaped);
+    filterInPlace(this.enemies, e => !e.dead && !e.escaped);
   }
 
   getAll() {
@@ -416,7 +428,7 @@ class TowerManager {
   }
 
   remove(towerId) {
-    this.towers = this.towers.filter(t => t.id !== towerId);
+    filterInPlace(this.towers, t => t.id !== towerId);
   }
 
   updateLastFired(towerId, timestamp) {
@@ -476,7 +488,7 @@ class ProjectileManager {
   }
 
   removeFinished() {
-    this.projectiles = this.projectiles.filter(p => !p.done);
+    filterInPlace(this.projectiles, p => !p.done);
   }
 
   count() {
@@ -519,7 +531,7 @@ class ParticleManager {
   }
 
   removeExpired() {
-    this.particles = this.particles.filter(p => p.life > 0);
+    filterInPlace(this.particles, p => p.life > 0);
   }
 
   count() {
@@ -917,7 +929,7 @@ function updateProjectiles(ts, dt) {
             p.y += (dy/dist)*move;
         }
     });
-    gameState.projectiles = gameState.projectiles.filter(p => !p.done);
+    filterInPlace(gameState.projectiles, p => !p.done);
 }
 
 function hit(e, dmg, ts, slow) {
@@ -1264,7 +1276,7 @@ function onTap(px, py) {
                 } else {
                     gameState.gold += sv;
                     updateHUD();
-                    gameState.towers = gameState.towers.filter(t => t !== gameState.selectedTower);
+                    filterInPlace(gameState.towers, t => t !== gameState.selectedTower);
                     gameState.selectedTower = null;
                     sellBtn.classList.add('hidden');
                     setInfo('Tower sold');
