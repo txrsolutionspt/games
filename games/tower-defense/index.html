@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Tower Defense</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260706">
 </head>
 <body>
     <div id="container">
@@ -93,6 +93,13 @@
                     <button class="setting-btn" data-setting="map" data-value="serpent">Serpent</button>
                 </div>
             </div>
+            <div class="settings-section">
+                <label>Color Scheme:</label>
+                <div class="setting-buttons cols-2">
+                    <button class="setting-btn active" data-setting="colorScheme" data-value="dark">Dark</button>
+                    <button class="setting-btn" data-setting="colorScheme" data-value="day">Day</button>
+                </div>
+            </div>
             <div class="settings-buttons">
                 <button id="settings-resume-btn" class="modal-action-btn">Resume</button>
                 <button id="settings-new-btn" class="modal-action-btn danger">New Game</button>
@@ -113,7 +120,7 @@
     </div>
 
     <!-- Bump ?v= on both scripts whenever game.js/version.js change, so browsers don't serve a stale cached copy -->
-    <script src="version.js?v=20260705"></script>
-    <script src="game.js?v=20260705"></script>
+    <script src="version.js?v=20260706"></script>
+    <script src="game.js?v=20260706"></script>
 </body>
 </html>

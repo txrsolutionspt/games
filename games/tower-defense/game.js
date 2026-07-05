@@ -34,7 +34,11 @@ const MAPS = {
       [2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],
       [8,6],[8,7],[9,7],
     ],
-    background: { type: 'gradient', colors: ['#162210', '#0a1208'] }
+    background: {
+      type: 'gradient',
+      colors: ['#162210', '#0a1208'],
+      dayColors: ['#dff0d0', '#c3e6a8']
+    }
   },
   'spiral': {
     id: 'spiral',
@@ -50,7 +54,11 @@ const MAPS = {
       [5,6],[5,5],[5,4],
       [6,4],[7,4],[8,4],[9,4],[9,5],[9,6],[9,7],
     ],
-    background: { type: 'gradient', colors: ['#1a2840', '#0a1520'] }
+    background: {
+      type: 'gradient',
+      colors: ['#1a2840', '#0a1520'],
+      dayColors: ['#dbe9fb', '#bcd6f2']
+    }
   },
   'serpent': {
     id: 'serpent',
@@ -62,7 +70,25 @@ const MAPS = {
       [0,4],[0,5],[0,6],[0,7],
       [1,7],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7],[8,7],[9,7],
     ],
-    background: { type: 'gradient', colors: ['#2a1840', '#1a0a30'] }
+    background: {
+      type: 'gradient',
+      colors: ['#2a1840', '#1a0a30'],
+      dayColors: ['#f0e0fa', '#dcc0f0']
+    }
+  }
+};
+
+// ── Color scheme (dark / day) canvas tint tokens ────────────────────────────
+const CANVAS_THEMES = {
+  dark: {
+    offPath:   'rgba(0,0,0,0.15)',
+    gridLine:  'rgba(40,60,30,0.7)',
+    pathArrow: 'rgba(255,230,120,0.18)',
+  },
+  day: {
+    offPath:   'rgba(255,255,255,0.45)',
+    gridLine:  'rgba(20,20,20,0.15)',
+    pathArrow: 'rgba(60,40,10,0.28)',
   }
 };
 
@@ -194,6 +220,15 @@ const GameStorage = {
     }
   }
 };
+
+// ── Color scheme (dark / day) state ─────────────────────────────────────────
+let colorScheme = GameStorage.loadSettings().colorScheme === 'day' ? 'day' : 'dark';
+
+function applyColorScheme(scheme) {
+  colorScheme = scheme === 'day' ? 'day' : 'dark';
+  document.documentElement.setAttribute('data-theme', colorScheme);
+  GameStorage.saveSettings({ ...GameStorage.loadSettings(), colorScheme });
+}
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PHASE 0: GAME STATE - Encapsulated Mutable State
@@ -702,6 +737,9 @@ function showSettingsModal() {
         if (setting === 'map' && value === gameState.mapId) {
             btn.classList.add('active');
         }
+        if (setting === 'colorScheme' && value === colorScheme) {
+            btn.classList.add('active');
+        }
     });
 
     // Handle setting changes
@@ -724,6 +762,9 @@ function showSettingsModal() {
                 PATH_SET = createMapPathSet(gameState.mapId);
                 WAYPOINTS = createMapWaypoints(gameState.mapId);
                 GameStorage.saveGame(gameState);
+            }
+            if (setting === 'colorScheme') {
+                applyColorScheme(value);
             }
         };
     });
@@ -983,12 +1024,14 @@ function drawMap() {
     const mapData = MAPS[gameState.mapId];
     const pathTiles = mapData.pathTiles;
     const bgData = mapData.background;
+    const theme = CANVAS_THEMES[colorScheme];
+    const gradColors = (colorScheme === 'day' && bgData.dayColors) ? bgData.dayColors : bgData.colors;
 
     // Render map background
     if (bgData.type === 'gradient') {
         const grad = ctx.createLinearGradient(0, 0, 0, H);
-        grad.addColorStop(0, bgData.colors[0]);
-        grad.addColorStop(1, bgData.colors[1]);
+        grad.addColorStop(0, gradColors[0]);
+        grad.addColorStop(1, gradColors[1]);
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
     }
@@ -996,13 +1039,13 @@ function drawMap() {
     // Terrain background
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-            ctx.fillStyle = PATH_SET.has(`${c},${r}`) ? '#3a3210' : 'rgba(0,0,0,0.15)';
+            ctx.fillStyle = PATH_SET.has(`${c},${r}`) ? '#3a3210' : theme.offPath;
             ctx.fillRect(c*CELL, r*CELL, CELL, CELL);
         }
     }
 
     // Grid lines
-    ctx.strokeStyle = 'rgba(40,60,30,0.7)';
+    ctx.strokeStyle = theme.gridLine;
     ctx.lineWidth   = 0.5;
     for (let c = 1; c < COLS; c++) {
         ctx.beginPath(); ctx.moveTo(c*CELL, 0); ctx.lineTo(c*CELL, H); ctx.stroke();
@@ -1035,7 +1078,7 @@ function drawMap() {
     }
 
     // Path directional arrows
-    ctx.fillStyle = 'rgba(255,230,120,0.18)';
+    ctx.fillStyle = theme.pathArrow;
     for (let i = 0; i < pathTiles.length - 1; i++) {
         const [c,r] = pathTiles[i], [nc,nr] = pathTiles[i+1];
         const cx = c*CELL+CELL/2, cy = r*CELL+CELL/2;
@@ -1465,6 +1508,7 @@ if (typeof global !== 'undefined') {
 
 // Only initialize if not in test mode
 if (typeof TEST_MODE === 'undefined' && typeof module === 'undefined') {
+    applyColorScheme(colorScheme);
     initializeGame();
     startLoop();
     displayVersion();
