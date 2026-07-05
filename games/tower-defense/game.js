@@ -221,6 +221,108 @@ const GameStorage = {
   }
 };
 
+// ════════════════════════════════════════════════════════════════════════════════
+// PHASE 0: ACHIEVEMENT SYSTEM - Player Milestones & Progression
+// ════════════════════════════════════════════════════════════════════════════════
+
+const ACHIEVEMENTS = {
+  'first_wave': {
+    id: 'first_wave',
+    name: 'First Wave',
+    desc: 'Complete wave 1',
+    icon: '🌊',
+    condition: (stats) => stats.waveNum >= 1
+  },
+  'tower_master': {
+    id: 'tower_master',
+    name: 'Tower Master',
+    desc: 'Place 50 towers',
+    icon: '🏰',
+    condition: (stats) => stats.towersPlaced >= 50
+  },
+  'endless': {
+    id: 'endless',
+    name: 'Endless',
+    desc: 'Survive 20 waves',
+    icon: '♾️',
+    condition: (stats) => stats.waveNum >= 20
+  },
+  'speedrun': {
+    id: 'speedrun',
+    name: 'Speedrun',
+    desc: 'Clear wave 5 in <5 min',
+    icon: '⚡',
+    condition: (stats) => stats.waveNum >= 5 && stats.gameTime <= 300000
+  },
+  'minimalist': {
+    id: 'minimalist',
+    name: 'Minimalist',
+    desc: 'Clear wave 5 with <10 towers',
+    icon: '✨',
+    condition: (stats) => stats.waveNum >= 5 && stats.towersPlaced < 10
+  }
+};
+
+class AchievementManager {
+  constructor() {
+    this.unlockedAchievements = this.loadAchievements();
+  }
+
+  isUnlocked(achievementId) {
+    return this.unlockedAchievements.has(achievementId);
+  }
+
+  unlock(achievementId) {
+    if (this.unlockedAchievements.has(achievementId)) return null;
+    const achievement = ACHIEVEMENTS[achievementId];
+    if (!achievement) return null;
+    this.unlockedAchievements.add(achievementId);
+    this.saveAchievements();
+    return achievement;
+  }
+
+  checkAndUnlock(achievementId, stats) {
+    if (this.isUnlocked(achievementId)) return null;
+    const achievement = ACHIEVEMENTS[achievementId];
+    if (!achievement || !achievement.condition(stats)) return null;
+    return this.unlock(achievementId);
+  }
+
+  getProgress() {
+    return {
+      total: Object.keys(ACHIEVEMENTS).length,
+      unlocked: this.unlockedAchievements.size,
+      list: Object.values(ACHIEVEMENTS).map(a => ({
+        ...a,
+        locked: !this.isUnlocked(a.id)
+      }))
+    };
+  }
+
+  loadAchievements() {
+    try {
+      const data = localStorage.getItem('td_achievements');
+      return new Set(data ? JSON.parse(data) : []);
+    } catch (e) {
+      console.warn('Failed to load achievements:', e);
+      return new Set();
+    }
+  }
+
+  saveAchievements() {
+    try {
+      localStorage.setItem('td_achievements', JSON.stringify(Array.from(this.unlockedAchievements)));
+    } catch (e) {
+      console.warn('Failed to save achievements:', e);
+    }
+  }
+
+  reset() {
+    this.unlockedAchievements.clear();
+    this.saveAchievements();
+  }
+}
+
 // ── Color scheme (dark / day) state ─────────────────────────────────────────
 let colorScheme = GameStorage.loadSettings().colorScheme === 'day' ? 'day' : 'dark';
 
@@ -240,6 +342,7 @@ function createGameState(mapId = 'classic', difficulty = 'normal') {
   const towerManager = new TowerManager();
   const projectileManager = new ProjectileManager();
   const particleManager = new ParticleManager();
+  const gameStartTime = Date.now();
   return {
     mapId,
     difficulty,
@@ -268,7 +371,11 @@ function createGameState(mapId = 'classic', difficulty = 'normal') {
     stats: {
       totalKilled: 0,
       totalGoldEarned: 0,
-      gameStartTime: Date.now()
+      gameStartTime: gameStartTime,
+      towersPlaced: 0,
+      waveNum: 0,
+      gameTime: 0,
+      lives: diffDef.startLives
     }
   };
 }
@@ -583,6 +690,39 @@ gameState = createGameState();
 PATH_SET = createMapPathSet(gameState.mapId);
 WAYPOINTS = createMapWaypoints(gameState.mapId);
 
+// Initialize achievement system
+const achievementMgr = new AchievementManager();
+
+// Function to show achievement overlay
+function showAchievementOverlay(achievement) {
+  if (!achievement) return;
+  const overlay = document.getElementById('achievement-overlay');
+  document.getElementById('achievement-name').textContent = achievement.name;
+  document.getElementById('achievement-desc').textContent = achievement.desc;
+  overlay.classList.remove('hidden');
+
+  setTimeout(() => {
+    overlay.classList.add('hidden');
+  }, 3500);
+}
+
+// Function to update game stats and check achievements
+function checkAchievements() {
+  const stats = gameState.stats;
+  stats.waveNum = gameState.waveNum;
+  stats.gameTime = Date.now() - stats.gameStartTime;
+  stats.lives = gameState.lives;
+
+  // Check all achievements and unlock any new ones
+  Object.values(ACHIEVEMENTS).forEach(achievement => {
+    const newAchievement = achievementMgr.checkAndUnlock(achievement.id, stats);
+    if (newAchievement) {
+      showAchievementOverlay(newAchievement);
+      debugLog('Achievement unlocked:', newAchievement.name);
+    }
+  });
+}
+
 // ════════════════════════════════════════════════════════════════════════════════
 // PHASE 1: UI AND SETTINGS
 // ════════════════════════════════════════════════════════════════════════════════
@@ -895,6 +1035,7 @@ function updateEnemies(ts, dt) {
         gameState.stats.totalGoldEarned += 20;
         updateHUD(); updateWaveBtn();
         setInfo(`Wave ${gameState.waveNum} cleared! +20♦ bonus`);
+        checkAchievements();
         autoSaveGame();
     }
 }
@@ -1364,6 +1505,7 @@ function onTap(px, py) {
 
     debugLog('Tower placed successfully', { type: gameState.selectedType });
     gameState.gold -= def.cost;
+    gameState.stats.towersPlaced++;
     updateHUD();
     gameState.towerMgr.add(gameState.selectedType, c, r, gameState.entityIds);
     gameState.selectedTower = null;
@@ -1481,15 +1623,18 @@ if (typeof global !== 'undefined') {
     global.TowerManager = TowerManager;
     global.ProjectileManager = ProjectileManager;
     global.ParticleManager = ParticleManager;
+    global.AchievementManager = AchievementManager;
     global.createGameState = createGameState;
     global.spawnEnemy = spawnEnemy;
     global.createMapWaypoints = createMapWaypoints;
     global.createMapPathSet = createMapPathSet;
     global.displayVersion = displayVersion;
     global.getTowerStats = getTowerStats;
+    global.checkAchievements = checkAchievements;
     global.TOWER_DEFS = TOWER_DEFS;
     global.ENEMY_DEFS = ENEMY_DEFS;
     global.DIFFICULTY_DEFS = DIFFICULTY_DEFS;
+    global.ACHIEVEMENTS = ACHIEVEMENTS;
     global.WAYPOINTS = WAYPOINTS;
     global.PATH_SET = PATH_SET;
     global.CELL = CELL;
