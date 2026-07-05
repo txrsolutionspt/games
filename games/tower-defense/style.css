@@ -494,6 +494,10 @@ body {
     z-index: 2000;
 }
 
+.achievement-overlay.hidden {
+    display: none;
+}
+
 .achievement-overlay:not(.hidden) {
     pointer-events: auto;
 }
