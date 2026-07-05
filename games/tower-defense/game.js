@@ -86,6 +86,20 @@ const TOWER_DEFS = {
   laser:  { name:'Laser',  cost:175, range:130, dmg:25,  cd:280,  splash:0,  slow:0,    color:'#d035a8', pColor:'#ff88ee', pSpd:0.55, pR:3, desc:'High DPS · long range' },
 };
 
+function getTowerStats(tower) {
+  const baseDef = TOWER_DEFS[tower.type];
+  const level = tower.level || 1;
+  const levelBonus = level - 1;
+
+  return {
+    ...baseDef,
+    dmg: Math.round(baseDef.dmg * (1 + levelBonus * 0.25)),
+    range: Math.round(baseDef.range * (1 + levelBonus * 0.10)),
+    cd: Math.round(baseDef.cd / (1 + levelBonus * 0.20)),
+    level: level
+  };
+}
+
 const ENEMY_DEFS = {
   basic:   { hp:40,  spd:0.08,  reward:10,  color:'#ee4444', r:8  },
   fast:    { hp:22,  spd:0.18,  reward:12,  color:'#ffaa22', r:7  },
@@ -224,10 +238,10 @@ function createGameState(mapId = 'classic', difficulty = 'normal') {
   };
 }
 
-// Game state instance
-let gameState = createGameState();
-let PATH_SET = createMapPathSet(gameState.mapId);
-let WAYPOINTS = createMapWaypoints(gameState.mapId);
+// Game state instance - initialized after manager classes are defined
+let gameState;
+let PATH_SET;
+let WAYPOINTS;
 
 // ── Spatial grid helpers ───────────────────────────────────────────────────────
 const GRID_SIZE = CELL; // 40×40 pixel cells
@@ -372,10 +386,29 @@ class TowerManager {
       row,
       x: col * CELL + CELL / 2,
       y: row * CELL + CELL / 2,
-      lastFired: 0
+      lastFired: 0,
+      level: 1
     };
     this.towers.push(tower);
     return tower;
+  }
+
+  getUpgradeCost(tower) {
+    const baseCost = TOWER_DEFS[tower.type].cost;
+    const multipliers = [0, 1.5, 2.0]; // level 2 costs 1.5x, level 3 costs 2x
+    return Math.ceil(baseCost * multipliers[tower.level]);
+  }
+
+  canUpgrade(tower) {
+    return tower.level < 3;
+  }
+
+  upgrade(tower) {
+    if (!this.canUpgrade(tower)) {
+      return false;
+    }
+    tower.level++;
+    return true;
   }
 
   getAll() {
@@ -497,6 +530,11 @@ class ParticleManager {
     this.particles = [];
   }
 }
+
+// Initialize gameState after manager classes are defined
+gameState = createGameState();
+PATH_SET = createMapPathSet(gameState.mapId);
+WAYPOINTS = createMapWaypoints(gameState.mapId);
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PHASE 1: UI AND SETTINGS
@@ -792,7 +830,7 @@ function updateEnemies(ts, dt) {
 // ── Update: towers ─────────────────────────────────────────────────────────────
 function updateTowers(ts) {
     gameState.towers.forEach(tower => {
-        const def = TOWER_DEFS[tower.type];
+        const def = getTowerStats(tower);
         if (ts - tower.lastFired < def.cd) return;
 
         // Pick enemy furthest along path within range (using spatial grid)
@@ -986,7 +1024,7 @@ function drawMap() {
 
 function drawTowers(ts) {
     gameState.towers.forEach(t => {
-        const def = TOWER_DEFS[t.type];
+        const def = getTowerStats(t);
         const sel = gameState.selectedTower === t;
 
         // Shadow
@@ -1003,8 +1041,17 @@ function drawTowers(ts) {
         // Icon
         drawIcon(t.type, t.x, t.y, CELL*0.2);
 
+        // Level indicator
+        if (t.level > 1) {
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 9px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(t.level, t.x, t.y + CELL*0.28);
+        }
+
         // Shoot flash
-        const frac = (ts - t.lastFired) / TOWER_DEFS[t.type].cd;
+        const frac = (ts - t.lastFired) / def.cd;
         if (frac < 0.18) {
             ctx.globalAlpha = 0.5 * (1 - frac/0.18);
             ctx.fillStyle   = '#ffffff';
@@ -1172,17 +1219,37 @@ function onTap(px, py) {
             gameState.selectedTower = hit;
             gameState.selectedType  = null;
             deselectBtns();
-            const def = TOWER_DEFS[hit.type];
-            const sv  = Math.floor(def.cost * 0.6);
-            setInfo(`${def.name} · ${def.desc}`);
-            sellBtn.textContent = `Sell ${sv}♦`;
+            const baseDef = TOWER_DEFS[hit.type];
+            const def = getTowerStats(hit);
+            const sv  = Math.floor(baseDef.cost * 0.6);
+            const upgradeCost = gameState.towerMgr.getUpgradeCost(hit);
+            const canUpgrade = gameState.towerMgr.canUpgrade(hit);
+            const goldEnough = gameState.gold >= upgradeCost;
+
+            let info = `${baseDef.name} Lv${hit.level} · ${baseDef.desc}`;
+            if (canUpgrade) {
+                info += ` | Upgrade: ${upgradeCost}♦${goldEnough ? '' : ' (need more gold)'}`;
+            } else {
+                info += ` | Max level`;
+            }
+            setInfo(info);
+
+            sellBtn.textContent = canUpgrade ? `Upgrade ${upgradeCost}♦` : `Sell ${sv}♦`;
             sellBtn.classList.remove('hidden');
             sellBtn.onclick = () => {
-                gameState.gold += sv; updateHUD();
-                gameState.towers = gameState.towers.filter(t => t !== gameState.selectedTower);
-                gameState.selectedTower = null;
-                sellBtn.classList.add('hidden');
-                setInfo('Tower sold');
+                if (canUpgrade && gameState.gold >= upgradeCost) {
+                    gameState.gold -= upgradeCost;
+                    gameState.towerMgr.upgrade(hit);
+                    updateHUD();
+                    setInfo(`${baseDef.name} upgraded to Lv${hit.level}!`);
+                } else {
+                    gameState.gold += sv;
+                    updateHUD();
+                    gameState.towers = gameState.towers.filter(t => t !== gameState.selectedTower);
+                    gameState.selectedTower = null;
+                    sellBtn.classList.add('hidden');
+                    setInfo('Tower sold');
+                }
             };
         }
         return;
@@ -1334,8 +1401,39 @@ function displayVersion() {
     versionEl.title = VERSION_INFO.getDetailedInfo();
 }
 
+// Expose classes and functions for testing (Node.js environment)
+if (typeof global !== 'undefined') {
+    global.EnemyManager = EnemyManager;
+    global.TowerManager = TowerManager;
+    global.ProjectileManager = ProjectileManager;
+    global.ParticleManager = ParticleManager;
+    global.createGameState = createGameState;
+    global.spawnEnemy = spawnEnemy;
+    global.createMapWaypoints = createMapWaypoints;
+    global.createMapPathSet = createMapPathSet;
+    global.displayVersion = displayVersion;
+    global.getTowerStats = getTowerStats;
+    global.TOWER_DEFS = TOWER_DEFS;
+    global.ENEMY_DEFS = ENEMY_DEFS;
+    global.DIFFICULTY_DEFS = DIFFICULTY_DEFS;
+    global.WAYPOINTS = WAYPOINTS;
+    global.PATH_SET = PATH_SET;
+    global.CELL = CELL;
+    global.W = W;
+    global.H = H;
+    global.getGridCell = getGridCell;
+    global.getNearbyGridCells = getNearbyGridCells;
+    global.updateSpatialGrid = updateSpatialGrid;
+    global.updateEnemies = updateEnemies;
+    global.updateTowers = updateTowers;
+    global.updateProjectiles = updateProjectiles;
+    if (typeof VERSION_INFO !== 'undefined') {
+        global.VERSION_INFO = VERSION_INFO;
+    }
+}
+
 // Only initialize if not in test mode
-if (typeof TEST_MODE === 'undefined' || !TEST_MODE) {
+if (typeof TEST_MODE === 'undefined' && typeof module === 'undefined') {
     initializeGame();
     startLoop();
     displayVersion();
