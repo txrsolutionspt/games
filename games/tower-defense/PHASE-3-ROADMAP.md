@@ -46,10 +46,10 @@ Phase 3 focuses on adding new gameplay features, mechanics, and content to expan
 **Goal:** Add variety and challenge with new enemy types
 
 #### B1: Enemy Variants
-- [ ] **Splitter:** Splits into 2 basic enemies on death
-- [ ] **Flying:** Ignores path, travels directly to exit
-- [ ] **Armored:** 50% damage reduction, immune to slow
-- [ ] **Phantom:** Invisible to towers, only targetable by certain types
+- [x] **Splitter:** Splits into 2 weaker "splitling" enemies at its death position on kill
+- [x] **Flying:** Ignores path, travels in a straight line directly to the exit
+- [x] **Armored:** 50% damage reduction, immune to slow
+- [ ] **Phantom:** Invisible to towers, only targetable by certain types — deferred; needs a detection mechanic (new tower type or repurposed existing tower) designed first
 
 **Effort:** 3-4 hours | **Priority:** High | **Complexity:** Medium
 

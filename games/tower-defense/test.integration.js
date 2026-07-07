@@ -442,6 +442,77 @@ runner.test('Data Integrity - Spatial grid matches enemies', function() {
     runner.assertEqual(gridCount, 50, 'Grid should contain all 50 enemies');
 });
 
+// ── Test 8: Enemy Variants (B1 - Phase 3) ──────────────────────────────────────
+runner.test('Armored - Takes half damage from hits', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    spawnEnemy('armored');
+    const e = gameState.enemies[0];
+    const hpBefore = e.hp;
+    hit(e, 20, 1000, 0);
+    runner.assertEqual(hpBefore - e.hp, 10, 'Armored enemy should take half damage');
+});
+
+runner.test('Armored - Immune to slow effects', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    spawnEnemy('armored');
+    const e = gameState.enemies[0];
+    hit(e, 5, 1000, 2000);
+    runner.assertEqual(e.slowUntil, 0, 'Armored enemy should not be slowed');
+});
+
+runner.test('Splitter - Spawns 2 splitlings at death position on kill', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    spawnEnemy('splitter');
+    const splitter = gameState.enemies[0];
+    splitter.x = 111; splitter.y = 77; splitter.wpIdx = 6;
+    splitter.hp = 0; splitter.dead = true;
+
+    updateEnemies(1000, 0);
+
+    runner.assertEqual(gameState.enemies.length, 2, 'Splitter should leave 2 splitlings behind');
+    gameState.enemies.forEach(child => {
+        runner.assertEqual(child.type, 'splitling', 'Children should be splitlings');
+        runner.assertEqual(child.x, 111, 'Child should spawn at parent x');
+        runner.assertEqual(child.y, 77, 'Child should spawn at parent y');
+        runner.assertEqual(child.wpIdx, 6, 'Child should continue from parent wpIdx');
+        runner.assert(!child.splitsInto, 'Splitlings should not split again');
+    });
+});
+
+runner.test('Flying - Moves in a straight line toward the exit, ignoring path waypoints', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    spawnEnemy('flying');
+    const e = gameState.enemies[0];
+    const startX = e.x, startY = e.y;
+    const exit = WAYPOINTS[WAYPOINTS.length - 1];
+
+    updateEnemies(1000, 500);
+
+    const expectedSlope = (exit.y - startY) / (exit.x - startX);
+    const actualSlope = (e.y - startY) / (e.x - startX);
+    runner.assertLess(Math.abs(actualSlope - expectedSlope), 0.01, 'Flying enemy should move in a straight line to the exit');
+});
+
+runner.test('Flying - Escapes (costs a life) on reaching the exit like ground enemies', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    spawnEnemy('flying');
+    const livesBefore = gameState.lives;
+
+    let ts = 1000;
+    for (let i = 0; i < 500 && gameState.enemies.length; i++) {
+        ts += 16;
+        updateEnemies(ts, 16);
+    }
+
+    runner.assertEqual(gameState.enemies.length, 0, 'Flying enemy should have left the map');
+    runner.assertEqual(gameState.lives, livesBefore - 1, 'Reaching the exit should cost exactly one life');
+});
+
 // ════════════════════════════════════════════════════════════════════════════════
 
 // Auto-run if in browser

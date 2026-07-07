@@ -127,10 +127,14 @@ function getTowerStats(tower) {
 }
 
 const ENEMY_DEFS = {
-  basic:   { hp:40,  spd:0.08,  reward:10,  color:'#ee4444', r:8  },
-  fast:    { hp:22,  spd:0.18,  reward:12,  color:'#ffaa22', r:7  },
-  tank:    { hp:180, spd:0.045, reward:35,  color:'#9944cc', r:12 },
-  boss:    { hp:900, spd:0.038, reward:120, color:'#ff2200', r:18 },
+  basic:     { hp:40,  spd:0.08,  reward:10,  color:'#ee4444', r:8  },
+  fast:      { hp:22,  spd:0.18,  reward:12,  color:'#ffaa22', r:7  },
+  tank:      { hp:180, spd:0.045, reward:35,  color:'#9944cc', r:12 },
+  boss:      { hp:900, spd:0.038, reward:120, color:'#ff2200', r:18 },
+  armored:   { hp:110, spd:0.05,  reward:25,  color:'#8890a0', r:11, armored:true },
+  splitter:  { hp:50,  spd:0.09,  reward:14,  color:'#33cc99', r:9,  splitsInto:'splitling', splitCount:2 },
+  splitling: { hp:14,  spd:0.12,  reward:4,   color:'#77eebb', r:5  },
+  flying:    { hp:30,  spd:0.11,  reward:18,  color:'#f0f0ff', r:7,  flying:true },
 };
 
 const DIFFICULTY_DEFS = {
@@ -448,7 +452,7 @@ class EnemyManager {
     this.nextId = 0;
   }
 
-  spawn(type, entityIds, difficulty, waveNum) {
+  spawn(type, entityIds, difficulty, waveNum, spawnPos = null) {
     const def = ENEMY_DEFS[type];
     const diffMult = DIFFICULTY_DEFS[difficulty].healthMult;
     const hpMult = (1 + (waveNum - 1) * 0.13) * diffMult;
@@ -461,13 +465,22 @@ class EnemyManager {
       reward: Math.round(def.reward * DIFFICULTY_DEFS[difficulty].goldMult),
       color: def.color,
       r: def.r,
-      x: WAYPOINTS[0].x,
-      y: WAYPOINTS[0].y,
-      wpIdx: 1,
+      x: spawnPos ? spawnPos.x : WAYPOINTS[0].x,
+      y: spawnPos ? spawnPos.y : WAYPOINTS[0].y,
+      wpIdx: spawnPos ? spawnPos.wpIdx : 1,
       slowUntil: 0,
       dead: false,
       escaped: false,
+      armored: !!def.armored,
+      flying: !!def.flying,
+      splitsInto: def.splitsInto || null,
+      splitCount: def.splitCount || 0,
+      flightDist: 0,
     };
+    if (enemy.flying) {
+      const exit = WAYPOINTS[WAYPOINTS.length - 1];
+      enemy.flightDist = Math.hypot(exit.x - enemy.x, exit.y - enemy.y) || 1;
+    }
     this.enemies.push(enemy);
     this.enemyMap.set(enemy.id, enemy);
     return enemy;
@@ -971,8 +984,11 @@ function buildQueue(n) {
         for (let i = 0; i < scaledCount; i++) q.push({ type, t: offset + i * interval });
     };
     add('basic', Math.min(5 + n * 2, 22), 1100);
-    if (n >= 3) add('fast',  Math.min(Math.floor(n * 0.7), 10), 800,  500);
-    if (n >= 5) add('tank',  Math.min(Math.floor(n * 0.4), 6),  2000, 1000);
+    if (n >= 3) add('fast',     Math.min(Math.floor(n * 0.7), 10), 800,  500);
+    if (n >= 4) add('splitter', Math.min(Math.floor(n * 0.3), 5),  1600, 700);
+    if (n >= 5) add('tank',     Math.min(Math.floor(n * 0.4), 6),  2000, 1000);
+    if (n >= 6) add('armored',  Math.min(Math.floor(n * 0.25), 4), 1900, 1300);
+    if (n >= 8) add('flying',   Math.min(Math.floor(n * 0.3), 6),  1400, 900);
     if (n >= 10) add('fast', Math.floor(n * 0.3), 550, 300);
     if (n % 5 === 0) add('boss', 1, 0, 2200);
     return q.sort((a, b) => a.t - b.t);
@@ -994,18 +1010,29 @@ function updateEnemies(ts, dt) {
         }
     }
 
+    const wpLast = WAYPOINTS.length - 1;
     gameState.enemies.forEach(e => {
         if (e.dead || e.escaped) return;
         if (e.wpIdx >= WAYPOINTS.length) { e.escaped = true; return; }
 
         const spd  = e.spd * (ts < e.slowUntil ? 0.45 : 1);
-        const wp   = WAYPOINTS[e.wpIdx];
+        const move = spd * dt;
+        const wp   = e.flying ? WAYPOINTS[wpLast] : WAYPOINTS[e.wpIdx];
         const dx   = wp.x - e.x, dy = wp.y - e.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
-        const move = spd * dt;
 
-        if (dist <= move) { e.x = wp.x; e.y = wp.y; e.wpIdx++; }
-        else              { e.x += (dx/dist)*move; e.y += (dy/dist)*move; }
+        if (dist <= move) {
+            e.x = wp.x; e.y = wp.y;
+            e.wpIdx = e.flying ? WAYPOINTS.length : e.wpIdx + 1;
+        } else {
+            e.x += (dx/dist)*move; e.y += (dy/dist)*move;
+            // Flying enemies ignore the path, so approximate wpIdx from straight-line
+            // progress toward the exit — keeps tower targeting priority comparable to ground enemies.
+            if (e.flying) {
+                const progress = 1 - (dist / e.flightDist);
+                e.wpIdx = Math.max(1, Math.min(wpLast - 1, 1 + Math.floor(progress * (wpLast - 1))));
+            }
+        }
     });
 
     // Handle escaped
@@ -1023,6 +1050,11 @@ function updateEnemies(ts, dt) {
         updateHUD();
         burst(e.x, e.y, e.color, 8, 3);
         sfxDie();
+        if (e.splitsInto && e.splitCount > 0) {
+            for (let i = 0; i < e.splitCount; i++) {
+                gameState.enemyMgr.spawn(e.splitsInto, gameState.entityIds, gameState.difficulty, gameState.waveNum, { x: e.x, y: e.y, wpIdx: e.wpIdx });
+            }
+        }
     });
 
     // Remove dead and escaped enemies and update grid
@@ -1115,8 +1147,8 @@ function updateProjectiles(ts, dt) {
 }
 
 function hit(e, dmg, ts, slow) {
-    e.hp -= dmg;
-    if (slow) e.slowUntil = Math.max(e.slowUntil, ts + slow);
+    e.hp -= e.armored ? dmg * 0.5 : dmg;
+    if (slow && !e.armored) e.slowUntil = Math.max(e.slowUntil, ts + slow);
     if (e.hp <= 0) e.dead = true;
 }
 
@@ -1329,9 +1361,14 @@ function drawEnemies(ts) {
     gameState.enemies.forEach(e => {
         const slowed = ts < e.slowUntil;
 
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.beginPath(); ctx.ellipse(e.x, e.y+e.r, e.r*0.8, 3, 0, 0, Math.PI*2); ctx.fill();
+        // Shadow (flying enemies cast a smaller, offset shadow to read as airborne)
+        if (e.flying) {
+            ctx.fillStyle = 'rgba(0,0,0,0.18)';
+            ctx.beginPath(); ctx.ellipse(e.x, e.y+e.r+5, e.r*0.6, 2.5, 0, 0, Math.PI*2); ctx.fill();
+        } else {
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath(); ctx.ellipse(e.x, e.y+e.r, e.r*0.8, 3, 0, 0, Math.PI*2); ctx.fill();
+        }
 
         // Body
         ctx.fillStyle   = slowed ? '#88ccff' : e.color;
@@ -1339,8 +1376,30 @@ function drawEnemies(ts) {
         ctx.lineWidth   = 1.5;
         ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
 
+        // Armor plating
+        if (e.armored) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(e.x, e.y, e.r*0.6, 0, Math.PI*2); ctx.stroke();
+        }
+
+        // Splitter marker
+        if (e.splitsInto) {
+            ctx.setLineDash([3,2]);
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(e.x, e.y, e.r+3, 0, Math.PI*2); ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Altitude ring for flying enemies
+        if (e.flying) {
+            ctx.globalAlpha = 0.4;
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(e.x, e.y, e.r+6, 0, Math.PI*2); ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
         // Eye facing travel direction
-        const wp = WAYPOINTS[Math.min(e.wpIdx, WAYPOINTS.length-1)];
+        const wp = e.flying ? WAYPOINTS[WAYPOINTS.length-1] : WAYPOINTS[Math.min(e.wpIdx, WAYPOINTS.length-1)];
         const dx = wp.x - e.x, dy = wp.y - e.y, len = Math.sqrt(dx*dx+dy*dy) || 1;
         const ex = e.x + dx/len*e.r*0.35, ey = e.y + dy/len*e.r*0.35;
         ctx.fillStyle = '#fff';
