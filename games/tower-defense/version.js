@@ -7,22 +7,33 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '2.1.0',
+  version: '2.2.0',
 
   // Git commit hash (short form)
-  gitHash: 'd277c96',
+  gitHash: '577dcba',
 
   // Full git commit hash
-  gitHashFull: 'd277c96ab6d13696c34b2daf4b4245a973d4de88',
+  gitHashFull: '577dcba3a077c2f6423e7b57b8f921ba54809a62',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-04',
+  releaseDate: '2026-07-07',
 
   // Build timestamp (ISO 8601)
-  buildTime: new Date('2026-07-04').toISOString(),
+  buildTime: '2026-07-07T16:23:35Z',
 
   // Changelog for this version
   changelog: `
+    v2.2.0 - Feature Catch-up Release
+    - Enemy variants: Armored (damage reduction, slow-immune), Splitter
+      (splits into weaker enemies on death), Flying (ignores path, flies
+      straight to the exit)
+    - Tower upgrade system: 3 levels per tower with damage/range/fire-rate
+      bonuses
+    - Achievement system with milestone tracking and overlay notifications
+    - Day/Dark color scheme setting for outdoor visibility
+    - Note: this release catches up several features that shipped without
+      a version bump (v2.1.0 -> v2.2.0 covers all of the above)
+
     v2.1.0 - Architecture Refactoring
     - Refactored monolithic gameState into 4 manager classes
     - Created EnemyManager, TowerManager, ProjectileManager, ParticleManager
