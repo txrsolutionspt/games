@@ -1,0 +1,39 @@
+name: Tower Defense version bump check
+
+on:
+  pull_request:
+    paths:
+      - 'games/tower-defense/**'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify version.js was updated alongside release-facing changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -e
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- games/tower-defense/)
+          echo "Changed files under games/tower-defense/:"
+          echo "$CHANGED"
+
+          # Release-facing files: anything except tests, docs, and the version files themselves.
+          RELEASE_CHANGED=$(echo "$CHANGED" | grep -vE '(^games/tower-defense/test|\.md$|^games/tower-defense/version\.js$|^games/tower-defense/update-version\.sh$|^games/tower-defense/TEST-REPORT\.txt$)' || true)
+
+          if [ -n "$RELEASE_CHANGED" ]; then
+            if ! echo "$CHANGED" | grep -q '^games/tower-defense/version\.js$'; then
+              echo "::error::This PR changes release-facing tower-defense files but does not update version.js. Run './update-version.sh X.Y.Z' in games/tower-defense/ and commit the result. See games/tower-defense/CLAUDE.md."
+              echo "Release-facing files changed without a version bump:"
+              echo "$RELEASE_CHANGED"
+              exit 1
+            fi
+          fi
+
+          echo "OK"
