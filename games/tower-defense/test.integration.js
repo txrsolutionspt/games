@@ -563,6 +563,48 @@ runner.test('Replace - Downgrading to a cheaper tower refunds the difference', f
     runner.assertEqual(gameState.towers[0].type, 'archer', 'Tower should now be an archer');
 });
 
+// ── Test 10: Resume Game Timestamp Re-baselining ───────────────────────────────
+// performance.now() resets to ~0 on every page load, but a saved game's
+// timing fields (lastFired, slowUntil, waveStartTime) are absolute values
+// from the previous session's clock. Regression coverage for the bug where,
+// after resuming, towers appeared as a solid white flash and never fired
+// because those comparisons stayed "in the future" relative to the new clock.
+runner.test('Resume - Re-baselines stale timestamps relative to the new clock', function() {
+    const saved = createGameState('classic', 'normal');
+    const staleNow = performance.now() + 50000;
+    saved.lastTimestamp = staleNow;
+    saved.waveStartTime = staleNow - 5000;
+    const tower = saved.towerMgr.add('archer', 4, 3, saved.entityIds);
+    tower.lastFired = staleNow - 10000;
+    const enemy = saved.enemyMgr.spawn('basic', saved.entityIds, 'normal', 1);
+    enemy.slowUntil = staleNow - 1000;
+
+    resumeGame(saved);
+
+    const freshNow = performance.now();
+    runner.assert(Math.abs(gameState.lastTimestamp - freshNow) < 200, 'lastTimestamp should be re-baselined to the current clock');
+    runner.assert(gameState.towers[0].lastFired < gameState.lastTimestamp, 'Tower cooldown should read as already elapsed after resume, not in the future');
+    runner.assert(gameState.enemies[0].slowUntil < gameState.lastTimestamp, 'Expired slow effect should stay expired after resume');
+    runner.assert(gameState.waveStartTime < gameState.lastTimestamp, 'Wave start time should be re-baselined too');
+});
+
+runner.test('Resume - Tower fires at an in-range enemy immediately after resuming', function() {
+    const saved = createGameState('classic', 'normal');
+    const staleNow = performance.now() + 60000;
+    saved.lastTimestamp = staleNow;
+    const tower = saved.towerMgr.add('archer', 4, 3, saved.entityIds);
+    tower.lastFired = staleNow - 60000; // long idle before "saving" -- cooldown should read as elapsed
+    const enemy = saved.enemyMgr.spawn('basic', saved.entityIds, 'normal', 1);
+    enemy.x = tower.x; enemy.y = tower.y; // guaranteed in range
+
+    resumeGame(saved);
+    gameState.enemyMgr.updateSpatialGrid();
+
+    const projectilesBefore = gameState.projectiles.length;
+    updateTowers(performance.now());
+    runner.assertEqual(gameState.projectiles.length, projectilesBefore + 1, 'Tower should fire at the in-range enemy right after resume, not stay stuck on a stale cooldown');
+});
+
 // ════════════════════════════════════════════════════════════════════════════════
 
 // Auto-run if in browser

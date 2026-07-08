@@ -781,6 +781,62 @@ function isValidSave(savedGame) {
         && !!savedGame.stats;
 }
 
+// Restores a saved game as the live gameState, rebuilding the manager
+// classes (not persisted) and re-baselining performance.now()-based timing
+// fields (tower.lastFired, enemy.slowUntil, waveStartTime). performance.now()
+// resets to ~0 on every page load, but those fields were saved as absolute
+// values from the previous session's clock -- without re-baselining they'd
+// read as "in the future", leaving towers unable to fire (and rendering as
+// a solid white blob, since the shoot-flash alpha is computed from the same
+// stale delta) until real elapsed time in the new session caught up.
+function resumeGame(savedGame) {
+    gameState = savedGame;
+    PATH_SET = createMapPathSet(gameState.mapId);
+    WAYPOINTS = createMapWaypoints(gameState.mapId);
+
+    const now = performance.now();
+    const timeShift = now - gameState.lastTimestamp;
+    gameState.lastTimestamp = now;
+    gameState.waveStartTime += timeShift;
+
+    // Rebuild managers and spatial structures (not persisted)
+    const enemyManager = new EnemyManager();
+    gameState.enemies.forEach(e => {
+        e.slowUntil += timeShift;
+        enemyManager.enemies.push(e);
+        enemyManager.enemyMap.set(e.id, e);
+    });
+    gameState.enemyMgr = enemyManager;
+    gameState.enemies = enemyManager.enemies;
+    gameState.enemyMap = enemyManager.enemyMap;
+    gameState.spatialGrid = enemyManager.spatialGrid;
+    gameState.enemyMgr.updateSpatialGrid();
+
+    const towerManager = new TowerManager();
+    gameState.towers.forEach(t => {
+        t.lastFired += timeShift;
+        towerManager.towers.push(t);
+    });
+    gameState.towerMgr = towerManager;
+    gameState.towers = towerManager.towers;
+
+    const projectileManager = new ProjectileManager();
+    gameState.projectiles.forEach(p => {
+        projectileManager.projectiles.push(p);
+    });
+    gameState.projectileMgr = projectileManager;
+    gameState.projectiles = projectileManager.projectiles;
+
+    const particleManager = new ParticleManager();
+    gameState.particles.forEach(p => {
+        particleManager.particles.push(p);
+    });
+    gameState.particleMgr = particleManager;
+    gameState.particles = particleManager.particles;
+    updateHUD(); updateWaveBtn(); setInfo('Game resumed!');
+    sellBtn.classList.add('hidden');
+}
+
 // ── Initialize game with difficulty/map selection ───────────────────────────
 function initializeGame() {
     let savedGame = GameStorage.loadGame();
@@ -800,43 +856,7 @@ function initializeGame() {
 
         document.getElementById('resume-continue-btn').onclick = () => {
             hideModal(resumeModal);
-            gameState = savedGame;
-            PATH_SET = createMapPathSet(gameState.mapId);
-            WAYPOINTS = createMapWaypoints(gameState.mapId);
-            // Rebuild managers and spatial structures (not persisted)
-            const enemyManager = new EnemyManager();
-            gameState.enemies.forEach(e => {
-                enemyManager.enemies.push(e);
-                enemyManager.enemyMap.set(e.id, e);
-            });
-            gameState.enemyMgr = enemyManager;
-            gameState.enemies = enemyManager.enemies;
-            gameState.enemyMap = enemyManager.enemyMap;
-            gameState.spatialGrid = enemyManager.spatialGrid;
-            gameState.enemyMgr.updateSpatialGrid();
-
-            const towerManager = new TowerManager();
-            gameState.towers.forEach(t => {
-                towerManager.towers.push(t);
-            });
-            gameState.towerMgr = towerManager;
-            gameState.towers = towerManager.towers;
-
-            const projectileManager = new ProjectileManager();
-            gameState.projectiles.forEach(p => {
-                projectileManager.projectiles.push(p);
-            });
-            gameState.projectileMgr = projectileManager;
-            gameState.projectiles = projectileManager.projectiles;
-
-            const particleManager = new ParticleManager();
-            gameState.particles.forEach(p => {
-                particleManager.particles.push(p);
-            });
-            gameState.particleMgr = particleManager;
-            gameState.particles = particleManager.particles;
-            updateHUD(); updateWaveBtn(); setInfo('Game resumed!');
-            sellBtn.classList.add('hidden');
+            resumeGame(savedGame);
         };
 
         document.getElementById('resume-new-btn').onclick = () => {
