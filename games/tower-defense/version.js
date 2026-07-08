@@ -7,22 +7,31 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '2.3.0',
+  version: '2.3.1',
 
   // Git commit hash (short form)
-  gitHash: 'f279898',
+  gitHash: '35bac2f',
 
   // Full git commit hash
-  gitHashFull: 'f279898d059ce597a90723cf9200c557bc74ca5f',
+  gitHashFull: '35bac2f85816f8a36777b656ad510b05c39bb1d9',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-08',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-08T18:08:08Z',
+  buildTime: '2026-07-08T18:36:39Z',
 
   // Changelog for this version
   changelog: `
+    v2.3.1 - Fix: Save/Resume Broke Towers
+    - Fixed a bug where resuming a saved game left towers unable to fire
+      (and rendered as a solid white blob instead of their icon), because
+      performance.now()-based timing fields were saved as absolute values
+      from the previous session's clock and read as "in the future" after
+      reload
+    - Resume now re-baselines all saved timing fields to the new session's
+      clock
+
     v2.3.0 - Tower Replace
     - Select a placed tower and tap a different tower-type button to swap
       it in place at level 1 (refunds the old tower, charges the new
