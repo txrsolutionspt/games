@@ -513,6 +513,56 @@ runner.test('Flying - Escapes (costs a life) on reaching the exit like ground en
     runner.assertEqual(gameState.lives, livesBefore - 1, 'Reaching the exit should cost exactly one life');
 });
 
+// ── Test 9: Tower Replace ──────────────────────────────────────────────────────
+runner.test('Replace - Swaps tower type in place and charges net cost', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    gameState.gold = 1000;
+    const oldTower = gameState.towerMgr.add('archer', 4, 3, gameState.entityIds);
+    const goldBefore = gameState.gold;
+
+    replaceTower(oldTower, 'cannon');
+
+    runner.assertEqual(gameState.towers.length, 1, 'Should still have exactly 1 tower');
+    const newTower = gameState.towers[0];
+    runner.assertEqual(newTower.type, 'cannon', 'Tower should now be a cannon');
+    runner.assertEqual(newTower.level, 1, 'Replacement tower should start at level 1');
+    runner.assertEqual(newTower.col, 4, 'Replacement should stay in the same column');
+    runner.assertEqual(newTower.row, 3, 'Replacement should stay in the same row');
+
+    const refund = Math.floor(TOWER_DEFS['archer'].cost * 0.6);
+    const expectedGold = goldBefore + refund - TOWER_DEFS['cannon'].cost;
+    runner.assertEqual(gameState.gold, expectedGold, 'Gold should reflect refund minus new tower cost');
+    runner.assertEqual(gameState.selectedTower, newTower, 'New tower should become the selected tower');
+});
+
+runner.test('Replace - Blocked when gold is insufficient, leaves original tower intact', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    gameState.gold = 10;
+    const oldTower = gameState.towerMgr.add('archer', 4, 3, gameState.entityIds);
+
+    replaceTower(oldTower, 'laser');
+
+    runner.assertEqual(gameState.towers.length, 1, 'Should still have exactly 1 tower');
+    runner.assertEqual(gameState.towers[0].type, 'archer', 'Original tower should be unchanged');
+    runner.assertEqual(gameState.gold, 10, 'Gold should be untouched on a blocked replace');
+});
+
+runner.test('Replace - Downgrading to a cheaper tower refunds the difference', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    gameState.gold = 1000;
+    const oldTower = gameState.towerMgr.add('laser', 5, 3, gameState.entityIds);
+
+    replaceTower(oldTower, 'archer');
+
+    const refund = Math.floor(TOWER_DEFS['laser'].cost * 0.6);
+    const expectedGold = 1000 + refund - TOWER_DEFS['archer'].cost;
+    runner.assertEqual(gameState.gold, expectedGold, 'Downgrading should net a gold gain when refund exceeds new cost');
+    runner.assertEqual(gameState.towers[0].type, 'archer', 'Tower should now be an archer');
+});
+
 // ════════════════════════════════════════════════════════════════════════════════
 
 // Auto-run if in browser
