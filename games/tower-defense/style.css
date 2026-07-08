@@ -201,6 +201,13 @@ body {
     box-shadow: 0 0 8px var(--panel-active-glow);
 }
 
+/* Marks the type of the currently-selected placed tower; tap a different
+   button to replace it, so this one is shown but not tappable-for-effect. */
+.tbtn.current {
+    opacity: 0.5;
+    box-shadow: inset 0 0 0 2px var(--panel-active-border);
+}
+
 .tbadge {
     display: block;
     width: 22px;

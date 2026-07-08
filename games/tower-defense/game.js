@@ -1467,6 +1467,74 @@ function canvasXY(e) {
     };
 }
 
+// Highlight the tower-panel button matching a selected tower's type, so it's
+// clear which type to tap (a different one) in order to replace it.
+function markCurrentTowerType(type) {
+    document.querySelectorAll('.tbtn').forEach(b => {
+        b.classList.toggle('current', b.dataset.type === type);
+    });
+}
+
+function selectTowerInfo(tower) {
+    gameState.selectedTower = tower;
+    gameState.selectedType  = null;
+    deselectBtns();
+    markCurrentTowerType(tower.type);
+
+    const baseDef = TOWER_DEFS[tower.type];
+    const sv  = Math.floor(baseDef.cost * 0.6);
+    const upgradeCost = gameState.towerMgr.getUpgradeCost(tower);
+    const canUpgrade = gameState.towerMgr.canUpgrade(tower);
+    const goldEnough = gameState.gold >= upgradeCost;
+
+    let info = `${baseDef.name} Lv${tower.level} · ${baseDef.desc} · tap another tower type to replace`;
+    if (canUpgrade) {
+        info += ` | Upgrade: ${upgradeCost}♦${goldEnough ? '' : ' (need more gold)'}`;
+    } else {
+        info += ` | Max level`;
+    }
+    setInfo(info);
+
+    sellBtn.textContent = canUpgrade ? `Upgrade ${upgradeCost}♦` : `Sell ${sv}♦`;
+    sellBtn.classList.remove('hidden');
+    sellBtn.onclick = () => {
+        if (canUpgrade && gameState.gold >= upgradeCost) {
+            gameState.gold -= upgradeCost;
+            gameState.towerMgr.upgrade(tower);
+            updateHUD();
+            selectTowerInfo(tower);
+        } else {
+            gameState.gold += sv;
+            updateHUD();
+            filterInPlace(gameState.towers, t => t !== tower);
+            gameState.selectedTower = null;
+            sellBtn.classList.add('hidden');
+            markCurrentTowerType(null);
+            setInfo('Tower sold');
+        }
+    };
+}
+
+// Swap a selected, already-placed tower for a different type in one step:
+// refunds the old tower at the standard sell rate, then charges the new
+// tower's full cost (net cost = newCost - refund) and places it at the
+// same position and entry level.
+function replaceTower(tower, newType) {
+    const refund  = Math.floor(TOWER_DEFS[tower.type].cost * 0.6);
+    const newCost = TOWER_DEFS[newType].cost;
+    if (gameState.gold + refund < newCost) {
+        setInfo(`Need ${newCost - (gameState.gold + refund)}♦ more to switch to ${TOWER_DEFS[newType].name}`);
+        return;
+    }
+    gameState.gold += refund - newCost;
+    const { col, row } = tower;
+    filterInPlace(gameState.towers, t => t !== tower);
+    const newTower = gameState.towerMgr.add(newType, col, row, gameState.entityIds);
+    updateHUD();
+    sfxPlace();
+    selectTowerInfo(newTower);
+}
+
 function onTap(px, py) {
     debugLog('onTap called', { px, py, gameOverActive: gameState.gameOver });
 
@@ -1489,42 +1557,9 @@ function onTap(px, py) {
             gameState.selectedTower = null;
             sellBtn.classList.add('hidden');
             setInfo('');
+            markCurrentTowerType(null);
         } else {
-            gameState.selectedTower = hit;
-            gameState.selectedType  = null;
-            deselectBtns();
-            const baseDef = TOWER_DEFS[hit.type];
-            const def = getTowerStats(hit);
-            const sv  = Math.floor(baseDef.cost * 0.6);
-            const upgradeCost = gameState.towerMgr.getUpgradeCost(hit);
-            const canUpgrade = gameState.towerMgr.canUpgrade(hit);
-            const goldEnough = gameState.gold >= upgradeCost;
-
-            let info = `${baseDef.name} Lv${hit.level} · ${baseDef.desc}`;
-            if (canUpgrade) {
-                info += ` | Upgrade: ${upgradeCost}♦${goldEnough ? '' : ' (need more gold)'}`;
-            } else {
-                info += ` | Max level`;
-            }
-            setInfo(info);
-
-            sellBtn.textContent = canUpgrade ? `Upgrade ${upgradeCost}♦` : `Sell ${sv}♦`;
-            sellBtn.classList.remove('hidden');
-            sellBtn.onclick = () => {
-                if (canUpgrade && gameState.gold >= upgradeCost) {
-                    gameState.gold -= upgradeCost;
-                    gameState.towerMgr.upgrade(hit);
-                    updateHUD();
-                    setInfo(`${baseDef.name} upgraded to Lv${hit.level}!`);
-                } else {
-                    gameState.gold += sv;
-                    updateHUD();
-                    filterInPlace(gameState.towers, t => t !== gameState.selectedTower);
-                    gameState.selectedTower = null;
-                    sellBtn.classList.add('hidden');
-                    setInfo('Tower sold');
-                }
-            };
+            selectTowerInfo(hit);
         }
         return;
     }
@@ -1590,6 +1625,17 @@ document.querySelectorAll('.tbtn').forEach(btn => {
         debugLog('Tower button clicked', { type: btn.dataset.type });
         if (gameState.gameOver) return;
         const type = btn.dataset.type;
+
+        // A tower is selected on the map: treat this as a request to replace it.
+        if (gameState.selectedTower) {
+            if (type === gameState.selectedTower.type) {
+                setInfo(`${TOWER_DEFS[type].name} is already here`);
+                return;
+            }
+            replaceTower(gameState.selectedTower, type);
+            return;
+        }
+
         if (gameState.selectedType === type) {
             gameState.selectedType = null;
             deselectBtns();
@@ -1609,7 +1655,7 @@ document.querySelectorAll('.tbtn').forEach(btn => {
 });
 
 function deselectBtns() {
-    document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active', 'current'));
 }
 
 waveBtn.addEventListener('click', () => {
