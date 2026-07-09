@@ -14,6 +14,9 @@ const waveEl  = document.getElementById('wave');
 const waveBtn = document.getElementById('wave-btn');
 const infoEl  = document.getElementById('info-text');
 const sellBtn = document.getElementById('sell-btn');
+const modifierBanner = document.getElementById('wave-modifier-banner');
+const modifierIconEl = document.getElementById('modifier-icon');
+const modifierTextEl = document.getElementById('modifier-text');
 
 // ── Audio ──────────────────────────────────────────────────────────────────────
 let audioCtx = null, masterGain = null;
@@ -209,6 +212,25 @@ const DIFFICULTY_DEFS = {
   normal: { name: 'Normal', healthMult: 1.0,  goldMult: 1.0, waveSpawnMult: 1.0,  startGold: 150, startLives: 20 },
   hard:   { name: 'Hard',   healthMult: 1.4,  goldMult: 0.85, waveSpawnMult: 1.2, startGold: 100, startLives: 15 },
 };
+
+// ── Wave Modifiers (Phase 3 - B3) ────────────────────────────────────────────
+// Randomly applied to a whole wave's enemies at spawn time; see pickWaveModifier().
+const WAVE_MODIFIERS = {
+  bonusGold:    { name: 'Bonus Gold',    icon: '💰', desc: '+50% gold from enemies', color: '#ffd700' },
+  doubleSpeed:  { name: 'Double Speed',  icon: '⚡', desc: 'Enemies move 2x faster', color: '#ff8800' },
+  tinyEnemies:  { name: 'Tiny Swarm',    icon: '🐜', desc: 'Half-size, faster enemies', color: '#88ff88' },
+  giantEnemies: { name: 'Giant Enemies', icon: '👹', desc: 'Double size, double health', color: '#cc44ff' },
+};
+const WAVE_MODIFIER_KEYS = Object.keys(WAVE_MODIFIERS);
+const WAVE_MODIFIER_CHANCE = 0.4;
+const WAVE_MODIFIER_MIN_WAVE = 3;
+
+// Boss waves (every 5th) are excluded so the difficulty spike stays predictable.
+function pickWaveModifier(waveNum) {
+  if (waveNum < WAVE_MODIFIER_MIN_WAVE || waveNum % 5 === 0) return null;
+  if (Math.random() > WAVE_MODIFIER_CHANCE) return null;
+  return WAVE_MODIFIER_KEYS[Math.floor(Math.random() * WAVE_MODIFIER_KEYS.length)];
+}
 
 function initAudio() {
     if (audioCtx) return;
@@ -435,6 +457,7 @@ function createGameState(mapId = 'classic', difficulty = 'normal') {
     selectedType: null,
     selectedTower: null,
     spawnQueue: [],
+    waveModifier: null,
     waveStartTime: 0,
     lastTimestamp: 0,
     hoverCell: null,
@@ -519,19 +542,30 @@ class EnemyManager {
     this.nextId = 0;
   }
 
-  spawn(type, entityIds, difficulty, waveNum, spawnPos = null) {
+  spawn(type, entityIds, difficulty, waveNum, spawnPos = null, modifier = null) {
     const def = ENEMY_DEFS[type];
     const diffMult = DIFFICULTY_DEFS[difficulty].healthMult;
     const hpMult = (1 + (waveNum - 1) * 0.13) * diffMult;
+
+    let hp = Math.round(def.hp * hpMult);
+    let spd = def.spd;
+    let reward = Math.round(def.reward * DIFFICULTY_DEFS[difficulty].goldMult);
+    let r = def.r;
+
+    if (modifier === 'bonusGold')    reward = Math.round(reward * 1.5);
+    if (modifier === 'doubleSpeed')  spd = spd * 2;
+    if (modifier === 'tinyEnemies')  { r = r * 0.5; spd = spd * 1.5; }
+    if (modifier === 'giantEnemies') { r = r * 2; hp = Math.round(hp * 2); }
+
     const enemy = {
       id: ++entityIds.eid,
       type,
-      hp: Math.round(def.hp * hpMult),
-      maxHp: Math.round(def.hp * hpMult),
-      spd: def.spd,
-      reward: Math.round(def.reward * DIFFICULTY_DEFS[difficulty].goldMult),
+      hp,
+      maxHp: hp,
+      spd,
+      reward,
       color: def.color,
-      r: def.r,
+      r,
       x: spawnPos ? spawnPos.x : WAYPOINTS[0].x,
       y: spawnPos ? spawnPos.y : WAYPOINTS[0].y,
       wpIdx: spawnPos ? spawnPos.wpIdx : 1,
@@ -900,7 +934,7 @@ function resumeGame(savedGame) {
     });
     gameState.particleMgr = particleManager;
     gameState.particles = particleManager.particles;
-    updateHUD(); updateWaveBtn(); setInfo('Game resumed!');
+    updateHUD(); updateWaveBtn(); updateModifierBanner(); setInfo('Game resumed!');
     sellBtn.classList.add('hidden');
 }
 
@@ -958,7 +992,7 @@ function startNewGame(difficulty = 'normal', mapId = 'classic') {
     PATH_SET = createMapPathSet(gameState.mapId);
     WAYPOINTS = createMapWaypoints(gameState.mapId);
     GameStorage.deleteGame();
-    updateHUD(); updateWaveBtn(); setInfo('Select a tower type, then tap the map to place');
+    updateHUD(); updateWaveBtn(); updateModifierBanner(); setInfo('Select a tower type, then tap the map to place');
     sellBtn.classList.add('hidden');
 }
 
@@ -1057,10 +1091,29 @@ function startWave() {
     gameState.waveNum++;
     gameState.waveActive    = true;
     gameState.waveStartTime = performance.now();
+    gameState.waveModifier  = pickWaveModifier(gameState.waveNum);
     gameState.spawnQueue    = buildQueue(gameState.waveNum);
     sfxWave();
-    updateHUD(); updateWaveBtn();
-    setInfo(`Wave ${gameState.waveNum} incoming!`);
+    updateHUD(); updateWaveBtn(); updateModifierBanner();
+    if (gameState.waveModifier) {
+        const mod = WAVE_MODIFIERS[gameState.waveModifier];
+        setInfo(`Wave ${gameState.waveNum} incoming! ${mod.icon} ${mod.name}: ${mod.desc}`);
+    } else {
+        setInfo(`Wave ${gameState.waveNum} incoming!`);
+    }
+}
+
+function updateModifierBanner() {
+    const mod = gameState.waveModifier ? WAVE_MODIFIERS[gameState.waveModifier] : null;
+    if (!mod) {
+        modifierBanner.classList.add('hidden');
+        return;
+    }
+    modifierIconEl.textContent = mod.icon;
+    modifierTextEl.textContent = `${mod.name} — ${mod.desc}`;
+    modifierBanner.style.borderColor = mod.color;
+    modifierBanner.style.color = mod.color;
+    modifierBanner.classList.remove('hidden');
 }
 
 function buildQueue(n) {
@@ -1082,7 +1135,7 @@ function buildQueue(n) {
 }
 
 function spawnEnemy(type) {
-    gameState.enemyMgr.spawn(type, gameState.entityIds, gameState.difficulty, gameState.waveNum);
+    gameState.enemyMgr.spawn(type, gameState.entityIds, gameState.difficulty, gameState.waveNum, null, gameState.waveModifier);
 }
 
 // ── Update: enemies ────────────────────────────────────────────────────────────
@@ -1139,7 +1192,7 @@ function updateEnemies(ts, dt) {
         sfxDie();
         if (e.splitsInto && e.splitCount > 0) {
             for (let i = 0; i < e.splitCount; i++) {
-                gameState.enemyMgr.spawn(e.splitsInto, gameState.entityIds, gameState.difficulty, gameState.waveNum, { x: e.x, y: e.y, wpIdx: e.wpIdx });
+                gameState.enemyMgr.spawn(e.splitsInto, gameState.entityIds, gameState.difficulty, gameState.waveNum, { x: e.x, y: e.y, wpIdx: e.wpIdx }, gameState.waveModifier);
             }
         }
     });
@@ -1150,9 +1203,10 @@ function updateEnemies(ts, dt) {
 
     if (gameState.waveActive && !gameState.spawnQueue.length && !gameState.enemies.length) {
         gameState.waveActive = false;
+        gameState.waveModifier = null;
         gameState.gold += 20;
         gameState.stats.totalGoldEarned += 20;
-        updateHUD(); updateWaveBtn();
+        updateHUD(); updateWaveBtn(); updateModifierBanner();
         setInfo(`Wave ${gameState.waveNum} cleared! +20♦ bonus`);
         checkAchievements();
         autoSaveGame();

@@ -672,6 +672,85 @@ function testNewMap(mapId) {
 
 ['lava', 'winter', 'jungle'].forEach(testNewMap);
 
+// ── Test 12: Wave Modifiers (B3 - Phase 3) ─────────────────────────────────────
+runner.test('Wave Modifiers - Never active on waves 1-2 or boss waves', function() {
+    runner.assertEqual(pickWaveModifier(1), null, 'Wave 1 should never have a modifier');
+    runner.assertEqual(pickWaveModifier(2), null, 'Wave 2 should never have a modifier');
+    [5, 10, 15, 20].forEach(n => {
+        runner.assertEqual(pickWaveModifier(n), null, `Boss wave ${n} should never have a modifier`);
+    });
+});
+
+runner.test('Wave Modifiers - Only ever returns a known modifier key or null', function() {
+    for (let i = 0; i < 500; i++) {
+        const m = pickWaveModifier(4 + (i % 20));
+        runner.assert(m === null || !!WAVE_MODIFIERS[m], `pickWaveModifier returned an unexpected value: ${m}`);
+    }
+});
+
+runner.test('Wave Modifiers - bonusGold increases reward by 50%', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const base = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1, null, null);
+    const boosted = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1, null, 'bonusGold');
+    runner.assertEqual(boosted.reward, Math.round(base.reward * 1.5), 'bonusGold should multiply reward by 1.5');
+});
+
+runner.test('Wave Modifiers - doubleSpeed doubles movement speed', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const base = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1, null, null);
+    const fast = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1, null, 'doubleSpeed');
+    runner.assertEqual(fast.spd, base.spd * 2, 'doubleSpeed should double spd');
+});
+
+runner.test('Wave Modifiers - tinyEnemies halves size and increases speed', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const base = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1, null, null);
+    const tiny = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1, null, 'tinyEnemies');
+    runner.assertEqual(tiny.r, base.r * 0.5, 'tinyEnemies should halve radius');
+    runner.assertEqual(tiny.spd, base.spd * 1.5, 'tinyEnemies should speed enemies up');
+});
+
+runner.test('Wave Modifiers - giantEnemies doubles size and health', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const base = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1, null, null);
+    const giant = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1, null, 'giantEnemies');
+    runner.assertEqual(giant.r, base.r * 2, 'giantEnemies should double radius');
+    runner.assertEqual(giant.hp, base.hp * 2, 'giantEnemies should double hp');
+    runner.assertEqual(giant.maxHp, giant.hp, 'maxHp should match the modified hp');
+});
+
+runner.test('Wave Modifiers - startWave sets and wave-clear resets gameState.waveModifier', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    PATH_SET = createMapPathSet('classic');
+    WAYPOINTS = createMapWaypoints('classic');
+    gameState.waveNum = 3; // next startWave() -> wave 4, eligible for a modifier
+    gameState.gold = 5000;
+
+    const origRandom = Math.random;
+    Math.random = () => 0; // force the modifier chance to trigger
+    startWave();
+    Math.random = origRandom;
+
+    runner.assert(!!gameState.waveModifier, 'A wave 4 start forced via Math.random=0 should pick a modifier');
+    runner.assert(!!WAVE_MODIFIERS[gameState.waveModifier], 'waveModifier should be a known key');
+
+    // Let the wave run to completion with no towers -- enemies will escape,
+    // but the wave still ends once the queue and enemies are both empty.
+    let ts = performance.now();
+    let iters = 5000;
+    while (gameState.waveActive && iters-- > 0) {
+        ts += 16;
+        loop(ts);
+    }
+    runner.assert(iters > 0, 'Wave should complete without hanging');
+    runner.assertEqual(gameState.waveModifier, null, 'waveModifier should be cleared once the wave is cleared');
+});
+
 // ════════════════════════════════════════════════════════════════════════════════
 
 // Auto-run if in browser
