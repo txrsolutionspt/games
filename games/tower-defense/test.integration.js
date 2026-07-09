@@ -605,59 +605,72 @@ runner.test('Resume - Tower fires at an in-range enemy immediately after resumin
     runner.assertEqual(gameState.projectiles.length, projectilesBefore + 1, 'Tower should fire at the in-range enemy right after resume, not stay stuck on a stale cooldown');
 });
 
-// ── Test 11: Lava Map ──────────────────────────────────────────────────────────
-runner.test('Lava map - Path is contiguous, in-bounds, and self-consistent', function() {
-    const pathTiles = MAPS['lava'].pathTiles;
-    runner.assert(pathTiles.length > 0, 'Lava map should have path tiles');
+// ── Test 11: New Maps (Lava, Winter, Jungle) ───────────────────────────────────
+// Broad candidate spread of grid cells; each map's PATH_SET filters out
+// whichever of these happen to fall on its own path, so one list can cover
+// every map without needing per-map tower placements.
+const NEW_MAP_TOWER_CANDIDATES = [
+    [1,1],[3,1],[6,1],[8,1],
+    [2,3],[7,3],
+    [1,5],[3,5],[5,5],[8,4],
+    [2,6],[6,6],[1,6],
+];
 
-    const seen = new Set();
-    pathTiles.forEach(([c, r], i) => {
-        runner.assert(c >= 0 && c < COLS && r >= 0 && r < ROWS, `Tile [${c},${r}] should be within the grid`);
-        const key = `${c},${r}`;
-        runner.assert(!seen.has(key), `Tile [${c},${r}] should not repeat (no self-intersection)`);
-        seen.add(key);
-        if (i > 0) {
-            const [pc, pr] = pathTiles[i - 1];
-            const dist = Math.abs(c - pc) + Math.abs(r - pr);
-            runner.assertEqual(dist, 1, `Tile ${i} should be adjacent to the previous tile`);
-        }
+function testNewMap(mapId) {
+    runner.test(`${mapId} map - Path is contiguous, in-bounds, and self-consistent`, function() {
+        const pathTiles = MAPS[mapId].pathTiles;
+        runner.assert(pathTiles.length > 0, `${mapId} map should have path tiles`);
+
+        const seen = new Set();
+        pathTiles.forEach(([c, r], i) => {
+            runner.assert(c >= 0 && c < COLS && r >= 0 && r < ROWS, `Tile [${c},${r}] should be within the grid`);
+            const key = `${c},${r}`;
+            runner.assert(!seen.has(key), `Tile [${c},${r}] should not repeat (no self-intersection)`);
+            seen.add(key);
+            if (i > 0) {
+                const [pc, pr] = pathTiles[i - 1];
+                const dist = Math.abs(c - pc) + Math.abs(r - pr);
+                runner.assertEqual(dist, 1, `Tile ${i} should be adjacent to the previous tile`);
+            }
+        });
+
+        runner.assertEqual(pathTiles[0][1], 0, 'Path should start at row 0 to align with the entry waypoint');
+        runner.assertEqual(pathTiles[pathTiles.length - 1][1], ROWS - 1, 'Path should end at the last row to align with the exit waypoint');
     });
 
-    runner.assertEqual(pathTiles[0][1], 0, 'Path should start at row 0 to align with the entry waypoint');
-    runner.assertEqual(pathTiles[pathTiles.length - 1][1], ROWS - 1, 'Path should end at the last row to align with the exit waypoint');
-});
+    runner.test(`${mapId} map - Full wave completes with towers placed`, function() {
+        const state = createGameState(mapId, 'normal');
+        gameState = state;
+        PATH_SET = createMapPathSet(mapId);
+        WAYPOINTS = createMapWaypoints(mapId);
+        gameState.gold = 5000;
 
-runner.test('Lava map - Full wave completes with towers placed', function() {
-    const state = createGameState('lava', 'normal');
-    gameState = state;
-    PATH_SET = createMapPathSet('lava');
-    WAYPOINTS = createMapWaypoints('lava');
-    gameState.gold = 5000;
+        NEW_MAP_TOWER_CANDIDATES.forEach(([c, r]) => {
+            if (!PATH_SET.has(`${c},${r}`)) {
+                gameState.towerMgr.add('laser', c, r, gameState.entityIds);
+            }
+        });
 
-    const positions = [[3,1],[6,1],[2,3],[7,3],[5,5],[1,6],[8,4]];
-    positions.forEach(([c, r]) => {
-        if (!PATH_SET.has(`${c},${r}`)) {
-            gameState.towerMgr.add('laser', c, r, gameState.entityIds);
+        startWave();
+        let ts = performance.now();
+        let iters = 3000;
+        while (gameState.waveActive && iters-- > 0) {
+            ts += 16;
+            loop(ts);
         }
+
+        runner.assert(iters > 0, 'Wave should complete without hanging');
+        runner.assertEqual(gameState.enemies.length, 0, 'All enemies should be cleared by wave end');
+        runner.assertEqual(gameState.lives, 20, 'No enemies should have escaped with towers covering the path');
+
+        // Restore the default map's globals so any tests added after this one
+        // (or a re-run) aren't affected by this test having switched maps.
+        PATH_SET = createMapPathSet('classic');
+        WAYPOINTS = createMapWaypoints('classic');
     });
+}
 
-    startWave();
-    let ts = performance.now();
-    let iters = 3000;
-    while (gameState.waveActive && iters-- > 0) {
-        ts += 16;
-        loop(ts);
-    }
-
-    runner.assert(iters > 0, 'Wave should complete without hanging');
-    runner.assertEqual(gameState.enemies.length, 0, 'All enemies should be cleared by wave end');
-    runner.assertEqual(gameState.lives, 20, 'No enemies should have escaped with towers covering the path');
-
-    // Restore the default map's globals so any tests added after this one
-    // (or a re-run) aren't affected by this test having switched maps.
-    PATH_SET = createMapPathSet('classic');
-    WAYPOINTS = createMapWaypoints('classic');
-});
+['lava', 'winter', 'jungle'].forEach(testNewMap);
 
 // ════════════════════════════════════════════════════════════════════════════════
 

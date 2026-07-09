@@ -30,7 +30,7 @@ The Tower Defense game is **fully functional and ready to play**. All core syste
 ### Features Implemented (Phase 0 & 1)
 - ✅ **Save/Load System** - Game state persists in localStorage
 - ✅ **Difficulty Levels** - Easy, Normal, Hard with appropriate scaling
-- ✅ **Multiple Maps** - Classic, Spiral, Serpent, Lava with different paths
+- ✅ **Multiple Maps** - Classic, Spiral, Serpent, Lava, Winter, Jungle with different paths
 - ✅ **Settings Menu** - Configure music, sound, difficulty
 - ✅ **Resume System** - Continue from previous game
 - ✅ **HUD Display** - Gold, lives, wave counter
@@ -123,7 +123,7 @@ The game loop runs at 60 FPS and executes in order:
 
 ### Data-Driven Design
 Game content is defined in constants:
-- **MAPS** - 4 maps with different path layouts
+- **MAPS** - 6 maps with different path layouts
 - **TOWER_DEFS** - 4 tower types with stats
 - **ENEMY_DEFS** - 4 enemy types with behaviors
 - **DIFFICULTY_DEFS** - 3 difficulty presets
