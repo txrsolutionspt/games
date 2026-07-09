@@ -114,7 +114,7 @@ Phase 3 focuses on adding new gameplay features, mechanics, and content to expan
 **Goal:** More maps, enemies, and tower variety
 
 #### D1: New Maps (3 additional)
-- [ ] Lava themed (hot colors, winding path)
+- [x] Lava themed (hot colors, winding path)
 - [ ] Winter themed (cool colors, curved path)
 - [ ] Jungle themed (organic path, dense placement)
 - [ ] Each with unique visual styling
