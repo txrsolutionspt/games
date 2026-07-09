@@ -7,22 +7,27 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '2.3.1',
+  version: '2.4.0',
 
   // Git commit hash (short form)
-  gitHash: '35bac2f',
+  gitHash: 'e9e4046',
 
   // Full git commit hash
-  gitHashFull: '35bac2f85816f8a36777b656ad510b05c39bb1d9',
+  gitHashFull: 'e9e404617433878558f963e6e38de08807fbf93d',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-08',
+  releaseDate: '2026-07-09',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-08T18:36:39Z',
+  buildTime: '2026-07-09T19:09:06Z',
 
   // Changelog for this version
   changelog: `
+    v2.4.0 - Lava Flow Map
+    - Added a fourth map: Lava Flow, with a hot color palette and a
+      tighter, more winding path than the existing three maps
+    - Selectable from Settings alongside Classic, Spiral, and Serpent
+
     v2.3.1 - Fix: Save/Resume Broke Towers
     - Fixed a bug where resuming a saved game left towers unable to fire
       (and rendered as a solid white blob instead of their icon), because
