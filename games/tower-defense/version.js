@@ -7,22 +7,28 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '2.4.0',
+  version: '2.5.0',
 
   // Git commit hash (short form)
-  gitHash: 'e9e4046',
+  gitHash: 'dfde3aa',
 
   // Full git commit hash
-  gitHashFull: 'e9e404617433878558f963e6e38de08807fbf93d',
+  gitHashFull: 'dfde3aad5ece29027572af2d573a6ee2368ed32c',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-09',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-09T19:09:06Z',
+  buildTime: '2026-07-09T19:42:00Z',
 
   // Changelog for this version
   changelog: `
+    v2.5.0 - Winter and Jungle Maps
+    - Added two more maps: Winter Curve (icy-blue, smooth staircase
+      path) and Jungle Maze (teal-green, tighter organic path)
+    - Completes the roadmap's D1 map set: 6 maps total (Classic,
+      Spiral, Serpent, Lava, Winter, Jungle)
+
     v2.4.0 - Lava Flow Map
     - Added a fourth map: Lava Flow, with a hot color palette and a
       tighter, more winding path than the existing three maps
