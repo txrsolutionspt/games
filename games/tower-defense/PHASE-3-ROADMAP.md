@@ -64,12 +64,12 @@ Phase 3 focuses on adding new gameplay features, mechanics, and content to expan
 **Effort:** 2-3 hours | **Priority:** Medium | **Complexity:** Medium
 
 #### B3: Wave Modifiers
-- [ ] Random modifiers that activate on certain waves:
+- [x] Random modifiers that activate on certain waves:
   - Bonus Gold: +50% gold rewards
   - Double Speed: Enemies move 2x faster
   - Tiny Enemies: Half size, faster
   - Giant Enemies: 2x size, doubled health
-- [ ] Visual indicators of active modifiers
+- [x] Visual indicators of active modifiers
 
 **Effort:** 2-3 hours | **Priority:** Medium | **Complexity:** Low
 

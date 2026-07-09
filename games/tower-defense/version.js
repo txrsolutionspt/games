@@ -7,22 +7,31 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '2.5.0',
+  version: '2.6.0',
 
   // Git commit hash (short form)
-  gitHash: 'dfde3aa',
+  gitHash: 'ce28fe6',
 
   // Full git commit hash
-  gitHashFull: 'dfde3aad5ece29027572af2d573a6ee2368ed32c',
+  gitHashFull: 'ce28fe6d3df5fabb74fa333770ad1c24aeab85e9',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-09',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-09T19:42:00Z',
+  buildTime: '2026-07-09T19:58:37Z',
 
   // Changelog for this version
   changelog: `
+    v2.6.0 - Wave Modifiers
+    - Random per-wave buffs/debuffs: Bonus Gold (+50% gold), Double
+      Speed (2x enemy speed), Tiny Swarm (half-size, faster), Giant
+      Enemies (double size, double health)
+    - Waves 1-2 and boss waves are always modifier-free; otherwise a
+      40% chance per wave
+    - Active modifier shown via a persistent HUD banner for the wave's
+      duration
+
     v2.5.0 - Winter and Jungle Maps
     - Added two more maps: Winter Curve (icy-blue, smooth staircase
       path) and Jungle Maze (teal-green, tighter organic path)

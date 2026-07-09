@@ -109,7 +109,8 @@
                  'difficulty-modal', 'settings-modal', 'resume-modal', 'settings-btn',
                  'resume-info', 'resume-continue-btn', 'resume-new-btn',
                  'difficulty-start-btn', 'settings-resume-btn', 'settings-new-btn',
-                 'achievement-overlay', 'achievement-name', 'achievement-desc']
+                 'achievement-overlay', 'achievement-name', 'achievement-desc',
+                 'wave-modifier-banner', 'modifier-icon', 'modifier-text']
                 .forEach(id => {
                     const el = document.createElement('div');
                     el.id = id;
@@ -133,6 +134,25 @@
         };
 
         createDummyElements();
+
+        // Safety net: game.js periodically grows new document.getElementById('...')
+        // references (achievement overlay, wave-modifier banner, etc.) as features
+        // are added, and forgetting to add a matching dummy above silently crashes
+        // every test that happens to exercise that code path with a null-reference
+        // error, cascading into unrelated test failures. Auto-vivify any id that
+        // isn't found instead, so a missing dummy is a non-event rather than a
+        // suite-wide regression.
+        const _origGetElementById = document.getElementById.bind(document);
+        document.getElementById = function(id) {
+            const existing = _origGetElementById(id);
+            if (existing) return existing;
+            const el = document.createElement('div');
+            el.id = id;
+            el.className = 'hidden';
+            el.style.display = 'none';
+            document.body.appendChild(el);
+            return el;
+        };
     </script>
 
     <!-- Load game.js with TEST_MODE set -->

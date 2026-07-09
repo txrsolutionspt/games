@@ -156,6 +156,23 @@ body {
 .hud-btn:hover { color: var(--hud-text-hover); }
 .hud-btn:active { filter: brightness(1.2); }
 
+#wave-modifier-banner {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border: 1.5px solid;
+    border-radius: 6px;
+    background: var(--panel-bg);
+    font-size: 0.72rem;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+}
+
+#wave-modifier-banner.hidden { display: none; }
+
 #gameCanvas {
     display: block;
     width: 100%;
