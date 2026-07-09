@@ -404,10 +404,6 @@ body {
     grid-template-columns: repeat(2, 1fr);
 }
 
-.setting-buttons.cols-4 {
-    grid-template-columns: repeat(4, 1fr);
-}
-
 .setting-btn {
     background: var(--setting-bg);
     border: 2px solid var(--setting-border);

@@ -115,9 +115,9 @@ Phase 3 focuses on adding new gameplay features, mechanics, and content to expan
 
 #### D1: New Maps (3 additional)
 - [x] Lava themed (hot colors, winding path)
-- [ ] Winter themed (cool colors, curved path)
-- [ ] Jungle themed (organic path, dense placement)
-- [ ] Each with unique visual styling
+- [x] Winter themed (cool colors, curved path)
+- [x] Jungle themed (organic path, dense placement)
+- [x] Each with unique visual styling
 
 **Effort:** 3-4 hours | **Priority:** Low | **Complexity:** Low
 
