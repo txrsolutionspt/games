@@ -880,6 +880,78 @@ runner.test('startWave delays spawning until WAVE_COUNTDOWN_MS has elapsed', fun
     runner.assert(gameState.enemies.length > 0, 'Enemies should start spawning once the countdown elapses');
 });
 
+// ── Test 15: Defensive Towers (A2 - Phase 3) ───────────────────────────────────
+runner.test('Shield tower boosts damage of attacking towers in range', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const archer = gameState.towerMgr.add('archer', 4, 3, gameState.entityIds);
+
+    const noBuff = computeTowerBuffs(archer);
+    runner.assertEqual(noBuff.dmgMult, 1, 'No support towers in range should mean no damage buff');
+
+    gameState.towerMgr.add('shield', 4, 4, gameState.entityIds);
+    const buffed = computeTowerBuffs(archer);
+    runner.assertEqual(buffed.dmgMult, 1.30, 'Shield tower should add its buffPct to dmgMult');
+});
+
+runner.test('Healer tower reduces effective cooldown of attacking towers in range', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const archer = gameState.towerMgr.add('archer', 4, 3, gameState.entityIds);
+    gameState.towerMgr.add('healer', 4, 4, gameState.entityIds);
+
+    const buffs = computeTowerBuffs(archer);
+    runner.assertEqual(buffs.cdMult, 0.70, 'Healer tower should subtract its buffPct from cdMult');
+});
+
+runner.test('Support tower buffs stack additively and cdMult is floored', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const archer = gameState.towerMgr.add('archer', 4, 3, gameState.entityIds);
+    // 4 healers stacked would drive cdMult to 1 - 4*0.30 = -0.2 without a floor
+    for (let i = 0; i < 4; i++) {
+        gameState.towerMgr.add('healer', 4, 4, gameState.entityIds);
+    }
+    const buffs = computeTowerBuffs(archer);
+    runner.assertEqual(buffs.cdMult, 0.2, 'cdMult should be floored so cooldown never reaches zero or negative');
+});
+
+runner.test('Out-of-range support towers do not apply their buff', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const archer = gameState.towerMgr.add('archer', 0, 0, gameState.entityIds);
+    gameState.towerMgr.add('shield', 9, 7, gameState.entityIds); // far corner, out of range
+
+    const buffs = computeTowerBuffs(archer);
+    runner.assertEqual(buffs.dmgMult, 1, 'A support tower outside its range should not buff a distant attacker');
+});
+
+runner.test('Support towers never fire projectiles even with enemies in range', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const shield = gameState.towerMgr.add('shield', 4, 3, gameState.entityIds);
+    const enemy = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1);
+    enemy.x = shield.x; enemy.y = shield.y;
+    gameState.enemyMgr.updateSpatialGrid();
+
+    updateTowers(1000);
+    runner.assertEqual(gameState.projectiles.length, 0, 'A support tower should never create a projectile');
+});
+
+runner.test('Shield tower actually increases an attacking tower’s projectile damage in updateTowers', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const archer = gameState.towerMgr.add('archer', 4, 3, gameState.entityIds);
+    gameState.towerMgr.add('shield', 4, 4, gameState.entityIds);
+    const enemy = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1);
+    enemy.x = archer.x; enemy.y = archer.y;
+    gameState.enemyMgr.updateSpatialGrid();
+
+    updateTowers(1000);
+    runner.assertEqual(gameState.projectiles.length, 1, 'Archer should fire at the in-range enemy');
+    runner.assertEqual(gameState.projectiles[0].dmg, Math.round(TOWER_DEFS.archer.dmg * 1.30), 'Projectile damage should include the shield buff');
+});
+
 // ════════════════════════════════════════════════════════════════════════════════
 
 // Auto-run if in browser
