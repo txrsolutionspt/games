@@ -54,12 +54,12 @@ Phase 3 focuses on adding new gameplay features, mechanics, and content to expan
 **Effort:** 3-4 hours | **Priority:** High | **Complexity:** Medium
 
 #### B2: Boss Variations
-- [ ] Boss stage every 10 waves
-- [ ] Different boss types with unique mechanics:
+- [x] Boss stage every 10 waves
+- [x] Different boss types with unique mechanics:
   - Tank Boss: High HP, slow moving
   - Speedster Boss: Fast, low HP
   - Splitter Boss: Splits into 4 enemies on death
-- [ ] Boss announcements and special visuals
+- [x] Boss announcements and special visuals
 
 **Effort:** 2-3 hours | **Priority:** Medium | **Complexity:** Medium
 
