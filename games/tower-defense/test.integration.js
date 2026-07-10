@@ -751,6 +751,85 @@ runner.test('Wave Modifiers - startWave sets and wave-clear resets gameState.wav
     runner.assertEqual(gameState.waveModifier, null, 'waveModifier should be cleared once the wave is cleared');
 });
 
+// ── Test 13: Boss Variations (B2 - Phase 3) ────────────────────────────────────
+runner.test('Boss Waves - Only on multiples of 5, wave 5 is always the classic boss', function() {
+    for (let n = 1; n < 5; n++) {
+        runner.assertEqual(pickBossTypes(n).length, 0, `Wave ${n} should have no boss`);
+    }
+    [6,7,8,9,11,12,13,14].forEach(n => {
+        runner.assertEqual(pickBossTypes(n).length, 0, `Wave ${n} (not a multiple of 5) should have no boss`);
+    });
+    runner.assertEqual(JSON.stringify(pickBossTypes(5)), JSON.stringify(['boss']), 'Wave 5 should always be exactly the classic boss');
+});
+
+runner.test('Boss Waves - Every 10th wave is a 2-boss stage with distinct types', function() {
+    [10, 20, 30].forEach(n => {
+        for (let i = 0; i < 20; i++) {
+            const types = pickBossTypes(n);
+            runner.assertEqual(types.length, 2, `Wave ${n} should always have exactly 2 bosses`);
+            runner.assert(types[0] !== types[1], `Wave ${n}'s two bosses should be different types`);
+            types.forEach(t => runner.assert(BOSS_TYPES.includes(t), `${t} should be a known boss type`));
+        }
+    });
+});
+
+runner.test('Boss Waves - Non-5, non-10 boss waves get exactly one random boss type', function() {
+    for (let i = 0; i < 30; i++) {
+        const types = pickBossTypes(15);
+        runner.assertEqual(types.length, 1, 'Wave 15 should have exactly one boss');
+        runner.assert(BOSS_TYPES.includes(types[0]), 'Boss type should be a known key');
+    }
+});
+
+runner.test('Boss enemies are tagged isBoss and have their own distinct stats', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const base = gameState.enemyMgr.spawn('basic', gameState.entityIds, 'normal', 1, null, null);
+    runner.assert(!base.isBoss, 'A regular basic enemy should not be tagged isBoss');
+
+    const tank = gameState.enemyMgr.spawn('tankBoss', gameState.entityIds, 'normal', 1, null, null);
+    runner.assert(tank.isBoss, 'tankBoss should be tagged isBoss');
+    runner.assert(tank.hp > ENEMY_DEFS.boss.hp, 'tankBoss should have more hp than the classic boss');
+
+    const speedster = gameState.enemyMgr.spawn('speedsterBoss', gameState.entityIds, 'normal', 1, null, null);
+    runner.assert(speedster.isBoss, 'speedsterBoss should be tagged isBoss');
+    runner.assert(speedster.spd > ENEMY_DEFS.boss.spd, 'speedsterBoss should be faster than the classic boss');
+    runner.assert(speedster.hp < ENEMY_DEFS.boss.hp, 'speedsterBoss should have less hp than the classic boss');
+});
+
+runner.test('Boss Waves - Splitter Boss splits into 4 splitlings at its death position', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const boss = gameState.enemyMgr.spawn('splitterBoss', gameState.entityIds, 'normal', 1, null, null);
+    boss.x = 200; boss.y = 90; boss.wpIdx = 5;
+    boss.hp = 0; boss.dead = true;
+
+    updateEnemies(1000, 0);
+
+    runner.assertEqual(gameState.enemies.length, 4, 'Splitter Boss should leave 4 splitlings behind');
+    gameState.enemies.forEach(child => {
+        runner.assertEqual(child.type, 'splitling', 'Children should be splitlings');
+        runner.assertEqual(child.x, 200, 'Child should spawn at the boss death position');
+        runner.assertEqual(child.y, 90, 'Child should spawn at the boss death position');
+    });
+});
+
+runner.test('Boss Waves - startWave populates waveBossTypes and the banner on a boss wave', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    PATH_SET = createMapPathSet('classic');
+    WAYPOINTS = createMapWaypoints('classic');
+    gameState.waveNum = 4; // next startWave() -> wave 5, guaranteed boss wave
+    gameState.gold = 5000;
+
+    startWave();
+
+    runner.assertEqual(JSON.stringify(gameState.waveBossTypes), JSON.stringify(['boss']), 'Wave 5 should set waveBossTypes to the classic boss');
+    runner.assertEqual(gameState.waveModifier, null, 'A boss wave should never also have a modifier');
+    runner.assert(!modifierBanner.classList.contains('hidden'), 'The banner should be visible on a boss wave');
+    runner.assert(modifierTextEl.textContent.includes('Boss'), 'The banner text should mention the boss');
+});
+
 // ════════════════════════════════════════════════════════════════════════════════
 
 // Auto-run if in browser
