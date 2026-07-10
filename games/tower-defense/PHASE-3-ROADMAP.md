@@ -142,9 +142,9 @@ Phase 3 focuses on adding new gameplay features, mechanics, and content to expan
 **Goal:** Better player experience and information
 
 #### E1: Enhanced Wave Preview
-- [ ] Show upcoming enemies for next 3 waves
-- [ ] Display expected rewards and difficulty estimate
-- [ ] Countdown timer before wave start
+- [x] Show upcoming enemies for next 3 waves
+- [x] Display expected rewards and difficulty estimate
+- [x] Countdown timer before wave start
 
 **Effort:** 1-2 hours | **Priority:** Medium | **Complexity:** Low
 

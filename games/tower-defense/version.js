@@ -7,22 +7,28 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '2.7.0',
+  version: '2.8.0',
 
   // Git commit hash (short form)
-  gitHash: 'b9aa176',
+  gitHash: '7465b19',
 
   // Full git commit hash
-  gitHashFull: 'b9aa176982c5c4ddca3a6fb96f0ab36ec7eeaea1',
+  gitHashFull: '7465b196d948bcb9ad14bf520c41798b401b2a10',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-10',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-10T11:39:09Z',
+  buildTime: '2026-07-10T19:01:28Z',
 
   // Changelog for this version
   changelog: `
+    v2.8.0 - Wave Preview and Countdown
+    - Tap the WAVE counter to preview the next 3 waves: enemy
+      composition, estimated gold reward, and boss-wave indicator
+    - A 3-second countdown now shows before each wave's enemies start
+      spawning, giving a moment to review/adjust towers
+
     v2.7.0 - Boss Variations
     - Boss waves (every 5th) now pick from 4 boss types instead of
       always the same one: Boss, Tank Boss (high hp, slow), Speedster
