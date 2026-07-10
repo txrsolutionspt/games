@@ -142,6 +142,14 @@ body {
     padding: 0 2px;
 }
 
+.hud-clickable {
+    cursor: pointer;
+    border-bottom: 1px dotted var(--hud-text);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.hud-clickable:hover { color: var(--hud-text-hover); }
+
 .hud-btn {
     background: none;
     border: none;
@@ -353,6 +361,43 @@ body {
     margin-bottom: 16px;
     font-size: 0.9rem;
     text-align: center;
+}
+
+#wave-preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.preview-wave {
+    border: 1px solid var(--setting-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--setting-bg);
+}
+
+.preview-wave-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: var(--setting-label-text);
+    margin-bottom: 4px;
+}
+
+.preview-wave-header .preview-reward { color: var(--cost-text); }
+
+.preview-wave-enemies {
+    font-size: 0.72rem;
+    color: var(--setting-desc-text);
+}
+
+.preview-wave-boss {
+    margin-top: 4px;
+    font-size: 0.72rem;
+    font-weight: bold;
+    color: #ffd700;
 }
 
 .difficulty-buttons {

@@ -197,14 +197,14 @@ function getTowerStats(tower) {
 }
 
 const ENEMY_DEFS = {
-  basic:         { hp:40,   spd:0.08,  reward:10,  color:'#ee4444', r:8  },
-  fast:          { hp:22,   spd:0.18,  reward:12,  color:'#ffaa22', r:7  },
-  tank:          { hp:180,  spd:0.045, reward:35,  color:'#9944cc', r:12 },
+  basic:         { hp:40,   spd:0.08,  reward:10,  color:'#ee4444', r:8,  name:'Basic' },
+  fast:          { hp:22,   spd:0.18,  reward:12,  color:'#ffaa22', r:7,  name:'Fast' },
+  tank:          { hp:180,  spd:0.045, reward:35,  color:'#9944cc', r:12, name:'Tank' },
   boss:          { hp:900,  spd:0.038, reward:120, color:'#ff2200', r:18, isBoss:true, name:'Boss' },
-  armored:       { hp:110,  spd:0.05,  reward:25,  color:'#8890a0', r:11, armored:true },
-  splitter:      { hp:50,   spd:0.09,  reward:14,  color:'#33cc99', r:9,  splitsInto:'splitling', splitCount:2 },
-  splitling:     { hp:14,   spd:0.12,  reward:4,   color:'#77eebb', r:5  },
-  flying:        { hp:30,   spd:0.11,  reward:18,  color:'#f0f0ff', r:7,  flying:true },
+  armored:       { hp:110,  spd:0.05,  reward:25,  color:'#8890a0', r:11, armored:true, name:'Armored' },
+  splitter:      { hp:50,   spd:0.09,  reward:14,  color:'#33cc99', r:9,  splitsInto:'splitling', splitCount:2, name:'Splitter' },
+  splitling:     { hp:14,   spd:0.12,  reward:4,   color:'#77eebb', r:5,  name:'Splitling' },
+  flying:        { hp:30,   spd:0.11,  reward:18,  color:'#f0f0ff', r:7,  flying:true, name:'Flying' },
   tankBoss:      { hp:1400, spd:0.025, reward:150, color:'#663399', r:20, isBoss:true, name:'Tank Boss' },
   speedsterBoss: { hp:500,  spd:0.11,  reward:130, color:'#ffaa00', r:15, isBoss:true, name:'Speedster Boss' },
   splitterBoss:  { hp:700,  spd:0.035, reward:100, color:'#00ccaa', r:19, isBoss:true, name:'Splitter Boss', splitsInto:'splitling', splitCount:4 },
@@ -215,10 +215,20 @@ const BOSS_TYPES = ['boss', 'tankBoss', 'speedsterBoss', 'splitterBoss'];
 // Boss waves happen every 5th wave; every 10th is a bigger "boss stage" with
 // two different boss types at once. Wave 5 always stays the plain classic
 // boss so a new player's first boss fight isn't a difficulty-spike surprise.
+// How many bosses wave n will have, if any -- fully deterministic, unlike
+// pickBossTypes() which also randomly picks WHICH boss type(s). Exposed
+// separately so wave-preview code can know "this wave has a boss" without
+// consuming randomness or needing to reveal which type in advance.
+function pickBossWaveCount(waveNum) {
+  if (waveNum < 5 || waveNum % 5 !== 0) return 0;
+  return waveNum % 10 === 0 ? 2 : 1;
+}
+
 function pickBossTypes(waveNum) {
-  if (waveNum < 5 || waveNum % 5 !== 0) return [];
+  const count = pickBossWaveCount(waveNum);
+  if (count === 0) return [];
   if (waveNum === 5) return ['boss'];
-  if (waveNum % 10 === 0) {
+  if (count === 2) {
     const shuffled = [...BOSS_TYPES].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 2);
   }
@@ -874,6 +884,9 @@ const difficultyModal = document.getElementById('difficulty-modal');
 const settingsModal = document.getElementById('settings-modal');
 const resumeModal = document.getElementById('resume-modal');
 const settingsBtn = document.getElementById('settings-btn');
+const wavePreviewModal = document.getElementById('wave-preview-modal');
+const wavePreviewBtn = document.getElementById('wave-preview-btn');
+const wavePreviewList = document.getElementById('wave-preview-list');
 
 // ── Auto-save on wave completion ─────────────────────────────────────────────
 function autoSaveGame() {
@@ -1105,12 +1118,18 @@ function updateWaveBtn() {
 function setInfo(msg) { infoEl.textContent = msg; }
 
 // ── Wave spawning ──────────────────────────────────────────────────────────────
+const WAVE_COUNTDOWN_MS = 3000;
+
 function startWave() {
     if (gameState.waveActive || gameState.gameOver) return;
     initAudio();
     gameState.waveNum++;
     gameState.waveActive    = true;
-    gameState.waveStartTime = performance.now();
+    // Enemies start spawning WAVE_COUNTDOWN_MS from now, not immediately --
+    // spawnQueue offsets are all >= 0, so elapsed (ts - waveStartTime) stays
+    // negative and nothing spawns until the countdown reaches zero. Gives the
+    // player a moment to review the wave-preview/adjust towers before it hits.
+    gameState.waveStartTime = performance.now() + WAVE_COUNTDOWN_MS;
     // Mutually exclusive by design: pickWaveModifier never fires on n % 5 === 0
     // waves, which is exactly when pickBossTypes can return non-empty.
     gameState.waveModifier  = pickWaveModifier(gameState.waveNum);
@@ -1168,6 +1187,40 @@ function buildQueue(n) {
     if (n >= 10) add('fast', Math.floor(n * 0.3), 550, 300);
     (gameState.waveBossTypes || []).forEach((bossType, i) => add(bossType, 1, 0, 2200 + i * 1500));
     return q.sort((a, b) => a.t - b.t);
+}
+
+// Mirrors buildQueue()'s per-type count formulas for wave-preview purposes
+// only (not spawn timing/order) -- keep the thresholds and formulas below in
+// sync with buildQueue() if those ever change. Doesn't consume randomness:
+// boss presence/count is deterministic (pickBossWaveCount), only which
+// specific boss type(s) show up is randomized, and that's intentionally not
+// revealed by the preview.
+function previewWaveComposition(n) {
+    const diffMult = DIFFICULTY_DEFS[gameState.difficulty].waveSpawnMult;
+    const scale = c => Math.round(c * diffMult);
+    const counts = {};
+    const add = (type, count) => { counts[type] = (counts[type] || 0) + scale(count); };
+
+    add('basic', Math.min(5 + n * 2, 22));
+    if (n >= 3) add('fast', Math.min(Math.floor(n * 0.7), 10));
+    if (n >= 4) add('splitter', Math.min(Math.floor(n * 0.3), 5));
+    if (n >= 5) add('tank', Math.min(Math.floor(n * 0.4), 6));
+    if (n >= 6) add('armored', Math.min(Math.floor(n * 0.25), 4));
+    if (n >= 8) add('flying', Math.min(Math.floor(n * 0.3), 6));
+    if (n >= 10) add('fast', Math.floor(n * 0.3));
+
+    const bossCount = pickBossWaveCount(n);
+    let estimatedReward = 20; // wave-clear bonus, matches updateEnemies()
+    Object.keys(counts).forEach(type => {
+        estimatedReward += counts[type] * Math.round(ENEMY_DEFS[type].reward * DIFFICULTY_DEFS[gameState.difficulty].goldMult);
+    });
+    if (bossCount > 0) {
+        // Boss type isn't known yet; use the classic Boss's reward as a
+        // representative estimate (all 4 boss types are in the same ballpark).
+        estimatedReward += bossCount * Math.round(ENEMY_DEFS.boss.reward * DIFFICULTY_DEFS[gameState.difficulty].goldMult);
+    }
+
+    return { counts, bossCount, estimatedReward };
 }
 
 function spawnEnemy(type) {
@@ -1368,7 +1421,24 @@ function draw(ts) {
     drawEnemies(ts);
     drawProjectiles();
     drawParticles();
+    drawWaveCountdown(ts);
     if (gameState.gameOver) drawGameOver();
+}
+
+function drawWaveCountdown(ts) {
+    if (!gameState.waveActive) return;
+    const remaining = gameState.waveStartTime - ts;
+    if (remaining <= 0) return;
+
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = "bold 56px 'Courier New', monospace";
+    ctx.fillStyle = '#ffd700';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 8;
+    ctx.fillText(Math.ceil(remaining / 1000), W/2, H/2);
+    ctx.restore();
 }
 
 function drawMap() {
@@ -1856,6 +1926,56 @@ settingsBtn.addEventListener('click', () => {
     if (gameState.waveActive || gameState.gameOver) return;
     showSettingsModal();
 });
+
+// Wave preview button
+wavePreviewBtn.addEventListener('click', () => {
+    initAudio();
+    if (gameState.waveActive || gameState.gameOver) return;
+    showWavePreview();
+});
+
+document.getElementById('preview-close-btn').addEventListener('click', () => {
+    hideModal(wavePreviewModal);
+});
+
+function showWavePreview() {
+    wavePreviewList.innerHTML = '';
+    for (let i = 1; i <= 3; i++) {
+        const n = gameState.waveNum + i;
+        const preview = previewWaveComposition(n);
+
+        const row = document.createElement('div');
+        row.className = 'preview-wave';
+
+        const header = document.createElement('div');
+        header.className = 'preview-wave-header';
+        const waveLabel = document.createElement('span');
+        waveLabel.textContent = `Wave ${n}`;
+        const rewardLabel = document.createElement('span');
+        rewardLabel.className = 'preview-reward';
+        rewardLabel.textContent = `~${preview.estimatedReward}♦`;
+        header.appendChild(waveLabel);
+        header.appendChild(rewardLabel);
+        row.appendChild(header);
+
+        const enemiesLine = document.createElement('div');
+        enemiesLine.className = 'preview-wave-enemies';
+        enemiesLine.textContent = Object.keys(preview.counts)
+            .map(type => `${preview.counts[type]} ${ENEMY_DEFS[type].name}`)
+            .join(', ');
+        row.appendChild(enemiesLine);
+
+        if (preview.bossCount > 0) {
+            const bossLine = document.createElement('div');
+            bossLine.className = 'preview-wave-boss';
+            bossLine.textContent = preview.bossCount === 2 ? '⚠ Boss Stage (2 bosses)' : '⚠ Boss Wave';
+            row.appendChild(bossLine);
+        }
+
+        wavePreviewList.appendChild(row);
+    }
+    showModal(wavePreviewModal);
+}
 
 // ── Loop ───────────────────────────────────────────────────────────────────────
 let loopRunning = false;

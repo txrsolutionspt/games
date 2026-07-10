@@ -9,7 +9,7 @@
 <body>
     <div id="container">
         <div id="hud">
-            <span>WAVE <span id="wave">0</span></span>
+            <span id="wave-preview-btn" class="hud-clickable" title="Preview upcoming waves">WAVE <span id="wave">0</span></span>
             <span>♦ <span id="gold">150</span></span>
             <span>♥ <span id="lives">20</span></span>
             <button id="settings-btn" class="hud-btn" title="Settings">⚙</button>
@@ -124,6 +124,15 @@
                 <button id="resume-continue-btn" class="modal-action-btn">Continue</button>
                 <button id="resume-new-btn" class="modal-action-btn danger">New Game</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Wave Preview Modal -->
+    <div id="wave-preview-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>UPCOMING WAVES</h2>
+            <div id="wave-preview-list"></div>
+            <button id="preview-close-btn" class="modal-action-btn">Close</button>
         </div>
     </div>
 

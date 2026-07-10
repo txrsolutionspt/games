@@ -830,6 +830,56 @@ runner.test('Boss Waves - startWave populates waveBossTypes and the banner on a 
     runner.assert(modifierTextEl.textContent.includes('Boss'), 'The banner text should mention the boss');
 });
 
+// ── Test 14: Wave Preview & Countdown (E1 - Phase 3) ───────────────────────────
+runner.test('previewWaveComposition matches buildQueue enemy counts', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+
+    [1, 5, 9].forEach(n => {
+        gameState.waveBossTypes = pickBossWaveCount(n) > 0 ? ['boss'] : [];
+        const built = buildQueue(n);
+        const preview = previewWaveComposition(n);
+
+        const builtCounts = {};
+        built.forEach(item => {
+            if (BOSS_TYPES.includes(item.type)) return; // preview counts bosses separately
+            builtCounts[item.type] = (builtCounts[item.type] || 0) + 1;
+        });
+
+        Object.keys(builtCounts).forEach(type => {
+            runner.assertEqual(preview.counts[type], builtCounts[type], `Wave ${n}: preview count for ${type} should match buildQueue`);
+        });
+        const builtBossCount = built.filter(item => BOSS_TYPES.includes(item.type)).length;
+        runner.assertEqual(preview.bossCount, builtBossCount, `Wave ${n}: preview bossCount should match buildQueue`);
+    });
+});
+
+runner.test('previewWaveComposition never includes enemy types below their wave threshold', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    const preview = previewWaveComposition(1);
+    runner.assert(!('fast' in preview.counts), 'Wave 1 preview should not include fast enemies');
+    runner.assert(!('tank' in preview.counts), 'Wave 1 preview should not include tank enemies');
+    runner.assertEqual(preview.bossCount, 0, 'Wave 1 preview should have no boss');
+});
+
+runner.test('startWave delays spawning until WAVE_COUNTDOWN_MS has elapsed', function() {
+    const state = createGameState('classic', 'normal');
+    gameState = state;
+    PATH_SET = createMapPathSet('classic');
+    WAYPOINTS = createMapWaypoints('classic');
+    gameState.gold = 1000;
+
+    startWave();
+    const startTs = performance.now();
+
+    updateEnemies(startTs, 16);
+    runner.assertEqual(gameState.enemies.length, 0, 'No enemies should spawn immediately after startWave()');
+
+    updateEnemies(startTs + WAVE_COUNTDOWN_MS + 100, 16);
+    runner.assert(gameState.enemies.length > 0, 'Enemies should start spawning once the countdown elapses');
+});
+
 // ════════════════════════════════════════════════════════════════════════════════
 
 // Auto-run if in browser
