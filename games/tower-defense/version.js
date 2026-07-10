@@ -7,22 +7,34 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '2.6.0',
+  version: '2.7.0',
 
   // Git commit hash (short form)
-  gitHash: 'ce28fe6',
+  gitHash: 'b9aa176',
 
   // Full git commit hash
-  gitHashFull: 'ce28fe6d3df5fabb74fa333770ad1c24aeab85e9',
+  gitHashFull: 'b9aa176982c5c4ddca3a6fb96f0ab36ec7eeaea1',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-09',
+  releaseDate: '2026-07-10',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-09T19:58:37Z',
+  buildTime: '2026-07-10T11:39:09Z',
 
   // Changelog for this version
   changelog: `
+    v2.7.0 - Boss Variations
+    - Boss waves (every 5th) now pick from 4 boss types instead of
+      always the same one: Boss, Tank Boss (high hp, slow), Speedster
+      Boss (fast, low hp), Splitter Boss (splits into 4 on death).
+      Wave 5 always stays the classic Boss for a predictable first
+      encounter
+    - Every 10th wave is a "boss stage" with two different boss types
+      at once
+    - Boss waves get a gold announcement banner, and boss enemies get
+      a dashed gold ring so they're visually distinct from regular
+      enemies
+
     v2.6.0 - Wave Modifiers
     - Random per-wave buffs/debuffs: Bonus Gold (+50% gold), Double
       Speed (2x enemy speed), Tiny Swarm (half-size, faster), Giant
