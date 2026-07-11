@@ -281,13 +281,14 @@ button {
   text-align: center;
 }
 
-/* ---------- Toolbar (upper thumb zone) ---------- */
+/* ---------- Toolbar (bottom thumb zone) ---------- */
 .toolbar {
   flex: 0 0 auto;
   width: 100%;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
+  padding-bottom: calc(14px + var(--safe-b));
 }
 
 .tool-btn {
@@ -320,14 +321,13 @@ button {
 .tool-btn[aria-pressed="true"] { color: var(--accent-contrast); background: var(--accent); }
 .tool-btn.hint-empty { opacity: 0.5; }
 
-/* ---------- Number pad (bottom thumb zone) ---------- */
+/* ---------- Number pad (upper thumb zone, above the toolbar) ---------- */
 .numpad {
   flex: 0 0 auto;
   width: 100%;
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   gap: 6px;
-  padding-bottom: calc(14px + var(--safe-b));
 }
 
 .num-btn {
