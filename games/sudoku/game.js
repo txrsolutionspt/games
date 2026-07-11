@@ -586,9 +586,25 @@
   });
 
   // ---------------------------------------------------------------------
+  // Real viewport height (mobile browsers resize their address/toolbar
+  // chrome without firing a proper layout viewport change, so 100vh/100dvh
+  // alone can size #app taller than what's actually visible and push the
+  // number pad off screen). Track the true visible height in a CSS var.
+  // ---------------------------------------------------------------------
+  function syncViewportHeight() {
+    const h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    document.documentElement.style.setProperty('--vh100', `${h / 100}px`);
+  }
+
+  // ---------------------------------------------------------------------
   // Boot
   // ---------------------------------------------------------------------
   function boot() {
+    syncViewportHeight();
+    window.addEventListener('resize', syncViewportHeight);
+    window.addEventListener('orientationchange', syncViewportHeight);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', syncViewportHeight);
+
     buildBoardDOM();
     applySettingsToUI();
     renderStats();
