@@ -90,8 +90,9 @@ button {
 }
 
 #app {
-  height: 100dvh;
   height: 100vh;
+  height: calc(var(--vh100, 1vh) * 100);
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   max-width: 560px;
@@ -294,8 +295,8 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-height: 52px;
+  gap: 3px;
+  min-height: 58px;
   background: var(--surface);
   border: none;
   border-radius: 12px;
@@ -325,15 +326,15 @@ button {
   width: 100%;
   display: grid;
   grid-template-columns: repeat(9, 1fr);
-  gap: 5px;
-  padding-bottom: calc(10px + var(--safe-b));
+  gap: 6px;
+  padding-bottom: calc(14px + var(--safe-b));
 }
 
 .num-btn {
-  min-height: 48px;
+  min-height: 58px;
   min-width: 0;
   width: 100%;
-  font-size: 1.15rem;
+  font-size: 1.3rem;
   font-weight: 700;
   background: var(--surface);
   color: var(--user-num);
