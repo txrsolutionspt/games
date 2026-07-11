@@ -7,22 +7,30 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '2.8.0',
+  version: '2.9.0',
 
   // Git commit hash (short form)
-  gitHash: '7465b19',
+  gitHash: '40173c3',
 
   // Full git commit hash
-  gitHashFull: '7465b196d948bcb9ad14bf520c41798b401b2a10',
+  gitHashFull: '40173c3759b581258ccc832354cb2ab28b1adc85',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-10',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-10T19:01:28Z',
+  buildTime: '2026-07-10T20:42:25Z',
 
   // Changelog for this version
   changelog: `
+    v2.9.0 - Defensive Towers
+    - Two new support towers: Shield (+30% damage aura, scales with
+      level) and Healer (-30% cooldown aura, scales with level) for
+      attacking towers in range
+    - Pure buff towers -- no projectiles, don't attack themselves;
+      buffs stack additively across multiple support towers
+    - Persistent dashed aura ring shows their buff radius at a glance
+
     v2.8.0 - Wave Preview and Countdown
     - Tap the WAVE counter to preview the next 3 waves: enemy
       composition, estimated gold reward, and boss-wave indicator

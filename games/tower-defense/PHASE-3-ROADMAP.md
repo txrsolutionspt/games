@@ -26,9 +26,9 @@ Phase 3 focuses on adding new gameplay features, mechanics, and content to expan
 **Effort:** 2-3 hours | **Priority:** High | **Complexity:** Medium
 
 #### A2: Defensive Towers
-- [ ] Shield Tower: Creates 50px radius shield, reduces incoming damage 50%
-- [ ] Healer Tower: Restores 5 HP/sec to nearby towers
-- [ ] Defensive mechanics (slowing auras, damage reduction)
+- [x] Shield Tower: buff aura, +30% damage (scales with level) to attacking towers in range — reinterpreted from "reduces incoming damage" since towers have no HP/take no damage in this game
+- [x] Healer Tower: buff aura, -30% cooldown (scales with level) to attacking towers in range — reinterpreted from "restores HP" for the same reason
+- [x] Support towers are pure buff auras: no projectiles, don't attack; buffs stack additively across multiple support towers in range
 
 **Effort:** 3-4 hours | **Priority:** Medium | **Complexity:** High
 

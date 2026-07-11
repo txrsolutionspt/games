@@ -194,7 +194,7 @@ body {
 /* Tower selection panel */
 #tower-panel {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     width: 100%;
 }

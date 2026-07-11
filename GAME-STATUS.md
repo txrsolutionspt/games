@@ -22,7 +22,7 @@ The Tower Defense game is **fully functional and ready to play**. All core syste
 ### Core Game Systems
 - ✅ **Game State Management** - Proper initialization with defaults
 - ✅ **Tower Placement** - Click to place towers, respects paths
-- ✅ **Tower Selection** - 4 tower types (Archer, Cannon, Frost, Laser)
+- ✅ **Tower Selection** - 6 tower types (Archer, Cannon, Frost, Laser, Shield, Healer)
 - ✅ **Enemy Spawning** - Wave system queues enemies correctly
 - ✅ **Game Loop** - Smooth updates for enemies, towers, projectiles
 - ✅ **Wave Management** - Multiple waves with increasing difficulty
@@ -124,7 +124,7 @@ The game loop runs at 60 FPS and executes in order:
 ### Data-Driven Design
 Game content is defined in constants:
 - **MAPS** - 6 maps with different path layouts
-- **TOWER_DEFS** - 4 tower types with stats
+- **TOWER_DEFS** - 6 tower types with stats
 - **ENEMY_DEFS** - 4 enemy types with behaviors
 - **DIFFICULTY_DEFS** - 3 difficulty presets
 

@@ -180,12 +180,23 @@ const TOWER_DEFS = {
   cannon: { name:'Cannon', cost:100, range:80,  dmg:55,  cd:2400, splash:50, slow:0,    color:'#c87c35', pColor:'#ffe070', pSpd:0.20, pR:7, desc:'Slow · area splash' },
   frost:  { name:'Frost',  cost:80,  range:90,  dmg:5,   cd:1200, splash:0,  slow:2200, color:'#35a8d0', pColor:'#aaddff', pSpd:0.28, pR:5, desc:'Slows enemies' },
   laser:  { name:'Laser',  cost:175, range:130, dmg:25,  cd:280,  splash:0,  slow:0,    color:'#d035a8', pColor:'#ff88ee', pSpd:0.55, pR:3, desc:'High DPS · long range' },
+  shield: { name:'Shield', cost:140, range:100, isSupport:true, buffType:'damage',   buffPct:0.30, color:'#4488ff', desc:'Boosts nearby tower damage' },
+  healer: { name:'Healer', cost:140, range:100, isSupport:true, buffType:'fireRate', buffPct:0.30, color:'#ff6688', desc:'Boosts nearby tower fire rate' },
 };
 
 function getTowerStats(tower) {
   const baseDef = TOWER_DEFS[tower.type];
   const level = tower.level || 1;
   const levelBonus = level - 1;
+
+  if (baseDef.isSupport) {
+    return {
+      ...baseDef,
+      range: Math.round(baseDef.range * (1 + levelBonus * 0.10)),
+      buffPct: baseDef.buffPct * (1 + levelBonus * 0.25),
+      level: level
+    };
+  }
 
   return {
     ...baseDef,
@@ -194,6 +205,25 @@ function getTowerStats(tower) {
     cd: Math.round(baseDef.cd / (1 + levelBonus * 0.20)),
     level: level
   };
+}
+
+// Sums damage/fire-rate buffs from support towers (Shield/Healer) in range of
+// the given attacking tower. Additive stacking across multiple support
+// towers, with a floor on cdMult so stacked fire-rate buffs can't collapse
+// the cooldown to zero or negative.
+function computeTowerBuffs(tower) {
+  let dmgMult = 1, cdMult = 1;
+  gameState.towers.forEach(t => {
+    if (t === tower) return;
+    const def = TOWER_DEFS[t.type];
+    if (!def.isSupport) return;
+    const stats = getTowerStats(t);
+    const dx = t.x - tower.x, dy = t.y - tower.y;
+    if (Math.sqrt(dx * dx + dy * dy) > stats.range) return;
+    if (def.buffType === 'damage') dmgMult += stats.buffPct;
+    if (def.buffType === 'fireRate') cdMult -= stats.buffPct;
+  });
+  return { dmgMult, cdMult: Math.max(cdMult, 0.2) };
 }
 
 const ENEMY_DEFS = {
@@ -1307,7 +1337,12 @@ function updateEnemies(ts, dt) {
 function updateTowers(ts) {
     gameState.towers.forEach(tower => {
         const def = getTowerStats(tower);
-        if (ts - tower.lastFired < def.cd) return;
+        if (def.isSupport) return; // Shield/Healer are pure buff auras, they don't attack
+
+        const buffs = computeTowerBuffs(tower);
+        const dmg = Math.round(def.dmg * buffs.dmgMult);
+        const cd  = Math.round(def.cd * buffs.cdMult);
+        if (ts - tower.lastFired < cd) return;
 
         // Pick enemy furthest along path within range (using spatial grid)
         let target = null, bestWp = -1;
@@ -1331,7 +1366,7 @@ function updateTowers(ts) {
             x: tower.x, y: tower.y,
             tx: target.x, ty: target.y,
             targetId: def.splash > 0 ? null : target.id,
-            spd: def.pSpd, dmg: def.dmg,
+            spd: def.pSpd, dmg: dmg,
             splash: def.splash, slow: def.slow,
             color: def.pColor, r: def.pR, done: false,
         });
@@ -1522,6 +1557,20 @@ function drawTowers(ts) {
         const def = getTowerStats(t);
         const sel = gameState.selectedTower === t;
 
+        // Support towers (Shield/Healer) show a persistent aura ring so their
+        // buff radius is visible without needing to select them.
+        if (def.isSupport) {
+            ctx.globalAlpha = 0.08;
+            ctx.fillStyle = def.color;
+            ctx.beginPath(); ctx.arc(t.x, t.y, def.range, 0, Math.PI*2); ctx.fill();
+            ctx.globalAlpha = 0.35;
+            ctx.strokeStyle = def.color; ctx.lineWidth = 1;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.arc(t.x, t.y, def.range, 0, Math.PI*2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1;
+        }
+
         // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath(); ctx.ellipse(t.x, t.y+4, CELL*0.35, CELL*0.18, 0, 0, Math.PI*2); ctx.fill();
@@ -1545,13 +1594,15 @@ function drawTowers(ts) {
             ctx.fillText(t.level, t.x, t.y + CELL*0.28);
         }
 
-        // Shoot flash
-        const frac = (ts - t.lastFired) / def.cd;
-        if (frac < 0.18) {
-            ctx.globalAlpha = 0.5 * (1 - frac/0.18);
-            ctx.fillStyle   = '#ffffff';
-            ctx.beginPath(); ctx.arc(t.x, t.y, CELL*0.44, 0, Math.PI*2); ctx.fill();
-            ctx.globalAlpha = 1;
+        // Shoot flash (support towers never fire, so they never flash)
+        if (!def.isSupport) {
+            const frac = (ts - t.lastFired) / def.cd;
+            if (frac < 0.18) {
+                ctx.globalAlpha = 0.5 * (1 - frac/0.18);
+                ctx.fillStyle   = '#ffffff';
+                ctx.beginPath(); ctx.arc(t.x, t.y, CELL*0.44, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha = 1;
+            }
         }
     });
 }
@@ -1574,6 +1625,23 @@ function drawIcon(type, cx, cy, r) {
             ctx.beginPath(); ctx.moveTo(cx, cy);
             ctx.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r); ctx.stroke();
         }
+    } else if (type === 'shield') {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy-r);
+        ctx.lineTo(cx+r*0.8, cy-r*0.5); ctx.lineTo(cx+r*0.8, cy+r*0.3);
+        ctx.lineTo(cx, cy+r);
+        ctx.lineTo(cx-r*0.8, cy+r*0.3); ctx.lineTo(cx-r*0.8, cy-r*0.5);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+    } else if (type === 'healer') {
+        const arm = r*0.3;
+        ctx.beginPath();
+        ctx.moveTo(cx-arm, cy-r);      ctx.lineTo(cx+arm, cy-r);
+        ctx.lineTo(cx+arm, cy-arm);    ctx.lineTo(cx+r, cy-arm);
+        ctx.lineTo(cx+r, cy+arm);      ctx.lineTo(cx+arm, cy+arm);
+        ctx.lineTo(cx+arm, cy+r);      ctx.lineTo(cx-arm, cy+r);
+        ctx.lineTo(cx-arm, cy+arm);    ctx.lineTo(cx-r, cy+arm);
+        ctx.lineTo(cx-r, cy-arm);      ctx.lineTo(cx-arm, cy-arm);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
     } else {
         // laser: bolt
         ctx.beginPath();
