@@ -15,6 +15,14 @@ To ensure high performance across diverse hardware (from low-end smartphones to 
   - **Technique:** Use lazy loading/streaming for high-resolution textures and complex 3D models to keep the initial "Time to Gameplay" under 10 seconds.
   - **Format:** Use .glb or .gltf for 3D assets and WebP/KTX2 for compressed textures.
 
+### No-Build-Step Constraint
+This repo has no build pipeline — files are pushed as-is and GitHub Pages serves them directly. That rules out npm/webpack/vite/bundler-based workflows for this game. Concretely:
+
+- **Babylon.js:** Include the pre-built UMD bundle via a `<script>` tag, either from a CDN (`https://cdn.babylonjs.com/babylon.js`, plus `babylonjs.loaders.min.js` for `.glb`/`.gltf` support) or a vendored copy committed under `games/race-car/lib/`. No npm package, no `import` statements requiring a bundler.
+- **PlayCanvas:** Same approach — the engine's UMD build (`playcanvas.min.js`) works from a CDN or vendored `lib/` copy via `<script>` tag. Do **not** use the PlayCanvas Editor/cloud project workflow, since its typical export/publish flow assumes a build or hosting step outside this repo; if the Editor is used at all, only its "Download" static export (plain HTML/JS/assets, no build required) should be committed.
+- **Whichever engine is chosen**, all game code is written as plain `<script>`-included JS (like the other games' `game.js`), referencing the global the library exposes (`BABYLON` or `pc`) — no ES module bundling, no transpilation step.
+- **Choice of engine can be finalized during prototyping** (Roadmap step 1) — both satisfy the no-build-step constraint equally, so either is acceptable per this spec.
+
 ---
 
 ## 2. Cross-Platform Input Strategy
@@ -58,8 +66,6 @@ Browser games are limited by browser memory and thermal throttling.
 ---
 
 ## Note on Repository Conventions
-This document captures the initial technical direction as provided. It diverges from this repository's established stack (vanilla JavaScript + HTML5 Canvas 2D, no external frameworks, no build step — see `REPO_STRUCTURE.md` in the repo root). Before implementation begins, a decision is needed on whether to:
-- Adopt PlayCanvas/Babylon.js + WebGL for this game specifically (introducing the repo's first 3D/framework-based game), or
-- Rework the spec around a 2.5D/top-down Canvas 2D approach consistent with the other games in `/games`.
+Most other games in this repo use vanilla JavaScript + HTML5 Canvas 2D (see `REPO_STRUCTURE.md`), but games are not required to share a stack — this one intentionally uses a 3D engine (PlayCanvas or Babylon.js) instead, per the decision above. The one hard constraint carried over from the rest of the repo is **no build step**: the game must work by pushing static files and having GitHub Pages serve them directly, with no compile/bundle stage (see the No-Build-Step Constraint above).
 
-Game mechanics (track design, win/loss conditions, scoring, opponent AI, visual style) are not yet defined and should be added once the technical direction above is confirmed.
+Game mechanics (track design, win/loss conditions, scoring, opponent AI, visual style) are not yet defined and should be added as a follow-up before implementation begins.
