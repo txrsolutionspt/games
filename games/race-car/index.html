@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Apex Racer — Time Trial</title>
+  <meta name="description" content="3D time-trial racing in your browser. Beat the clock across 3 laps.">
+  <meta name="theme-color" content="#0d1220">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+
+  <!-- HUD (during race) -->
+  <div id="hud" class="hidden">
+    <div id="hud-top">
+      <div class="hud-box" id="hud-lap">LAP 1/3</div>
+      <div class="hud-box hud-time">
+        <span class="hud-label">LAP</span><span id="hud-laptime">0:00.00</span>
+      </div>
+      <div class="hud-box hud-time">
+        <span class="hud-label">TOTAL</span><span id="hud-total">0:00.00</span>
+      </div>
+      <div class="hud-box hidden" id="hud-delta">+0.00</div>
+    </div>
+    <div id="hud-speed"><span id="hud-speed-val">0</span><span class="hud-unit">km/h</span></div>
+    <div id="hud-wrongway" class="hidden">WRONG WAY</div>
+    <div id="hud-toast" class="hidden"></div>
+    <button id="btn-pause" class="hud-btn" aria-label="Pause">II</button>
+    <button id="btn-reset" class="hud-btn touch-only" aria-label="Reset to checkpoint">&#8635;</button>
+  </div>
+
+  <!-- countdown -->
+  <div id="countdown" class="hidden"></div>
+
+  <!-- touch driving controls -->
+  <div id="touch-controls" class="hidden">
+    <div id="steer-zone">
+      <div id="steer-track"><div id="steer-knob"></div></div>
+    </div>
+    <div id="pedals">
+      <div id="pedal-brake" class="pedal">BRAKE</div>
+      <div id="pedal-gas" class="pedal">GAS</div>
+    </div>
+  </div>
+
+  <!-- start menu -->
+  <div id="screen-menu" class="screen">
+    <a id="hub-link" href="../../">&larr; Game Hub</a>
+    <h1>APEX RACER</h1>
+    <p class="subtitle">Time Trial &middot; 3 laps &middot; beat the clock</p>
+    <div id="menu-best" class="menu-best hidden">
+      Best: <span id="menu-best-total">—</span>
+      <span class="menu-best-lap">(best lap <span id="menu-best-lap">—</span>)</span>
+    </div>
+    <button id="btn-start" class="big-btn">START RACE</button>
+    <div class="menu-row">
+      <button id="btn-quality" class="small-btn">QUALITY: MED</button>
+      <button id="btn-mute" class="small-btn">SOUND: ON</button>
+    </div>
+    <p class="hint desktop-only">Drive: WASD / arrows &middot; Reset: R &middot; Pause: P</p>
+    <p class="hint touch-only">Steer: left slider &middot; Gas &amp; brake: right pedals</p>
+    <div id="menu-version" title="Game version"></div>
+  </div>
+
+  <!-- pause -->
+  <div id="screen-pause" class="screen hidden">
+    <h2>PAUSED</h2>
+    <button id="btn-resume" class="big-btn">RESUME</button>
+    <button id="btn-quit" class="small-btn">QUIT TO MENU</button>
+  </div>
+
+  <!-- finish -->
+  <div id="screen-finish" class="screen hidden">
+    <h2 id="finish-title">RACE COMPLETE</h2>
+    <div id="finish-newbest" class="newbest hidden">&#9733; NEW BEST TIME &#9733;</div>
+    <table id="finish-table">
+      <tbody id="finish-laps"></tbody>
+      <tfoot>
+        <tr class="total-row"><td>TOTAL</td><td id="finish-total">—</td></tr>
+        <tr><td>PERSONAL BEST</td><td id="finish-pb">—</td></tr>
+      </tfoot>
+    </table>
+    <button id="btn-restart" class="big-btn">RACE AGAIN</button>
+    <button id="btn-menu" class="small-btn">MENU</button>
+  </div>
+
+  <!-- portrait rotate prompt -->
+  <div id="rotate-overlay">
+    <div class="rotate-icon">&#8634;</div>
+    <p>Rotate your device to landscape</p>
+  </div>
+
+  <!-- fatal error (no WebGL) -->
+  <div id="error-overlay" class="screen hidden">
+    <h2>Unable to start</h2>
+    <p id="error-msg">Your browser does not support WebGL.</p>
+  </div>
+
+  <script src="version.js"></script>
+  <script src="lib/babylon.min.js"></script>
+  <script src="track.js"></script>
+  <script src="car.js"></script>
+  <script src="race.js"></script>
+  <script src="autopilot.js"></script>
+  <script src="input.js"></script>
+  <script src="audio.js"></script>
+  <script src="hud.js"></script>
+  <script src="scene.js"></script>
+  <script src="game.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

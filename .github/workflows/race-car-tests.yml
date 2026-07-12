@@ -1,0 +1,91 @@
+name: Race Car (Apex Racer) tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'games/race-car/**'
+      - '.github/workflows/race-car-tests.yml'
+  pull_request:
+    paths:
+      - 'games/race-car/**'
+      - '.github/workflows/race-car-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: Unit tests (Node, no browser)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run unit + simulated-race tests
+        run: node games/race-car/test-game.js
+
+  e2e:
+    name: E2E (Playwright, headless Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: |
+          npm install playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        run: node games/race-car/test-e2e.js
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: race-car-e2e-screenshots
+          path: games/race-car/test-artifacts/
+          if-no-files-found: ignore
+
+  version-bump:
+    name: Version bump check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify version.js was updated alongside release-facing changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -e
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- games/race-car/)
+          echo "Changed files under games/race-car/:"
+          echo "$CHANGED"
+
+          # Release-facing files: anything except tests, docs, and the version files themselves.
+          RELEASE_CHANGED=$(echo "$CHANGED" | grep -vE '(^games/race-car/test|\.md$|^games/race-car/version\.js$|^games/race-car/update-version\.sh$)' || true)
+
+          if [ -n "$RELEASE_CHANGED" ]; then
+            if ! echo "$CHANGED" | grep -q '^games/race-car/version\.js$'; then
+              echo "::error::This PR changes release-facing race-car files but does not update version.js. Run './update-version.sh X.Y.Z' in games/race-car/ and commit the result (and add a changelog entry)."
+              echo "Release-facing files changed without a version bump:"
+              echo "$RELEASE_CHANGED"
+              exit 1
+            fi
+          fi
+
+          echo "OK"

@@ -202,5 +202,15 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1 Implementation Notes
+The shipped v1 (see `STATUS.md`) finalizes the choices this spec left open:
+**Babylon.js** (vendored in `lib/`, per the No-Build-Step Constraint), a
+custom testable semi-sim physics module rather than a bundled physics engine,
+**procedural geometry/textures/audio instead of `.glb`/KTX2 assets** (initial
+payload ≈ 8 MB, within budget), an on-screen **steering slider** for mobile
+(tilt deferred), and WebGL rendering with the WebGPU enhancement deferred.
+
+---
+
 ## Note on Repository Conventions
 Most other games in this repo use vanilla JavaScript + HTML5 Canvas 2D (see `REPO_STRUCTURE.md`), but games are not required to share a stack — this one intentionally uses a 3D engine (PlayCanvas or Babylon.js) instead, per the decision above. The one hard constraint carried over from the rest of the repo is **no build step**: the game must work by pushing static files and having GitHub Pages serve them directly, with no compile/bundle stage (see the No-Build-Step Constraint above).

@@ -1,0 +1,150 @@
+/*
+ * race.js — lap/checkpoint/timing logic (no BABYLON dependency, testable in
+ * Node). Checkpoint gates must be passed in order; the last gate of each lap
+ * is the start/finish line. Skipping a gate (course cut) means the lap cannot
+ * complete until the player goes back — the clock keeps running.
+ *
+ * Emits events via the `events` array returned from update():
+ *   {type:'gate', gate, globalIndex, clock, delta}   delta vs bestSplits or null
+ *   {type:'lap', lap, time, clock}                   a lap was completed
+ *   {type:'finish', total, lapTimes, clock}          race complete
+ *   {type:'wrongway', active}                        wrong-way state changed
+ *   {type:'missedGate'}                              crossed finish region while
+ *                                                    checkpoints are missing
+ */
+(function (global) {
+  'use strict';
+
+  const CAPTURE = 7;        // m along s within which the next gate registers
+  const REGRESS_ON = 14;    // m of net backward progress -> wrong-way warning
+  const REGRESS_OFF = 4;
+
+  class RaceManager {
+    /*
+     * opts: {
+     *   length: track length (m),
+     *   gateS: [s...] ordered gate positions; LAST entry is start/finish,
+     *   laps: total laps,
+     *   validWidth: max |d| for a gate hit to count,
+     *   bestSplits: array of cumulative times per global gate index (or null),
+     * }
+     */
+    constructor(opts) {
+      this.L = opts.length;
+      this.gateS = opts.gateS.slice();
+      this.lapsTotal = opts.laps || 3;
+      this.validWidth = opts.validWidth || 8;
+      this.bestSplits = opts.bestSplits || null;
+
+      this.lap = 1;
+      this.nextGate = 0;
+      this.splits = [];        // cumulative clock time at each gate hit
+      this.lapTimes = [];
+      this.lapStartClock = 0;
+      this.finished = false;
+      this.wrongWay = false;
+      this._regress = 0;
+      this._lastS = null;
+      this._missedCooldown = 0;
+    }
+
+    get gateCount() { return this.gateS.length; }
+    get finishGateIndex() { return this.gateS.length - 1; }
+    get globalGateIndex() { return (this.lap - 1) * this.gateCount + this.nextGate; }
+
+    // Gate position/direction of the checkpoint the player must reach next.
+    nextGateS() { return this.gateS[this.nextGate]; }
+
+    // Where a manual reset should respawn: the last gate hit (or null if none).
+    lastGateHitS() {
+      const idx = this.nextGate - 1;
+      if (this.lap === 1 && idx < 0) return null;
+      return this.gateS[(idx + this.gateCount) % this.gateCount];
+    }
+
+    wrap(d) {
+      if (d > this.L / 2) d -= this.L;
+      if (d < -this.L / 2) d += this.L;
+      return d;
+    }
+
+    // Called after a manual respawn so stale s deltas don't trip wrong-way.
+    notifyTeleport() {
+      this._lastS = null;
+      this._regress = 0;
+      if (this.wrongWay) this.wrongWay = false;
+    }
+
+    /*
+     * st: {s, d, speed, dt, clock}. Returns array of events (possibly empty).
+     */
+    update(st) {
+      const events = [];
+      if (this.finished) return events;
+
+      // --- wrong-way detection (net backward progress) ---
+      if (this._lastS != null) {
+        const ds = this.wrap(st.s - this._lastS);
+        if (ds < 0) this._regress += -ds;
+        else this._regress = Math.max(0, this._regress - ds * 2);
+        const was = this.wrongWay;
+        if (this._regress > REGRESS_ON && st.speed > 2) this.wrongWay = true;
+        if (this._regress < REGRESS_OFF) this.wrongWay = false;
+        if (was !== this.wrongWay) events.push({ type: 'wrongway', active: this.wrongWay });
+      }
+      this._lastS = st.s;
+      if (this._missedCooldown > 0) this._missedCooldown -= st.dt;
+
+      // --- next-gate capture ---
+      const gs = this.gateS[this.nextGate];
+      const near = Math.abs(this.wrap(st.s - gs)) < CAPTURE;
+      const valid = Math.abs(st.d) < this.validWidth;
+      if (near && valid && st.speed > 0.5 && !this.wrongWay) {
+        const globalIndex = this.globalGateIndex;
+        this.splits.push(st.clock);
+        let delta = null;
+        if (this.bestSplits && this.bestSplits[globalIndex] != null) {
+          delta = st.clock - this.bestSplits[globalIndex];
+        }
+        const isFinish = this.nextGate === this.finishGateIndex;
+        events.push({
+          type: 'gate', gate: this.nextGate, globalIndex,
+          clock: st.clock, delta, isFinish,
+        });
+        this.nextGate = (this.nextGate + 1) % this.gateCount;
+        if (isFinish) {
+          const lapTime = st.clock - this.lapStartClock;
+          this.lapTimes.push(lapTime);
+          events.push({ type: 'lap', lap: this.lap, time: lapTime, clock: st.clock });
+          this.lapStartClock = st.clock;
+          if (this.lap >= this.lapsTotal) {
+            this.finished = true;
+            events.push({
+              type: 'finish', total: st.clock,
+              lapTimes: this.lapTimes.slice(), clock: st.clock,
+            });
+          } else {
+            this.lap++;
+          }
+        }
+      } else if (!near && valid && st.speed > 0.5) {
+        // crossing the finish line region while it is NOT the next gate =
+        // the player skipped checkpoints (course cut)
+        const fin = this.gateS[this.finishGateIndex];
+        const nearFinish = Math.abs(this.wrap(st.s - fin)) < CAPTURE;
+        // splits.length check: the standing start sits just before the line,
+        // so crossing it before gate 0 is expected — not a course cut
+        if (nearFinish && this.nextGate !== this.finishGateIndex &&
+          this.splits.length > 0 && this._missedCooldown <= 0) {
+          this._missedCooldown = 10;
+          events.push({ type: 'missedGate' });
+        }
+      }
+      return events;
+    }
+  }
+
+  const api = { RaceManager, CAPTURE };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  global.RCRace = api;
+})(typeof window !== 'undefined' ? window : globalThis);
