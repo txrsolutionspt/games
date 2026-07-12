@@ -12,6 +12,7 @@ const PRECACHE_URLS = [
   './track.js',
   './car.js',
   './race.js',
+  './ghost.js',
   './autopilot.js',
   './input.js',
   './audio.js',

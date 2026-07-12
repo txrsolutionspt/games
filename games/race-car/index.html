@@ -33,6 +33,7 @@
     <div id="hud-toast" class="hidden"></div>
     <button id="btn-pause" class="hud-btn" aria-label="Pause">II</button>
     <button id="btn-reset" class="hud-btn touch-only" aria-label="Reset to checkpoint">&#8635;</button>
+    <canvas id="minimap" width="150" height="150"></canvas>
   </div>
 
   <!-- countdown -->
@@ -59,9 +60,11 @@
       <span class="menu-best-lap">(best lap <span id="menu-best-lap">—</span>)</span>
     </div>
     <button id="btn-start" class="big-btn">START RACE</button>
+    <button id="btn-track" class="small-btn track-btn">TRACK: APEX GP</button>
     <div class="menu-row">
       <button id="btn-quality" class="small-btn">QUALITY: MED</button>
       <button id="btn-mute" class="small-btn">SOUND: ON</button>
+      <button id="btn-ghost" class="small-btn">GHOST: ON</button>
     </div>
     <p class="hint desktop-only">Drive: WASD / arrows &middot; Reset: R &middot; Pause: P</p>
     <p class="hint touch-only">Steer: left slider &middot; Gas &amp; brake: right pedals</p>
@@ -107,6 +110,7 @@
   <script src="track.js"></script>
   <script src="car.js"></script>
   <script src="race.js"></script>
+  <script src="ghost.js"></script>
   <script src="autopilot.js"></script>
   <script src="input.js"></script>
   <script src="audio.js"></script>

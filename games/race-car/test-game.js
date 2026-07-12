@@ -12,6 +12,7 @@ const RCTrack = require('./track.js');
 const { Car } = require('./car.js');
 const { RaceManager } = require('./race.js');
 const { createAutopilot } = require('./autopilot.js');
+const RCGhost = require('./ghost.js');
 
 let passed = 0, failed = 0;
 function check(name, cond, detail) {
@@ -387,6 +388,122 @@ section('race logic');
   }
   check('delta vs best splits computed', firstDelta != null &&
     Number.isFinite(firstDelta), `delta=${firstDelta}`);
+}
+
+// ---------------------------------------------------------- all tracks
+section('all tracks: invariants + drivability');
+check('at least 2 tracks registered', RCTrack.trackIds().length >= 2,
+  RCTrack.trackIds().join(','));
+for (const id of RCTrack.trackIds()) {
+  const t = RCTrack.build(id);
+  check(`[${id}] has a display name`, typeof t.name === 'string' && t.name.length > 0);
+  check(`[${id}] has a palette`, !!t.palette && Array.isArray(t.palette.grass));
+  check(`[${id}] lap length plausible`, t.length > 800 && t.length < 2500,
+    `L=${t.length.toFixed(0)}`);
+  // closed loop + no ribbon overlap
+  {
+    const a = t.samples[0], b = t.samples[t.samples.length - 1];
+    check(`[${id}] loop closes`, Math.hypot(a.x - b.x, a.z - b.z) < t.step * 2);
+    let minD = Infinity;
+    const n = t.samples.length, skip = Math.round(30 / t.step);
+    for (let i = 0; i < n; i++) {
+      for (let j = i + skip; j < n; j++) {
+        if (n - (j - i) < skip) continue;
+        const p = t.samples[i], q = t.samples[j];
+        const d = Math.hypot(p.x - q.x, p.z - q.z);
+        if (d < minD) minD = d;
+      }
+    }
+    check(`[${id}] no ribbon self-overlap`, minD > 2 * (t.halfWidth + t.shoulder),
+      `min=${minD.toFixed(1)}`);
+  }
+  check(`[${id}] 12 ordered gates, finish at s~0`, t.gates.length === 12 &&
+    (t.gates[11].s < t.step * 2 || t.length - t.gates[11].s < t.step * 2));
+  check(`[${id}] has kerbs and walls`, t.kerbs.length >= 1 && t.walls.length >= 1,
+    `kerbs=${t.kerbs.length} walls=${t.walls.length}`);
+
+  // drivability: autopilot completes one validated lap
+  {
+    const car = new Car();
+    car.reset(t.startPose.x, t.startPose.z, t.startPose.theta);
+    const auto = createAutopilot(t);
+    const rm = new RaceManager({
+      length: t.length, gateS: t.gates.map((g) => g.s), laps: 1,
+      validWidth: t.halfWidth + 3.5,
+    });
+    const dt = 1 / 60;
+    let clock = 0, hint = null, lapTime = null;
+    for (let i = 0; i < 60 * 180 && !rm.finished; i++) {
+      const q = RCTrack.query(t, car.x, car.z, hint);
+      hint = q.idx;
+      const input = auto.drive(car, q);
+      const onTrack = Math.abs(q.d) <= t.halfWidth + 0.3;
+      car.step(dt, input, onTrack ? { grip: 1 } : { grip: 0.55, extraDrag: 900 });
+      const q2 = RCTrack.query(t, car.x, car.z, hint);
+      hint = q2.idx;
+      const wall = RCTrack.wallAt(t, q2.idx);
+      if (wall) car.hitWall(q2, wall);
+      clock += dt;
+      for (const ev of rm.update({ s: q2.s, d: q2.d, speed: car.speed, dt, clock })) {
+        if (ev.type === 'lap') lapTime = ev.time;
+      }
+    }
+    check(`[${id}] autopilot laps it`, rm.finished,
+      lapTime ? `lap=${lapTime.toFixed(1)}s` : 'did not finish');
+  }
+}
+
+// ----------------------------------------------------------------- ghost
+section('ghost recording & playback');
+{
+  // record a synthetic run: straight line at 20 m/s, heading slowly rotating
+  const rec = RCGhost.createRecorder();
+  const dt = 1 / 60;
+  for (let i = 0; i <= 60 * 10; i++) {
+    const t = i * dt;
+    rec.add(t, 20 * t, 5, 0.1 * t);
+  }
+  check('recorder samples on its interval', Math.abs(rec.sampleCount - 101) <= 1,
+    `count=${rec.sampleCount}`);
+
+  const data = rec.serialize();
+  check('serialized form is compact ints', data.f === 1 && Array.isArray(data.p) &&
+    data.p.every((v) => Number.isInteger(v)));
+
+  // JSON round-trip (as localStorage would do)
+  const player = RCGhost.createPlayer(JSON.parse(JSON.stringify(data)));
+  check('player accepts serialized data', player != null);
+  check('duration ~10 s', Math.abs(player.duration - 10) < 0.2, `d=${player.duration}`);
+
+  // interpolated pose between samples matches the synthetic path
+  const pose = player.sampleAt(5.05);
+  check('interpolates x', Math.abs(pose.x - 20 * 5.05) < 0.3, `x=${pose.x.toFixed(1)}`);
+  check('interpolates z', Math.abs(pose.z - 5) < 0.2, `z=${pose.z.toFixed(2)}`);
+  check('interpolates theta', Math.abs(pose.theta - 0.505) < 0.03,
+    `th=${pose.theta.toFixed(3)}`);
+  check('clamps t<0 to start', player.sampleAt(-1).x === player.sampleAt(0).x);
+  check('returns null after the recording ends', player.sampleAt(11) === null);
+
+  // slow-frame catch-up: one add() spanning several intervals fills them all
+  const rec2 = RCGhost.createRecorder();
+  rec2.add(0, 0, 0, 0);
+  rec2.add(0.55, 11, 0, 0);
+  // samples at t = 0, .1, .2, .3, .4, .5 -> 6
+  check('slow frames still produce every sample', rec2.sampleCount === 6,
+    `count=${rec2.sampleCount}`);
+
+  // heading interpolation takes the short way across the PI boundary
+  const rec3 = RCGhost.createRecorder();
+  rec3.add(0, 0, 0, 3.1);
+  rec3.add(0.1, 1, 0, -3.1);
+  const p3 = RCGhost.createPlayer(rec3.serialize());
+  const mid = p3.sampleAt(0.05);
+  check('theta wraps the short way', Math.abs(mid.theta) > 3.1 || Math.abs(mid.theta) < 0.2,
+    `th=${mid.theta.toFixed(2)}`);
+
+  check('rejects garbage data', RCGhost.createPlayer(null) === null &&
+    RCGhost.createPlayer({ f: 99, p: [1, 2, 3] }) === null &&
+    RCGhost.createPlayer({ f: 1, p: [1, 2, 3] }) === null);
 }
 
 // ------------------------------------------------- end-to-end: autopilot

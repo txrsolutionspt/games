@@ -69,6 +69,25 @@ function check(name, cond, detail) {
     `shown="${versionText}" expected="v${expectedVersion}"`);
   await page.screenshot({ path: path.join(SHOTS, '01-menu.png') });
 
+  // ---------- track selection ----------
+  const track0 = await page.evaluate(() => window.__rc.trackId);
+  const label0 = await page.textContent('#btn-track');
+  await page.click('#btn-track');
+  await page.waitForTimeout(600);
+  const track1 = await page.evaluate(() => window.__rc.trackId);
+  const label1 = await page.textContent('#btn-track');
+  check('track button switches track', track1 !== track0 && label1 !== label0,
+    `${track0}->${track1}`);
+  check('scene rebuilt without errors', errors.length === 0, errors.slice(0, 3).join(' | '));
+  // cycle back so the rest of the test runs on the default track
+  const ids = await page.evaluate(() => RCTrack.trackIds().length);
+  for (let i = 0; i < ids - 1; i++) {
+    await page.click('#btn-track');
+    await page.waitForTimeout(400);
+  }
+  check('cycled back to first track',
+    await page.evaluate((t) => window.__rc.trackId === t, track0));
+
   // ---------- start race ----------
   await page.click('#btn-start');
   await page.waitForTimeout(300);
@@ -92,6 +111,14 @@ function check(name, cond, detail) {
   const spdText = await page.textContent('#hud-speed-val');
   check('HUD lap time ticking', /\d:\d\d\.\d\d/.test(lapText) && lapText !== '0:00.00', lapText);
   check('HUD speed > 0', parseInt(spdText, 10) > 20, spdText);
+  check('minimap visible during race', await page.isVisible('#minimap'));
+  check('minimap has drawn pixels', await page.evaluate(() => {
+    const mmCanvas = document.getElementById('minimap');
+    const data = mmCanvas.getContext('2d').getImageData(0, 0,
+      mmCanvas.width, mmCanvas.height).data;
+    for (let i = 3; i < data.length; i += 4) if (data[i] > 0) return true;
+    return false;
+  }));
 
   // keep driving straight until past first gate (gate 0 at ~1/12 of lap)
   let gateInfo = null;
@@ -131,6 +158,8 @@ function check(name, cond, detail) {
 
   // ---------- full lap with autopilot (finish screen) ----------
   if (FULL) {
+    // free the CPU for the rendered lap (software GL is slow enough already)
+    await page.close();
     const page2 = await browser.newPage({ viewport: { width: 900, height: 480 } });
     const errors2 = [];
     page2.on('console', (m) => { if (m.type() === 'error') errors2.push(m.text()); });
@@ -138,16 +167,32 @@ function check(name, cond, detail) {
     await page2.goto('http://localhost:8901/games/race-car/?laps=1&auto=1', { waitUntil: 'load' });
     await page2.waitForTimeout(1500);
     await page2.click('#btn-start');
-    console.log('  ... autopilot lapping (up to 2.5 min real time)');
+    console.log('  ... autopilot lapping (up to 4 min real time)');
     try {
-      await page2.waitForSelector('#screen-finish:not(.hidden)', { timeout: 150000 });
+      await page2.waitForSelector('#screen-finish:not(.hidden)', { timeout: 240000 });
       check('autopilot finishes a rendered lap (finish screen)', true);
       const total = await page2.textContent('#finish-total');
       check('finish total shown', /\d:\d\d\.\d\d/.test(total), total);
       const best = await page2.evaluate(() =>
-        window.__rc.store.get('best.1laps.total', null));
-      check('best time persisted', best != null && best > 30, String(best));
+        window.__rc.store.get('best.apex.1laps.total', null));
+      check('best time persisted (per-track key)', best != null && best > 30, String(best));
+      const ghostData = await page2.evaluate(() =>
+        window.__rc.store.get('best.apex.1laps.ghost', null));
+      check('ghost recording persisted with best', ghostData != null &&
+        Array.isArray(ghostData.p) && ghostData.p.length > 100,
+        ghostData ? `samples=${ghostData.p.length / 3}` : 'null');
       await page2.screenshot({ path: path.join(SHOTS, '05-finish.png') });
+
+      // restart: the saved best should now play back as a ghost
+      await page2.click('#btn-restart');
+      await page2.waitForFunction(() =>
+        window.__rc.state === window.__rc.STATE.RACING, null, { timeout: 20000 });
+      await page2.waitForFunction(() => window.__rc.ghostActive, null, { timeout: 15000 })
+        .catch(() => {});
+      check('ghost replays on the next run',
+        await page2.evaluate(() => window.__rc.ghostActive));
+      await page2.waitForTimeout(4000);
+      await page2.screenshot({ path: path.join(SHOTS, '10-ghost.png') });
     } catch (e) {
       const st = await page2.evaluate(() => ({
         state: window.__rc.state, lap: window.__rc.race && window.__rc.race.nextGate,
