@@ -356,6 +356,15 @@
     scene.render();
   }
 
+  // ---------------- version display ----------------
+  if (typeof VERSION_INFO !== 'undefined') {
+    const vEl = document.getElementById('menu-version');
+    if (vEl) {
+      vEl.textContent = VERSION_INFO.getVersionString();
+      vEl.title = VERSION_INFO.getDetailedInfo();
+    }
+  }
+
   // ---------------- start ----------------
   goToMenu();
   syncCarNodes(true);

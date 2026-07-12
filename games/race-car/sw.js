@@ -1,8 +1,13 @@
-const CACHE_NAME = 'apex-racer-cache-v1';
+importScripts('./version.js');
+
+// cache name follows the game version so every release invalidates cleanly
+const CACHE_NAME = 'apex-racer-cache-v' +
+  (typeof VERSION_INFO !== 'undefined' ? VERSION_INFO.version : 'dev');
 const PRECACHE_URLS = [
   './',
   './index.html',
   './style.css',
+  './version.js',
   './lib/babylon.min.js',
   './track.js',
   './car.js',

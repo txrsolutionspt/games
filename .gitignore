@@ -1,0 +1,7 @@
+# dependencies installed for local/CI test runs (no build step — nothing here ships)
+node_modules/
+/package.json
+/package-lock.json
+
+# e2e test output
+games/race-car/test-artifacts/

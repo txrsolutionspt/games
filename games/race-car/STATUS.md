@@ -1,6 +1,7 @@
 # Apex Racer (Race Car Game) — Status Report
 
 **Date:** 2026-07-12
+**Version:** 1.0.0 (see `version.js`)
 **Status:** ✅ Playable — full v1 per `design.md`
 
 ---
@@ -36,7 +37,9 @@ installable.
 | `hud.js` | DOM overlay: timers, deltas, toasts, screens |
 | `scene.js` | Babylon scene: road ribbon, kerbs/barriers (thin instances), trees, gantry, car meshes, camera, quality tiers |
 | `game.js` | State machine (MENU/COUNTDOWN/RACING/PAUSED/FINISHED) + loop |
-| `test-game.js` | Node test suite — run `node test-game.js` |
+| `test-game.js` | Node unit/simulation test suite — run `node test-game.js` |
+| `test-e2e.js` | Playwright e2e suite (headless Chromium) — `node test-e2e.js [--full]` |
+| `version.js` | Version info (page + service worker + tests); bump via `./update-version.sh X.Y.Z` |
 | `lib/babylon.min.js` | Vendored engine (pinned, see `lib/VERSION.md`) |
 | `manifest.json`, `sw.js`, `icon-*.png` | PWA (landscape, offline-capable) |
 
@@ -54,6 +57,26 @@ installable.
   pause/resume (clock freezes), a full rendered autopilot lap through to the
   finish screen with persisted best time, mobile touch controls (pedal
   acceleration verified), and the portrait rotate overlay.
+
+## CI
+
+`.github/workflows/race-car-tests.yml` runs on every PR/push touching
+`games/race-car/`:
+
+1. **unit** — `node test-game.js` (no dependencies)
+2. **e2e** — installs Playwright + Chromium, runs `node test-e2e.js`
+   (quick mode; `--full` adds a complete rendered autopilot lap and can be
+   run locally), uploads screenshots as workflow artifacts
+3. **version-bump** (PRs only) — fails if release-facing files change
+   without a `version.js` bump, mirroring the tower-defense convention
+
+## Versioning
+
+`version.js` is the single source of truth: the menu screen displays it, the
+service worker derives its cache name from it (so each release invalidates
+the previous offline cache), and the e2e suite asserts the displayed version
+matches. To release: `./update-version.sh X.Y.Z`, add a changelog entry at
+the top of the changelog in `version.js`, commit.
 
 ## Debug URL Parameters
 
