@@ -10,7 +10,7 @@
 
 const RCTrack = require('./track.js');
 const { Car } = require('./car.js');
-const { RaceManager } = require('./race.js');
+const { RaceManager, medalFor } = require('./race.js');
 const { createAutopilot } = require('./autopilot.js');
 const RCGhost = require('./ghost.js');
 
@@ -390,6 +390,54 @@ section('race logic');
     Number.isFinite(firstDelta), `delta=${firstDelta}`);
 }
 
+// --------------------------------------------------------------- sectors
+section('sector timing');
+{
+  const gateS = track.gates.map((g) => g.s);
+  const rm = new RaceManager({ length: track.length, gateS, laps: 2, validWidth: 8 });
+  let s = track.length - 6, clock = 0;
+  const dt = 1 / 60;
+  const sectors = [];
+  const laps = [];
+  for (let i = 0; i < 60 * 60 * 4 && !rm.finished; i++) {
+    s = (s + 30 * dt) % track.length;
+    clock += dt;
+    for (const ev of rm.update({ s, d: 0, speed: 30, dt, clock })) {
+      if (ev.type === 'sector') sectors.push(ev);
+      if (ev.type === 'lap') laps.push(ev);
+    }
+  }
+  check('3 sectors per lap (6 over 2 laps)', sectors.length === 6,
+    `count=${sectors.length}`);
+  check('sector indices cycle 0,1,2', sectors.map((e) => e.sector).join('') === '012012');
+  const lap1Sectors = sectors.slice(0, 3).reduce((a, e) => a + e.time, 0);
+  check('lap 1 sectors sum to lap 1 time', Math.abs(lap1Sectors - laps[0].time) < 0.05,
+    `sum=${lap1Sectors.toFixed(2)} lap=${laps[0].time.toFixed(2)}`);
+  const lap2Sectors = sectors.slice(3).reduce((a, e) => a + e.time, 0);
+  check('lap 2 sectors sum to lap 2 time', Math.abs(lap2Sectors - laps[1].time) < 0.05);
+  check('sector events carry the lap number', sectors[0].lap === 1 && sectors[5].lap === 2);
+}
+
+// ---------------------------------------------------------------- medals
+section('medals');
+{
+  const targets = { gold: 60, silver: 70, bronze: 85 };
+  check('gold at/below gold target', medalFor(180, targets, 3) === 'gold');
+  check('silver between gold and silver', medalFor(195, targets, 3) === 'silver');
+  check('bronze between silver and bronze', medalFor(250, targets, 3) === 'bronze');
+  check('no medal above bronze target', medalFor(300, targets, 3) === null);
+  check('scales with lap count', medalFor(60, targets, 1) === 'gold' &&
+    medalFor(61, targets, 1) === 'silver');
+  check('null-safe', medalFor(null, targets, 3) === null &&
+    medalFor(100, null, 3) === null && medalFor(100, targets, 0) === null);
+  for (const id of RCTrack.trackIds()) {
+    const t = RCTrack.build(id);
+    check(`[${id}] has ordered medal targets`, !!t.medals &&
+      t.medals.gold < t.medals.silver && t.medals.silver < t.medals.bronze,
+      JSON.stringify(t.medals));
+  }
+}
+
 // ---------------------------------------------------------- all tracks
 section('all tracks: invariants + drivability');
 check('at least 2 tracks registered', RCTrack.trackIds().length >= 2,
@@ -450,6 +498,11 @@ for (const id of RCTrack.trackIds()) {
     }
     check(`[${id}] autopilot laps it`, rm.finished,
       lapTime ? `lap=${lapTime.toFixed(1)}s` : 'did not finish');
+    // medal targets must be humanly reachable: the conservative autopilot
+    // should earn at least bronze
+    check(`[${id}] autopilot earns a medal`, rm.finished &&
+      medalFor(lapTime, t.medals, 1) != null,
+      lapTime ? `lap=${lapTime.toFixed(1)} bronze=${t.medals.bronze}` : '');
   }
 }
 

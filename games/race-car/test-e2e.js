@@ -67,6 +67,8 @@ function check(name, cond, detail) {
   const expectedVersion = require('./version.js').version;
   check('version displayed on menu', versionText === 'v' + expectedVersion,
     `shown="${versionText}" expected="v${expectedVersion}"`);
+  check('medal targets shown on menu', await page.evaluate(() =>
+    document.querySelectorAll('#menu-medals .medal-target').length === 3));
   await page.screenshot({ path: path.join(SHOTS, '01-menu.png') });
 
   // ---------- track selection ----------
@@ -169,8 +171,24 @@ function check(name, cond, detail) {
     await page2.click('#btn-start');
     console.log('  ... autopilot lapping (up to 4 min real time)');
     try {
+      // a sector completes about a third of the way around
+      await page2.waitForFunction(() =>
+        window.__rc.race && window.__rc.race.sectorTimes.length >= 1,
+        null, { timeout: 120000 });
+      check('sector time recorded mid-lap', true);
       await page2.waitForSelector('#screen-finish:not(.hidden)', { timeout: 240000 });
       check('autopilot finishes a rendered lap (finish screen)', true);
+      check('finish medal banner shown', await page2.evaluate(() => {
+        const m = document.getElementById('finish-medal');
+        return !m.classList.contains('hidden') && m.textContent.length > 0;
+      }));
+      check('finish stats populated', await page2.evaluate(() =>
+        document.querySelectorAll('#finish-stats .stat').length >= 4));
+      const sectorBests = await page2.evaluate(() =>
+        window.__rc.store.get('best.apex.sectors', null));
+      check('sector bests persisted', Array.isArray(sectorBests) &&
+        sectorBests.length === 3 && sectorBests.every((v) => v > 0),
+        JSON.stringify(sectorBests));
       const total = await page2.textContent('#finish-total');
       check('finish total shown', /\d:\d\d\.\d\d/.test(total), total);
       const best = await page2.evaluate(() =>

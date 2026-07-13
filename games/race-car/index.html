@@ -27,6 +27,7 @@
         <span class="hud-label">TOTAL</span><span id="hud-total">0:00.00</span>
       </div>
       <div class="hud-box hidden" id="hud-delta">+0.00</div>
+      <div class="hud-box hidden" id="hud-sector">S1 0:00.00</div>
     </div>
     <div id="hud-speed"><span id="hud-speed-val">0</span><span class="hud-unit">km/h</span></div>
     <div id="hud-wrongway" class="hidden">WRONG WAY</div>
@@ -59,6 +60,7 @@
       Best: <span id="menu-best-total">—</span>
       <span class="menu-best-lap">(best lap <span id="menu-best-lap">—</span>)</span>
     </div>
+    <div id="menu-medals" class="menu-medals"></div>
     <button id="btn-start" class="big-btn">START RACE</button>
     <button id="btn-track" class="small-btn track-btn">TRACK: APEX GP</button>
     <div class="menu-row">
@@ -82,6 +84,7 @@
   <div id="screen-finish" class="screen hidden">
     <h2 id="finish-title">RACE COMPLETE</h2>
     <div id="finish-newbest" class="newbest hidden">&#9733; NEW BEST TIME &#9733;</div>
+    <div id="finish-medal" class="finish-medal hidden"></div>
     <table id="finish-table">
       <tbody id="finish-laps"></tbody>
       <tfoot>
@@ -89,6 +92,7 @@
         <tr><td>PERSONAL BEST</td><td id="finish-pb">—</td></tr>
       </tfoot>
     </table>
+    <div id="finish-stats" class="finish-stats"></div>
     <button id="btn-restart" class="big-btn">RACE AGAIN</button>
     <button id="btn-menu" class="small-btn">MENU</button>
   </div>

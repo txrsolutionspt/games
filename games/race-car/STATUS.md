@@ -1,9 +1,10 @@
 # Apex Racer (Race Car Game) — Status Report
 
-**Date:** 2026-07-12
-**Version:** 1.1.0 (see `version.js`)
-**Status:** ✅ Playable — v1 per `design.md`, plus v1.1 features (ghost
-replay, second track + track selection, minimap)
+**Date:** 2026-07-13
+**Version:** 1.2.0 (see `version.js`)
+**Status:** ✅ Playable — v1 per `design.md`, plus v1.1 (ghost replay,
+second track + track selection, minimap) and v1.2 (sector timing,
+medals, post-race stats)
 
 ---
 
@@ -32,7 +33,7 @@ installable.
 | `track.js` | Pure geometry + track registry (`apex`, `coastal` with per-track palettes): Catmull-Rom centerline, arc-length resampling, curvature, procedural kerb/barrier placement, checkpoint gates, nearest-point queries |
 | `ghost.js` | Pure ghost record/playback: fixed-interval pose sampling, quantized serialization, interpolated replay |
 | `car.js` | Pure physics: semi-sim vehicle model + track-relative barrier collision |
-| `race.js` | Pure race logic: ordered checkpoint validation, lap/total timing, splits & deltas, wrong-way and course-cut detection |
+| `race.js` | Pure race logic: ordered checkpoint validation, lap/total/sector timing, splits & deltas, medal helper, wrong-way and course-cut detection |
 | `autopilot.js` | Pursuit driver for automated tests / `?auto=1` demo mode |
 | `input.js` | Unified VehicleControl layer: keyboard + multi-touch UI |
 | `audio.js` | Procedural Web Audio: engine pitch, tire screech, beeps, jingles |

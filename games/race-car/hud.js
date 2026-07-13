@@ -31,8 +31,11 @@
       qualityBtn: $('btn-quality'), muteBtn: $('btn-mute'),
       ghostBtn: $('btn-ghost'), trackBtn: $('btn-track'),
       minimap: $('minimap'),
+      sector: $('hud-sector'), menuMedals: $('menu-medals'),
+      finishMedal: $('finish-medal'), finishStats: $('finish-stats'),
     };
-    let toastTimer = null, deltaTimer = null;
+    let toastTimer = null, deltaTimer = null, sectorTimer = null;
+    const MEDAL_ICONS = { gold: '\u{1F947}', silver: '\u{1F948}', bronze: '\u{1F949}' };
 
     // ---- minimap: track outline cached as a Path2D + fit transform ----
     const mm = { path: null, sx: 1, sz: 1, ox: 0, oz: 0, start: null };
@@ -111,6 +114,13 @@
         deltaTimer = setTimeout(() => show(el.delta, false), 3200);
       },
       hideDelta() { show(el.delta, false); },
+      showSector(sector, time, tier) {
+        el.sector.textContent = 'S' + (sector + 1) + '  ' + fmt(time);
+        el.sector.className = 'hud-box sector-' + tier;
+        show(el.sector, true);
+        clearTimeout(sectorTimer);
+        sectorTimer = setTimeout(() => show(el.sector, false), 3000);
+      },
       setWrongWay(on) { show(el.wrongway, on); },
       toast(msg, ms) {
         el.toast.textContent = msg;
@@ -135,7 +145,18 @@
         el.menuBestTotal.textContent = fmt(total);
         el.menuBestLap.textContent = fmt(lap);
       },
-      fillFinish(lapTimes, total, pb, isNewBest) {
+      // medals: per-lap targets from the track registry; earned: medal id or null
+      setMenuMedals(medals, laps, earned) {
+        if (!el.menuMedals) return;
+        el.menuMedals.innerHTML = '';
+        for (const tier of ['gold', 'silver', 'bronze']) {
+          const span = document.createElement('span');
+          span.className = 'medal-target' + (earned === tier ? ' earned' : '');
+          span.textContent = MEDAL_ICONS[tier] + ' ' + fmt(medals[tier] * laps);
+          el.menuMedals.appendChild(span);
+        }
+      },
+      fillFinish(lapTimes, total, pb, isNewBest, extra) {
         el.finishLaps.innerHTML = '';
         const best = Math.min.apply(null, lapTimes);
         lapTimes.forEach((t, i) => {
@@ -152,6 +173,57 @@
         el.finishTotal.textContent = fmt(total);
         el.finishPb.textContent = fmt(pb);
         show(el.finishNewBest, !!isNewBest);
+
+        // medal banner (earned) or the next target to chase
+        if (el.finishMedal && extra && extra.medals) {
+          if (extra.medal) {
+            el.finishMedal.textContent =
+              MEDAL_ICONS[extra.medal] + ' ' + extra.medal.toUpperCase() + ' MEDAL';
+            el.finishMedal.className = 'finish-medal medal-' + extra.medal;
+          } else {
+            el.finishMedal.textContent =
+              'Target: ' + MEDAL_ICONS.bronze + ' ' + fmt(extra.medals.bronze * extra.laps);
+            el.finishMedal.className = 'finish-medal medal-none';
+          }
+          // hint the next tier up when one was earned but not gold
+          if (extra.medal === 'bronze' || extra.medal === 'silver') {
+            const next = extra.medal === 'bronze' ? 'silver' : 'gold';
+            el.finishMedal.textContent += '  ·  next: ' +
+              MEDAL_ICONS[next] + ' ' + fmt(extra.medals[next] * extra.laps);
+          }
+          show(el.finishMedal, true);
+        } else if (el.finishMedal) {
+          show(el.finishMedal, false);
+        }
+
+        // driving stats
+        if (el.finishStats && extra && extra.stats) {
+          const s = extra.stats;
+          const spread = lapTimes.length > 1
+            ? Math.max.apply(null, lapTimes) - Math.min.apply(null, lapTimes)
+            : null;
+          const rows = [
+            ['Top speed', Math.round(s.topSpeed * 3.6) + ' km/h'],
+            ['Time off track', s.offTrack.toFixed(1) + ' s'],
+            ['Drift time', s.driftTime.toFixed(1) + ' s'],
+            ['Resets', String(s.resets)],
+          ];
+          if (spread != null) rows.push(['Lap consistency', '±' + fmt(spread)]);
+          el.finishStats.innerHTML = '';
+          for (const [label, value] of rows) {
+            const div = document.createElement('div');
+            div.className = 'stat';
+            const l = document.createElement('span');
+            l.className = 'stat-label';
+            l.textContent = label;
+            const v = document.createElement('span');
+            v.className = 'stat-value';
+            v.textContent = value;
+            div.appendChild(l);
+            div.appendChild(v);
+            el.finishStats.appendChild(div);
+          }
+        }
       },
       setQualityLabel(q) { el.qualityBtn.textContent = 'QUALITY: ' + q.toUpperCase(); },
       setMuteLabel(muted) { el.muteBtn.textContent = 'SOUND: ' + (muted ? 'OFF' : 'ON'); },

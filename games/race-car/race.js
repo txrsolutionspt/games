@@ -6,6 +6,8 @@
  *
  * Emits events via the `events` array returned from update():
  *   {type:'gate', gate, globalIndex, clock, delta}   delta vs bestSplits or null
+ *   {type:'sector', sector, time, lap, clock}        a track sector (third of a
+ *                                                    lap) was completed
  *   {type:'lap', lap, time, clock}                   a lap was completed
  *   {type:'finish', total, lapTimes, clock}          race complete
  *   {type:'wrongway', active}                        wrong-way state changed
@@ -18,6 +20,7 @@
   const CAPTURE = 7;        // m along s within which the next gate registers
   const REGRESS_ON = 14;    // m of net backward progress -> wrong-way warning
   const REGRESS_OFF = 4;
+  const SECTORS = 3;        // timing sectors per lap
 
   class RaceManager {
     /*
@@ -41,6 +44,10 @@
       this.splits = [];        // cumulative clock time at each gate hit
       this.lapTimes = [];
       this.lapStartClock = 0;
+      // a lap divides into SECTORS sectors of gateCount/SECTORS gates each
+      this.sectorSize = Math.max(1, Math.floor(this.gateS.length / SECTORS));
+      this.sectorStartClock = 0;
+      this.sectorTimes = [];   // all sector times in order, across laps
       this.finished = false;
       this.wrongWay = false;
       this._regress = 0;
@@ -111,12 +118,24 @@
           type: 'gate', gate: this.nextGate, globalIndex,
           clock: st.clock, delta, isFinish,
         });
+        // sector boundary: every sectorSize-th gate closes a sector
+        if ((this.nextGate + 1) % this.sectorSize === 0 &&
+          (this.nextGate + 1) / this.sectorSize <= SECTORS) {
+          const sector = (this.nextGate + 1) / this.sectorSize - 1;
+          const sectorTime = st.clock - this.sectorStartClock;
+          this.sectorTimes.push(sectorTime);
+          this.sectorStartClock = st.clock;
+          events.push({
+            type: 'sector', sector, time: sectorTime, lap: this.lap, clock: st.clock,
+          });
+        }
         this.nextGate = (this.nextGate + 1) % this.gateCount;
         if (isFinish) {
           const lapTime = st.clock - this.lapStartClock;
           this.lapTimes.push(lapTime);
           events.push({ type: 'lap', lap: this.lap, time: lapTime, clock: st.clock });
           this.lapStartClock = st.clock;
+          this.sectorStartClock = st.clock; // no-op when gates divide evenly
           if (this.lap >= this.lapsTotal) {
             this.finished = true;
             events.push({
@@ -144,7 +163,20 @@
     }
   }
 
-  const api = { RaceManager, CAPTURE };
+  /*
+   * Medal for a total race time. targets: per-lap seconds {gold, silver,
+   * bronze} (from the track registry), scaled by lap count so medals work
+   * for any ?laps= setting. Returns 'gold' | 'silver' | 'bronze' | null.
+   */
+  function medalFor(total, targets, laps) {
+    if (total == null || !targets || !laps) return null;
+    if (total <= targets.gold * laps) return 'gold';
+    if (total <= targets.silver * laps) return 'silver';
+    if (total <= targets.bronze * laps) return 'bronze';
+    return null;
+  }
+
+  const api = { RaceManager, medalFor, CAPTURE, SECTORS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.RCRace = api;
 })(typeof window !== 'undefined' ? window : globalThis);
