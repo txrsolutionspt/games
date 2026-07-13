@@ -202,6 +202,15 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1.2 Implementation Notes
+v1.2.0 deepened the time-trial loop: **sector timing** (3 sectors per lap,
+purple/green HUD flashes, persisted per-track sector bests), **medals**
+(gold/silver/bronze per-lap target times in the track registry, scaled by
+lap count, shown on menu and finish screens), and **post-race driving
+stats** (top speed, off-track time, drift time, resets, lap consistency).
+
+---
+
 ## v1.1 Implementation Notes
 v1.1.0 shipped the two items this spec called out as natural follow-ups:
 **ghost replay** of the player's best run (recorded per track, replayed as a

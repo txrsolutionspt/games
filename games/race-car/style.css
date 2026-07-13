@@ -68,6 +68,10 @@ html, body {
 #hud-delta.ahead { color: #4ade80; border-color: rgba(74, 222, 128, 0.5); }
 #hud-delta.behind { color: #f87171; border-color: rgba(248, 113, 113, 0.5); }
 
+#hud-sector.sector-purple { color: #c084fc; border-color: rgba(192, 132, 252, 0.6); }
+#hud-sector.sector-green { color: #4ade80; border-color: rgba(74, 222, 128, 0.5); }
+#hud-sector.sector-plain { color: #e8ecf5; }
+
 #hud-speed {
   position: absolute;
   right: max(14px, env(safe-area-inset-right));
@@ -258,6 +262,36 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 .menu-best-lap { font-size: 13px; opacity: 0.8; font-weight: 400; }
+
+.menu-medals { display: flex; gap: 14px; font-variant-numeric: tabular-nums; }
+.medal-target { font-size: 14px; opacity: 0.55; }
+.medal-target.earned {
+  opacity: 1;
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(255, 209, 102, 0.55);
+}
+
+.finish-medal {
+  font-size: clamp(16px, 3vw, 22px);
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.finish-medal.medal-gold { color: #ffd166; }
+.finish-medal.medal-silver { color: #cbd5e1; }
+.finish-medal.medal-bronze { color: #d69a6b; }
+.finish-medal.medal-none { color: #9fb0d0; font-weight: 600; font-size: 15px; }
+
+.finish-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, auto));
+  gap: 4px 26px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.finish-stats .stat { display: flex; justify-content: space-between; gap: 14px; }
+.finish-stats .stat-label { opacity: 0.6; }
+.finish-stats .stat-value { font-weight: 700; }
 
 .big-btn {
   font-size: 20px;

@@ -48,6 +48,9 @@
         fog: [0.66, 0.78, 0.9],
         clear: [0.62, 0.78, 0.92],
       },
+      // per-lap medal target times, seconds (silver ~ the test autopilot's
+      // clean-lap pace; gold demands proper racing lines)
+      medals: { gold: 66, silver: 74, bronze: 88 },
     },
     coastal: {
       name: 'COASTAL RING',
@@ -75,6 +78,7 @@
         fog: [0.85, 0.8, 0.68],
         clear: [0.8, 0.78, 0.7],
       },
+      medals: { gold: 60, silver: 68, bronze: 81 },
     },
   };
   const DEFAULT_TRACK = 'apex';
@@ -246,7 +250,7 @@
     const startPose = { x: st.x, z: st.z, theta: Math.atan2(st.tz, st.tx), s: st.s };
 
     return {
-      id, name: def.name, palette: def.palette,
+      id, name: def.name, palette: def.palette, medals: def.medals,
       samples, length, step,
       halfWidth: HALF_WIDTH, shoulder: SHOULDER, wallOffset: WALL_OFFSET,
       walls, kerbs, gates, gateCount: GATE_COUNT, startPose,

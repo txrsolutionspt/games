@@ -8,22 +8,32 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.1.0',
+  version: '1.2.0',
 
   // Git commit hash (short form)
-  gitHash: '6a1d82c',
+  gitHash: '0d4a182',
 
   // Full git commit hash
-  gitHashFull: '6a1d82cbfe32889ac14ce43d5c19ab9a39321672',
+  gitHashFull: '0d4a182513f31aefb10557918ab61f6abd84dacc',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-12',
+  releaseDate: '2026-07-13',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-12T21:27:46Z',
+  buildTime: '2026-07-13T21:50:31Z',
 
   // Changelog for this version
   changelog: `
+    v1.2.0 - Sector Timing, Medals & Race Stats
+    - Sector timing: each lap splits into 3 sectors; sector times flash
+      in the HUD (purple = all-time best, green = best of this race) and
+      all-time sector bests persist per track
+    - Medals: gold/silver/bronze target times per track (scaled by lap
+      count); earned medal shown on the finish screen with the next
+      target to chase, and targets listed on the menu
+    - Post-race driving stats: top speed, time off track, drift time,
+      resets used, and lap consistency spread
+
     v1.1.0 - Ghost Replay, Second Track & Minimap
     - Ghost replay: your best run is recorded and plays back as a
       translucent ghost car on later attempts (GHOST: ON/OFF in the menu)

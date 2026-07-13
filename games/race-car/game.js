@@ -76,6 +76,8 @@
   function bestKey(name) {
     return 'best.' + world.track.id + '.' + TOTAL_LAPS + 'laps.' + name;
   }
+  // sector bests are per-lap segments, so they're lap-count independent
+  function sectorKey() { return 'best.' + world.track.id + '.sectors'; }
   function migrateV1Keys() {
     // v1.0.0 stored bests without a track id; those runs were on 'apex'
     for (const name of ['total', 'lap', 'splits']) {
@@ -119,6 +121,9 @@
   let ghostRecorder = null;
   let ghostPlayer = null;
   let ghostPose = null;
+  let bestSectors = null;    // all-time best per sector (persisted)
+  let sessionSectors = null; // best per sector within the current race
+  let stats = null;          // per-race driving stats
 
   function placeCarAtStart() {
     const p = world.track.startPose;
@@ -142,6 +147,9 @@
       : null;
     ghostPose = null;
     world.built.ghost.root.setEnabled(false);
+    bestSectors = store.get(sectorKey(), null) || [null, null, null];
+    sessionSectors = [Infinity, Infinity, Infinity];
+    stats = { topSpeed: 0, offTrack: 0, driftTime: 0, resets: 0 };
     hud.setLap(1, TOTAL_LAPS);
     hud.setTimes(0, 0);
     hud.hideDelta();
@@ -172,7 +180,10 @@
   }
 
   function refreshMenuBest() {
-    hud.setMenuBest(store.get(bestKey('total'), null), store.get(bestKey('lap'), null));
+    const pb = store.get(bestKey('total'), null);
+    hud.setMenuBest(pb, store.get(bestKey('lap'), null));
+    hud.setMenuMedals(world.track.medals, TOTAL_LAPS,
+      RCRace.medalFor(pb, world.track.medals, TOTAL_LAPS));
   }
 
   function finishRace(ev) {
@@ -191,8 +202,14 @@
     if (prevLap == null || bestLapOfRun < prevLap) {
       store.set(bestKey('lap'), bestLapOfRun);
     }
+    const medal = RCRace.medalFor(ev.total, world.track.medals, TOTAL_LAPS);
     hud.fillFinish(ev.lapTimes, ev.total,
-      isNewBest ? ev.total : prevTotal, isNewBest);
+      isNewBest ? ev.total : prevTotal, isNewBest, {
+        medal,
+        medals: world.track.medals,
+        laps: TOTAL_LAPS,
+        stats,
+      });
     hud.screen('finish');
     hud.setTouchVisible(false);
     if (isNewBest) audio.bestJingle();
@@ -214,6 +231,7 @@
     car.reset(pose.x, pose.z, pose.theta);
     queryHint = null;
     race.notifyTeleport();
+    if (stats) stats.resets++;
     hud.setWrongWay(false);
     hud.toast('RESET — clock still running', 1500);
     syncCarNodes(true);
@@ -298,6 +316,18 @@
     for (const ev of events) {
       if (ev.type === 'gate') {
         if (ev.delta != null) hud.showDelta(ev.delta);
+      } else if (ev.type === 'sector') {
+        // purple = all-time best, green = best of this race, plain otherwise
+        let tier = 'plain';
+        if (bestSectors[ev.sector] == null || ev.time < bestSectors[ev.sector]) {
+          tier = 'purple';
+          bestSectors[ev.sector] = ev.time;
+          store.set(sectorKey(), bestSectors);
+        } else if (ev.time < sessionSectors[ev.sector]) {
+          tier = 'green';
+        }
+        sessionSectors[ev.sector] = Math.min(sessionSectors[ev.sector], ev.time);
+        hud.showSector(ev.sector, ev.time, tier);
       } else if (ev.type === 'lap') {
         if (!race.finished) {
           hud.toast('LAP ' + ev.lap + '  —  ' + hud.fmt(ev.time), 2600);
@@ -422,6 +452,10 @@
 
       if (ghostRecorder) ghostRecorder.add(clock, car.x, car.z, car.theta);
       ghostPose = ghostPlayer ? ghostPlayer.sampleAt(clock) : null;
+
+      stats.topSpeed = Math.max(stats.topSpeed, car.speed);
+      if (!onTrack) stats.offTrack += dt;
+      if (car.slipping) stats.driftTime += dt;
 
       hud.setTimes(clock - race.lapStartClock, clock);
       hud.setSpeed(car.speed * 3.6);
