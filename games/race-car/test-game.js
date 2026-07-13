@@ -13,6 +13,7 @@ const { Car } = require('./car.js');
 const { RaceManager, medalFor } = require('./race.js');
 const { createAutopilot } = require('./autopilot.js');
 const RCGhost = require('./ghost.js');
+const RCOpponents = require('./opponents.js');
 
 let passed = 0, failed = 0;
 function check(name, cond, detail) {
@@ -557,6 +558,103 @@ section('ghost recording & playback');
   check('rejects garbage data', RCGhost.createPlayer(null) === null &&
     RCGhost.createPlayer({ f: 99, p: [1, 2, 3] }) === null &&
     RCGhost.createPlayer({ f: 1, p: [1, 2, 3] }) === null);
+}
+
+// ------------------------------------------------------------ opponents
+section('AI opponents (Race mode)');
+{
+  // collision resolution: two overlapping cars separate, closing speed damps
+  const a = new Car(), b = new Car();
+  a.reset(0, 0, 0); b.reset(1.5, 0, Math.PI);
+  a.vx = 5; b.vx = -5; // head-on approach
+  const opp = RCOpponents.createOpponents(track, 1);
+  const contacts = opp.resolveCollisions([a, b]);
+  const dist = Math.hypot(b.x - a.x, b.z - a.z);
+  check('overlapping cars are separated', contacts === 1 &&
+    dist >= RCOpponents.COLLIDE_DIST - 0.01, `d=${dist.toFixed(2)}`);
+  check('closing velocity resolved', (b.vx - a.vx) >= 0,
+    `rel=${(b.vx - a.vx).toFixed(1)}`);
+  check('collision keeps physics finite',
+    Number.isFinite(a.x + a.vx + b.x + b.vx));
+  // non-overlapping cars are untouched
+  const c = new Car(), d = new Car();
+  c.reset(0, 0, 0); d.reset(10, 0, 0);
+  check('distant cars do not collide', opp.resolveCollisions([c, d]) === 0);
+}
+
+{
+  // grid: all slots distinct, near the track, behind the start line
+  const poses = [0, 1, 2, 3].map((i) => RCOpponents.gridPose(track, i));
+  let distinct = true;
+  for (let i = 0; i < poses.length; i++) {
+    for (let j = i + 1; j < poses.length; j++) {
+      if (Math.hypot(poses[i].x - poses[j].x, poses[i].z - poses[j].z) < 3) distinct = false;
+    }
+  }
+  check('grid slots are separated', distinct);
+  const onTrack = poses.every((p) =>
+    Math.abs(RCTrack.query(track, p.x, p.z, null).d) < track.halfWidth);
+  check('grid slots are on the road', onTrack);
+}
+
+{
+  // full simulated race: player autopilot + 3 AI, collisions on, 1 lap
+  const player = new Car();
+  player.reset(track.startPose.x, track.startPose.z, track.startPose.theta);
+  const pDriver = createAutopilot(track);
+  const pRm = new RaceManager({
+    length: track.length, gateS: track.gates.map((g) => g.s), laps: 1,
+    validWidth: track.halfWidth + 3.5,
+  });
+  const opp = RCOpponents.createOpponents(track, 1);
+  const dt = 1 / 60;
+  let clock = 0, hint = null, playerFinish = null;
+  let posSeen = new Set();
+  for (let i = 0; i < 60 * 240 && !pRm.finished; i++) {
+    let q = RCTrack.query(track, player.x, player.z, hint);
+    hint = q.idx;
+    const input = pDriver.drive(player, q);
+    const onTrack = Math.abs(q.d) <= track.halfWidth + 0.3;
+    player.step(dt, input, onTrack ? { grip: 1 } : { grip: 0.55, extraDrag: 900 });
+    opp.update(dt, clock);
+    opp.resolveCollisions([player].concat(opp.entries.map((e) => e.car)));
+    q = RCTrack.query(track, player.x, player.z, hint);
+    hint = q.idx;
+    const wall = RCTrack.wallAt(track, q.idx);
+    if (wall) player.hitWall(q, wall);
+    clock += dt;
+    for (const ev of pRm.update({ s: q.s, d: q.d, speed: player.speed, dt, clock })) {
+      if (ev.type === 'finish') playerFinish = ev.total;
+    }
+    if (i % 30 === 0) {
+      const order = opp.standings({ rm: pRm, q, finishTime: playerFinish });
+      posSeen.add(order.findIndex((r) => r.you) + 1);
+      check.lastOrder = order;
+    }
+  }
+  check('player finishes among AI traffic', pRm.finished,
+    playerFinish ? `t=${playerFinish.toFixed(1)}` : 'DNF');
+  check('all cars stayed finite', opp.entries.every((e) =>
+    Number.isFinite(e.car.x + e.car.z + e.car.theta)));
+  // let the AI finish out their laps
+  for (let i = 0; i < 60 * 240 && !opp.entries.every((e) => e.rm.finished); i++) {
+    opp.update(dt, clock);
+    opp.resolveCollisions(opp.entries.map((e) => e.car));
+    clock += dt;
+  }
+  check('all AI complete the race', opp.entries.every((e) => e.rm.finished),
+    opp.entries.map((e) => e.name + ':' + (e.rm.finished ? 'fin' : 'g' + e.rm.nextGate)).join(' '));
+  // skill ordering: strongest AI (VIPER) beats the weakest (MOSS)
+  const times = {};
+  for (const e of opp.entries) times[e.name] = e.finishTime;
+  check('faster skill profile finishes faster', times.VIPER < times.MOSS,
+    JSON.stringify(times));
+  const order = opp.standings({ rm: pRm, q: null, finishTime: playerFinish });
+  check('final standings rank by finish time', order.every((r, i) =>
+    i === 0 || !r.finished || !order[i - 1].finished ||
+    order[i - 1].time <= r.time));
+  check('standings include all 4 cars', order.length === 4 &&
+    order.filter((r) => r.you).length === 1);
 }
 
 // ------------------------------------------------- end-to-end: autopilot

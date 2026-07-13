@@ -8,22 +8,34 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.2.0',
+  version: '1.3.0',
 
   // Git commit hash (short form)
-  gitHash: '0d4a182',
+  gitHash: '6d03160',
 
   // Full git commit hash
-  gitHashFull: '0d4a182513f31aefb10557918ab61f6abd84dacc',
+  gitHashFull: '6d0316089ae2224ea0157943866f60325e487ad1',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-13',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-13T21:50:31Z',
+  buildTime: '2026-07-13T22:18:07Z',
 
   // Changelog for this version
   changelog: `
+    v1.3.0 - Race Mode: AI Opponents
+    - New RACE mode (menu MODE button): race wheel-to-wheel against three
+      AI opponents - VIPER, BLAZE and MOSS - each with its own skill
+      profile, racing line and car colour
+    - Standing grid start, live position indicator (P1-P4) in the HUD,
+      opponents shown on the minimap, finishing-order results screen
+    - Arcade car-to-car contact: cars bump and trade momentum instead of
+      passing through each other
+    - AI auto-recovery if wedged; finished AI take a cool-down lap
+    - Time-trial purity kept: PBs, ghosts, medals and checkpoint deltas
+      are only recorded/shown in TIME TRIAL mode
+
     v1.2.0 - Sector Timing, Medals & Race Stats
     - Sector timing: each lap splits into 3 sectors; sector times flash
       in the HUD (purple = all-time best, green = best of this race) and

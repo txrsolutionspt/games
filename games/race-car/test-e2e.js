@@ -223,6 +223,41 @@ function check(name, cond, detail) {
     await page2.close();
   }
 
+  // ---------- Race mode: AI opponents ----------
+  const racePage = await browser.newPage({ viewport: { width: 900, height: 480 } });
+  const raceErrors = [];
+  racePage.on('console', (m) => { if (m.type() === 'error') raceErrors.push(m.text()); });
+  racePage.on('pageerror', (e) => raceErrors.push(String(e)));
+  await racePage.goto('http://localhost:8901/games/race-car/?mode=race&laps=1',
+    { waitUntil: 'load' });
+  await racePage.waitForTimeout(1800);
+  const modeLabel = await racePage.textContent('#btn-mode');
+  check('mode button reflects ?mode=race', modeLabel.includes('RACE'), modeLabel);
+  await racePage.click('#btn-mode');
+  await racePage.waitForTimeout(200);
+  check('mode button toggles', (await racePage.textContent('#btn-mode')).includes('TIME TRIAL'));
+  await racePage.click('#btn-mode'); // back to race
+  await racePage.click('#btn-start');
+  await racePage.waitForFunction(() =>
+    window.__rc.state === window.__rc.STATE.RACING, null, { timeout: 20000 });
+  check('opponents spawned in race mode', await racePage.evaluate(() =>
+    window.__rc.opponents && window.__rc.opponents.entries.length === 3));
+  check('position indicator visible', await racePage.isVisible('#hud-pos'));
+  const aiPos0 = await racePage.evaluate(() =>
+    window.__rc.opponents.entries.map((e) => [e.car.x, e.car.z]));
+  await racePage.waitForTimeout(4000);
+  const aiPos1 = await racePage.evaluate(() =>
+    window.__rc.opponents.entries.map((e) => [e.car.x, e.car.z]));
+  const aiMoved = aiPos0.every((p, i) =>
+    Math.hypot(aiPos1[i][0] - p[0], aiPos1[i][1] - p[1]) > 5);
+  check('all AI cars are driving', aiMoved);
+  const posText = await racePage.textContent('#hud-pos');
+  check('position shows Pn/4', /^P[1-4]\/4$/.test(posText), posText);
+  check('no console errors in race mode', raceErrors.length === 0,
+    raceErrors.slice(0, 3).join(' | '));
+  await racePage.screenshot({ path: path.join(SHOTS, '13-race-mode.png') });
+  await racePage.close();
+
   // ---------- mobile viewport: touch controls + portrait overlay ----------
   const mob = await browser.newPage({
     viewport: { width: 780, height: 360 }, hasTouch: true, isMobile: true,

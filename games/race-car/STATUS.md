@@ -1,10 +1,10 @@
 # Apex Racer (Race Car Game) — Status Report
 
 **Date:** 2026-07-13
-**Version:** 1.2.0 (see `version.js`)
+**Version:** 1.3.0 (see `version.js`)
 **Status:** ✅ Playable — v1 per `design.md`, plus v1.1 (ghost replay,
-second track + track selection, minimap) and v1.2 (sector timing,
-medals, post-race stats)
+second track + track selection, minimap), v1.2 (sector timing, medals,
+post-race stats) and v1.3 (Race mode with AI opponents)
 
 ---
 
@@ -34,7 +34,8 @@ installable.
 | `ghost.js` | Pure ghost record/playback: fixed-interval pose sampling, quantized serialization, interpolated replay |
 | `car.js` | Pure physics: semi-sim vehicle model + track-relative barrier collision |
 | `race.js` | Pure race logic: ordered checkpoint validation, lap/total/sector timing, splits & deltas, medal helper, wrong-way and course-cut detection |
-| `autopilot.js` | Pursuit driver for automated tests / `?auto=1` demo mode |
+| `autopilot.js` | Pursuit driver with tunable skill (corner g, top speed, braking, line offset); used by AI opponents, tests and `?auto=1` |
+| `opponents.js` | Race-mode AI pack: skill roster, grid placement, per-AI physics/race managers, arcade car-to-car collisions, live standings |
 | `input.js` | Unified VehicleControl layer: keyboard + multi-touch UI |
 | `audio.js` | Procedural Web Audio: engine pitch, tire screech, beeps, jingles |
 | `hud.js` | DOM overlay: timers, deltas, toasts, screens |
@@ -86,11 +87,15 @@ the top of the changelog in `version.js`, commit.
 - `?laps=N` — shorten/lengthen the race (1–9, default 3)
 - `?auto=1` — autopilot demo drive
 - `?track=<id>` — start on a specific track (`apex`, `coastal`)
+- `?mode=race` — start in Race mode (vs AI opponents)
 
 ## Known Limitations / Future Work
 
 - Tilt steering, WebGPU path, online leaderboards — still future work.
-  (Ghost replay and multiple tracks shipped in v1.1.0.)
+  (Ghost replay and multiple tracks shipped in v1.1.0; AI opponents in
+  v1.3.0.)
+- Car-to-car collision uses an equal-mass circle model — simple and
+  stable, but contact along a car's length is approximate.
 - Race clock and physics share one frame-time cap (100 ms), so timing stays
   fair on slow devices down to 10 FPS; below that, sim time dilates rather
   than making the car skip through walls/checkpoints.

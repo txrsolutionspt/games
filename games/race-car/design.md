@@ -202,6 +202,16 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1.3 Implementation Notes
+v1.3.0 added **Race mode**: three AI opponents (distinct skill profiles,
+racing lines and liveries) built on the test autopilot, with a standing grid,
+live P1–P4 position tracking, arcade car-to-car collisions and a
+finishing-order results screen. Time-trial records (PBs, ghosts, medals,
+deltas) remain exclusive to Time Trial mode so traffic never pollutes them.
+This supersedes the v1 "no AI opponents" scope line.
+
+---
+
 ## v1.2 Implementation Notes
 v1.2.0 deepened the time-trial loop: **sector timing** (3 sectors per lap,
 purple/green HUD flashes, persisted per-track sector bests), **medals**

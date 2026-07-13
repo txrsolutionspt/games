@@ -33,6 +33,9 @@
       minimap: $('minimap'),
       sector: $('hud-sector'), menuMedals: $('menu-medals'),
       finishMedal: $('finish-medal'), finishStats: $('finish-stats'),
+      modeBtn: $('btn-mode'), pos: $('hud-pos'),
+      finishPosition: $('finish-position'), finishTable: $('finish-table'),
+      raceResults: $('race-results'),
     };
     let toastTimer = null, deltaTimer = null, sectorTimer = null;
     const MEDAL_ICONS = { gold: '\u{1F947}', silver: '\u{1F948}', bronze: '\u{1F949}' };
@@ -65,7 +68,7 @@
       mm.start = mmPoint(track.samples[0].x, track.samples[0].z);
       ctx.clearRect(0, 0, W, H); // stale frame from the previous track
     }
-    function drawMinimap(car, ghostPose) {
+    function drawMinimap(car, ghostPose, aiPoses) {
       if (!el.minimap || !mm.path) return;
       const ctx = el.minimap.getContext('2d');
       const W = el.minimap.width, H = el.minimap.height;
@@ -79,6 +82,17 @@
       ctx.beginPath();
       ctx.arc(mm.start[0], mm.start[1], 3, 0, Math.PI * 2);
       ctx.fill();
+      // AI opponent dots (under the car dot)
+      if (aiPoses) {
+        for (const p of aiPoses) {
+          const [ax, az] = mmPoint(p.x, p.z);
+          ctx.fillStyle = 'rgb(' + Math.round(p.color[0] * 255) + ',' +
+            Math.round(p.color[1] * 255) + ',' + Math.round(p.color[2] * 255) + ')';
+          ctx.beginPath();
+          ctx.arc(ax, az, 3.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
       // ghost dot (under the car dot)
       if (ghostPose) {
         const [gx, gz] = mmPoint(ghostPose.x, ghostPose.z);
@@ -157,6 +171,10 @@
         }
       },
       fillFinish(lapTimes, total, pb, isNewBest, extra) {
+        // restore time-trial layout (a Race-mode finish may have hidden it)
+        show(el.finishTable, true);
+        if (el.raceResults) show(el.raceResults, false);
+        if (el.finishPosition) show(el.finishPosition, false);
         el.finishLaps.innerHTML = '';
         const best = Math.min.apply(null, lapTimes);
         lapTimes.forEach((t, i) => {
@@ -229,6 +247,65 @@
       setMuteLabel(muted) { el.muteBtn.textContent = 'SOUND: ' + (muted ? 'OFF' : 'ON'); },
       setGhostLabel(on) { el.ghostBtn.textContent = 'GHOST: ' + (on ? 'ON' : 'OFF'); },
       setTrackLabel(name) { el.trackBtn.textContent = 'TRACK: ' + name; },
+      setModeLabel(mode) {
+        el.modeBtn.textContent = 'MODE: ' + (mode === 'race' ? 'RACE' : 'TIME TRIAL');
+      },
+      setPositionVisible(v) { show(el.pos, v); },
+      setPosition(pos, total) {
+        el.pos.textContent = 'P' + pos + '/' + total;
+        el.pos.classList.toggle('leading', pos === 1);
+      },
+      // Race-mode results: finishing order instead of lap table/medals/PB
+      fillFinishRace(order, playerPos, total, stats) {
+        show(el.finishTable, false);
+        show(el.finishMedal, false);
+        show(el.raceResults, true);
+        el.finishPosition.textContent = playerPos === 1
+          ? '\u{1F3C6} YOU WIN — P1/' + order.length
+          : 'FINISHED P' + playerPos + '/' + order.length;
+        el.finishPosition.className = 'finish-position' + (playerPos === 1 ? ' win' : '');
+        show(el.finishPosition, true);
+        el.raceResults.innerHTML = '';
+        order.forEach((row, i) => {
+          const tr = document.createElement('tr');
+          if (row.you) tr.className = 'you-row';
+          const tdP = document.createElement('td');
+          tdP.textContent = 'P' + (i + 1);
+          const tdN = document.createElement('td');
+          tdN.textContent = row.you ? 'YOU' : row.name;
+          const tdT = document.createElement('td');
+          tdT.textContent = row.finished ? fmt(row.time) : 'running';
+          tr.appendChild(tdP);
+          tr.appendChild(tdN);
+          tr.appendChild(tdT);
+          el.raceResults.appendChild(tr);
+        });
+        // reuse the stats grid below the results
+        this.fillFinishStatsOnly(stats);
+      },
+      fillFinishStatsOnly(stats) {
+        if (!el.finishStats || !stats) return;
+        const rows = [
+          ['Top speed', Math.round(stats.topSpeed * 3.6) + ' km/h'],
+          ['Time off track', stats.offTrack.toFixed(1) + ' s'],
+          ['Drift time', stats.driftTime.toFixed(1) + ' s'],
+          ['Resets', String(stats.resets)],
+        ];
+        el.finishStats.innerHTML = '';
+        for (const [label, value] of rows) {
+          const div = document.createElement('div');
+          div.className = 'stat';
+          const l = document.createElement('span');
+          l.className = 'stat-label';
+          l.textContent = label;
+          const v = document.createElement('span');
+          v.className = 'stat-value';
+          v.textContent = value;
+          div.appendChild(l);
+          div.appendChild(v);
+          el.finishStats.appendChild(div);
+        }
+      },
       setMinimapTrack,
       drawMinimap,
     };
