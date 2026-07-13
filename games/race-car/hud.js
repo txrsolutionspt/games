@@ -29,8 +29,68 @@
       finishLaps: $('finish-laps'), finishTotal: $('finish-total'),
       finishPb: $('finish-pb'), finishNewBest: $('finish-newbest'),
       qualityBtn: $('btn-quality'), muteBtn: $('btn-mute'),
+      ghostBtn: $('btn-ghost'), trackBtn: $('btn-track'),
+      minimap: $('minimap'),
     };
     let toastTimer = null, deltaTimer = null;
+
+    // ---- minimap: track outline cached as a Path2D + fit transform ----
+    const mm = { path: null, sx: 1, sz: 1, ox: 0, oz: 0, start: null };
+    function mmPoint(x, z) { return [mm.ox + x * mm.sx, mm.oz + z * mm.sz]; }
+    function setMinimapTrack(track) {
+      if (!el.minimap) return;
+      const ctx = el.minimap.getContext('2d');
+      const W = el.minimap.width, H = el.minimap.height, PAD = 10;
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      for (const sm of track.samples) {
+        minX = Math.min(minX, sm.x); maxX = Math.max(maxX, sm.x);
+        minZ = Math.min(minZ, sm.z); maxZ = Math.max(maxZ, sm.z);
+      }
+      const scale = Math.min((W - 2 * PAD) / (maxX - minX), (H - 2 * PAD) / (maxZ - minZ));
+      mm.sx = scale;
+      mm.sz = -scale; // world +z up on the map
+      mm.ox = (W - (maxX + minX) * scale) / 2;
+      mm.oz = (H + (maxZ + minZ) * scale) / 2;
+      const path = new Path2D();
+      track.samples.forEach((sm, i) => {
+        const [px, pz] = mmPoint(sm.x, sm.z);
+        if (i === 0) path.moveTo(px, pz);
+        else path.lineTo(px, pz);
+      });
+      path.closePath();
+      mm.path = path;
+      mm.start = mmPoint(track.samples[0].x, track.samples[0].z);
+      ctx.clearRect(0, 0, W, H); // stale frame from the previous track
+    }
+    function drawMinimap(car, ghostPose) {
+      if (!el.minimap || !mm.path) return;
+      const ctx = el.minimap.getContext('2d');
+      const W = el.minimap.width, H = el.minimap.height;
+      ctx.clearRect(0, 0, W, H);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineJoin = 'round';
+      ctx.stroke(mm.path);
+      // start/finish marker
+      ctx.fillStyle = 'rgba(255,209,102,0.9)';
+      ctx.beginPath();
+      ctx.arc(mm.start[0], mm.start[1], 3, 0, Math.PI * 2);
+      ctx.fill();
+      // ghost dot (under the car dot)
+      if (ghostPose) {
+        const [gx, gz] = mmPoint(ghostPose.x, ghostPose.z);
+        ctx.fillStyle = 'rgba(140,190,240,0.9)';
+        ctx.beginPath();
+        ctx.arc(gx, gz, 3.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // car dot
+      const [cx, cz] = mmPoint(car.x, car.z);
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(cx, cz, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     function show(node, yes) { node.classList.toggle('hidden', !yes); }
 
@@ -95,6 +155,10 @@
       },
       setQualityLabel(q) { el.qualityBtn.textContent = 'QUALITY: ' + q.toUpperCase(); },
       setMuteLabel(muted) { el.muteBtn.textContent = 'SOUND: ' + (muted ? 'OFF' : 'ON'); },
+      setGhostLabel(on) { el.ghostBtn.textContent = 'GHOST: ' + (on ? 'ON' : 'OFF'); },
+      setTrackLabel(name) { el.trackBtn.textContent = 'TRACK: ' + name; },
+      setMinimapTrack,
+      drawMinimap,
     };
   }
 

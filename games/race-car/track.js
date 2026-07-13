@@ -13,27 +13,71 @@
 (function (global) {
   'use strict';
 
-  // Centerline control points (Catmull-Rom, closed loop, counterclockwise-ish).
-  // First point sits on the start/finish straight so s=0 lands there.
-  const CONTROL_POINTS = [
-    [-40, -130],  // start/finish straight (heading +x)
-    [80, -125],   // end of bottom straight
-    [150, -90],   // turn 1 sweep
-    [175, -20],   // east side, heading north
-    [150, 40],    // esses kink
-    [170, 100],   // northeast corner
-    [110, 140],   // top, heading west
-    [30, 120],    // chicane right
-    [-30, 145],   // chicane left
-    [-110, 130],  // top west
-    [-150, 80],   // northwest carousel
-    [-100, 30],   // hairpin entry
-    [-40, 0],     // hairpin apex
-    [-90, -30],   // hairpin exit
-    [-160, -40],  // west side, heading south
-    [-175, -85],  // southwest corner
-    [-160, -120], // final corner onto the straight
-  ];
+  /*
+   * Track registry. Each track: centerline control points (Catmull-Rom,
+   * closed loop; the FIRST point sits on the start/finish straight so s=0
+   * lands there) plus a scenery palette consumed by scene.js.
+   */
+  const TRACKS = {
+    apex: {
+      name: 'APEX GP',
+      // technical: esses, chicane, carousel and a hairpin
+      points: [
+        [-40, -130],  // start/finish straight (heading +x)
+        [80, -125],   // end of bottom straight
+        [150, -90],   // turn 1 sweep
+        [175, -20],   // east side, heading north
+        [150, 40],    // esses kink
+        [170, 100],   // northeast corner
+        [110, 140],   // top, heading west
+        [30, 120],    // chicane right
+        [-30, 145],   // chicane left
+        [-110, 130],  // top west
+        [-150, 80],   // northwest carousel
+        [-100, 30],   // hairpin entry
+        [-40, 0],     // hairpin apex
+        [-90, -30],   // hairpin exit
+        [-160, -40],  // west side, heading south
+        [-175, -85],  // southwest corner
+        [-160, -120], // final corner onto the straight
+      ],
+      palette: {
+        grass: [0.36, 0.55, 0.28],
+        crown: [0.18, 0.42, 0.2],
+        skyTop: '#4a90cf', skyMid: '#8fc3e8', skyHorizon: '#cfe6f5',
+        fog: [0.66, 0.78, 0.9],
+        clear: [0.62, 0.78, 0.92],
+      },
+    },
+    coastal: {
+      name: 'COASTAL RING',
+      // fast and flowing: long straights, wide sweepers, one tight
+      // chicane-dip and a slow final corner
+      points: [
+        [-40, -170],  // start/finish straight (heading +x)
+        [90, -165],   // end of bottom straight
+        [185, -120],  // turn 1, fast right-hand sweep begins
+        [220, -10],   // east side
+        [185, 95],    // northeast sweeper
+        [95, 150],    // top right
+        [20, 100],    // chicane dip (tight)
+        [-70, 150],   // climb out
+        [-175, 115],  // top left sweeper
+        [-225, 5],    // west carousel
+        [-185, -100], // southwest
+        [-100, -125], // slow final corner
+        [-115, -168], // exit kink onto the straight
+      ],
+      palette: {
+        grass: [0.55, 0.52, 0.32],
+        crown: [0.5, 0.42, 0.16],
+        skyTop: '#3d7ec2', skyMid: '#9fc6e0', skyHorizon: '#f2ddb8',
+        fog: [0.85, 0.8, 0.68],
+        clear: [0.8, 0.78, 0.7],
+      },
+    },
+  };
+  const DEFAULT_TRACK = 'apex';
 
   const SAMPLE_SPACING = 2;     // meters between resampled centerline points
   const HALF_WIDTH = 4.75;      // drivable half-width (track is 9.5 m wide)
@@ -133,8 +177,10 @@
     return merged;
   }
 
-  function build() {
-    const dense = densePolyline(CONTROL_POINTS, 16);
+  function build(trackId) {
+    const id = TRACKS[trackId] ? trackId : DEFAULT_TRACK;
+    const def = TRACKS[id];
+    const dense = densePolyline(def.points, 16);
     const { points, length, step } = resampleUniform(dense, SAMPLE_SPACING);
     const n = points.length;
 
@@ -200,11 +246,15 @@
     const startPose = { x: st.x, z: st.z, theta: Math.atan2(st.tz, st.tx), s: st.s };
 
     return {
+      id, name: def.name, palette: def.palette,
       samples, length, step,
       halfWidth: HALF_WIDTH, shoulder: SHOULDER, wallOffset: WALL_OFFSET,
       walls, kerbs, gates, gateCount: GATE_COUNT, startPose,
     };
   }
+
+  // Ordered list of selectable track ids.
+  function trackIds() { return Object.keys(TRACKS); }
 
   // Signed shortest wrap-around difference a-b on a loop of length L.
   function wrapDelta(a, b, L) {
@@ -278,7 +328,10 @@
     return null;
   }
 
-  const api = { build, query, wallAt, wrapDelta, wrapIndex, indexInRegion, CONTROL_POINTS };
+  const api = {
+    build, query, wallAt, wrapDelta, wrapIndex, indexInRegion,
+    TRACKS, DEFAULT_TRACK, trackIds,
+  };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.RCTrack = api;
 })(typeof window !== 'undefined' ? window : globalThis);

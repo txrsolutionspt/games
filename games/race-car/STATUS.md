@@ -1,8 +1,9 @@
 # Apex Racer (Race Car Game) — Status Report
 
 **Date:** 2026-07-12
-**Version:** 1.0.0 (see `version.js`)
-**Status:** ✅ Playable — full v1 per `design.md`
+**Version:** 1.1.0 (see `version.js`)
+**Status:** ✅ Playable — v1 per `design.md`, plus v1.1 features (ghost
+replay, second track + track selection, minimap)
 
 ---
 
@@ -28,7 +29,8 @@ installable.
 
 | File | Role |
 |------|------|
-| `track.js` | Pure geometry: Catmull-Rom centerline, arc-length resampling, curvature, procedural kerb/barrier placement, checkpoint gates, nearest-point queries |
+| `track.js` | Pure geometry + track registry (`apex`, `coastal` with per-track palettes): Catmull-Rom centerline, arc-length resampling, curvature, procedural kerb/barrier placement, checkpoint gates, nearest-point queries |
+| `ghost.js` | Pure ghost record/playback: fixed-interval pose sampling, quantized serialization, interpolated replay |
 | `car.js` | Pure physics: semi-sim vehicle model + track-relative barrier collision |
 | `race.js` | Pure race logic: ordered checkpoint validation, lap/total timing, splits & deltas, wrong-way and course-cut detection |
 | `autopilot.js` | Pursuit driver for automated tests / `?auto=1` demo mode |
@@ -82,11 +84,12 @@ the top of the changelog in `version.js`, commit.
 
 - `?laps=N` — shorten/lengthen the race (1–9, default 3)
 - `?auto=1` — autopilot demo drive
+- `?track=<id>` — start on a specific track (`apex`, `coastal`)
 
 ## Known Limitations / Future Work
 
-- Ghost replay of best run, multiple tracks, tilt steering, WebGPU path,
-  online leaderboards — all listed out of scope for v1 in `design.md`.
+- Tilt steering, WebGPU path, online leaderboards — still future work.
+  (Ghost replay and multiple tracks shipped in v1.1.0.)
 - Race clock and physics share one frame-time cap (100 ms), so timing stays
   fair on slow devices down to 10 FPS; below that, sim time dilates rather
   than making the car skip through walls/checkpoints.

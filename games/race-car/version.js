@@ -8,22 +8,32 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.0.0',
+  version: '1.1.0',
 
   // Git commit hash (short form)
-  gitHash: 'c1af611',
+  gitHash: '6a1d82c',
 
   // Full git commit hash
-  gitHashFull: 'c1af611ced66da7f6b7ce5844ffcdcbf09cc82b8',
+  gitHashFull: '6a1d82cbfe32889ac14ce43d5c19ab9a39321672',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-12',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-12T17:32:02Z',
+  buildTime: '2026-07-12T21:27:46Z',
 
   // Changelog for this version
   changelog: `
+    v1.1.0 - Ghost Replay, Second Track & Minimap
+    - Ghost replay: your best run is recorded and plays back as a
+      translucent ghost car on later attempts (GHOST: ON/OFF in the menu)
+    - New track: COASTAL RING - a faster, flowing circuit with its own
+      scenery palette, selectable from the menu (TRACK button)
+    - Per-track best times, splits and ghosts; existing v1.0.0 personal
+      bests are migrated to the Apex GP track automatically
+    - Minimap during races: track outline, start line, your car and the
+      ghost's live position
+
     v1.0.0 - Initial Release
     - Solo time trial: one procedural circuit, 3 laps, checkpoint-validated
       lap timing with course-cut and wrong-way detection

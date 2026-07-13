@@ -33,11 +33,17 @@
   }
 
   function createScene(engine, track) {
+    // per-track scenery palette (see TRACKS in track.js)
+    const pal = track.palette || {
+      grass: [0.36, 0.55, 0.28], crown: [0.18, 0.42, 0.2],
+      skyTop: '#4a90cf', skyMid: '#8fc3e8', skyHorizon: '#cfe6f5',
+      fog: [0.66, 0.78, 0.9], clear: [0.62, 0.78, 0.92],
+    };
     const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0.62, 0.78, 0.92, 1);
+    scene.clearColor = new BABYLON.Color4(pal.clear[0], pal.clear[1], pal.clear[2], 1);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
     scene.fogDensity = 0.0013;
-    scene.fogColor = C3(0.66, 0.78, 0.9);
+    scene.fogColor = C3(pal.fog[0], pal.fog[1], pal.fog[2]);
 
     // ---------------- lights ----------------
     const hemi = new BABYLON.HemisphericLight('hemi', V3(0.2, 1, 0.1), scene);
@@ -55,9 +61,9 @@
     {
       const c = skyTex.getContext();
       const grad = c.createLinearGradient(0, 0, 0, 256);
-      grad.addColorStop(0, '#cfe6f5');   // horizon haze (texture v flipped on sphere)
-      grad.addColorStop(0.42, '#8fc3e8');
-      grad.addColorStop(1, '#4a90cf');   // zenith
+      grad.addColorStop(0, pal.skyHorizon); // horizon haze (texture v flipped on sphere)
+      grad.addColorStop(0.42, pal.skyMid);
+      grad.addColorStop(1, pal.skyTop);     // zenith
       c.fillStyle = grad;
       c.fillRect(0, 0, 16, 256);
       skyTex.update();
@@ -74,7 +80,7 @@
     const ground = BABYLON.MeshBuilder.CreateGround('ground',
       { width: 1500, height: 1500, subdivisions: 2 }, scene);
     ground.position.y = -0.02;
-    ground.material = flatMat(scene, 'grass', C3(0.36, 0.55, 0.28));
+    ground.material = flatMat(scene, 'grass', C3(pal.grass[0], pal.grass[1], pal.grass[2]));
     ground.receiveShadows = true;
     ground.freezeWorldMatrix();
 
@@ -229,7 +235,7 @@
         { height: 3.4, diameterTop: 0, diameterBottom: 3.1, tessellation: 7 }, scene);
       crown.position.y = 3.2;
       trunk.material = flatMat(scene, 'trunkMat', C3(0.42, 0.3, 0.2));
-      crown.material = flatMat(scene, 'crownMat', C3(0.18, 0.42, 0.2));
+      crown.material = flatMat(scene, 'crownMat', C3(pal.crown[0], pal.crown[1], pal.crown[2]));
       const tree = BABYLON.Mesh.MergeMeshes([trunk, crown], true, true, undefined, false, true);
       tree.name = 'tree';
 
@@ -276,6 +282,9 @@
     // ---------------- car ----------------
     const car = buildCar(scene);
 
+    // ---------------- ghost car (best-run replay) ----------------
+    const ghost = buildGhost(scene);
+
     // ---------------- camera ----------------
     const camera = new BABYLON.FreeCamera('cam', V3(0, 30, -60), scene);
     camera.minZ = 0.3;
@@ -307,7 +316,35 @@
       }
     }
 
-    return { scene, camera, car, applyQuality, sun };
+    return { scene, camera, car, ghost, applyQuality, sun };
+  }
+
+  // Translucent ghost car for best-run replay: simplified body, one shared
+  // see-through material, no shadows, hidden until a replay is active.
+  function buildGhost(scene) {
+    const root = new BABYLON.TransformNode('ghostRoot', scene);
+    const mat = new BABYLON.StandardMaterial('ghostMat', scene);
+    mat.diffuseColor = C3(0.55, 0.75, 0.95);
+    mat.emissiveColor = C3(0.25, 0.38, 0.5);
+    mat.specularColor = C3(0, 0, 0);
+    mat.alpha = 0.38;
+
+    const body = BABYLON.MeshBuilder.CreateBox('gBody',
+      { width: 1.8, height: 0.5, depth: 4.1 }, scene);
+    body.position.y = 0.55;
+    const cabin = BABYLON.MeshBuilder.CreateBox('gCabin',
+      { width: 1.45, height: 0.5, depth: 1.7 }, scene);
+    cabin.position.set(0, 1.0, -0.25);
+    const nose = BABYLON.MeshBuilder.CreateBox('gNose',
+      { width: 1.6, height: 0.3, depth: 0.9 }, scene);
+    nose.position.set(0, 0.45, 2.35);
+    for (const m of [body, cabin, nose]) {
+      m.material = mat;
+      m.parent = root;
+      m.isPickable = false;
+    }
+    root.setEnabled(false);
+    return { root };
   }
 
   // Low-poly car modeled facing +z. Returns nodes for game.js to animate.

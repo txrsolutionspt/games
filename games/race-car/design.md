@@ -202,6 +202,17 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1.1 Implementation Notes
+v1.1.0 shipped the two items this spec called out as natural follow-ups:
+**ghost replay** of the player's best run (recorded per track, replayed as a
+translucent car, toggleable) and **multiple tracks** (a second faster circuit,
+"Coastal Ring", with a menu track selector and per-track best times/splits/
+ghosts — v1.0.0 bests migrate to the original track automatically). It also
+added a HUD **minimap**. Still out of scope: tilt steering, WebGPU, online
+leaderboards, weather/time-of-day.
+
+---
+
 ## v1 Implementation Notes
 The shipped v1 (see `STATUS.md`) finalizes the choices this spec left open:
 **Babylon.js** (vendored in `lib/`, per the No-Build-Step Constraint), a
