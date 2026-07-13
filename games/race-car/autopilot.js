@@ -6,7 +6,18 @@
 (function (global) {
   'use strict';
 
-  function createAutopilot(track) {
+  /*
+   * opts (all optional — defaults reproduce the conservative test driver):
+   *   cornerG: lateral m/s^2 budget for corner speed (higher = braver)
+   *   vMax: straight-line speed cap, m/s
+   *   brakeDecel: assumed braking decel for brake-point distance, m/s^2
+   *   lineOffset: lateral offset (m, +left) from the centerline — gives
+   *     each AI opponent its own line so they don't stack
+   */
+  function createAutopilot(track, opts) {
+    const o = Object.assign(
+      { cornerG: 6.5, vMax: 38, brakeDecel: 5.5, lineOffset: 0 },
+      opts || {});
     const n = track.samples.length;
     const step = track.step;
 
@@ -35,10 +46,12 @@
       const v = car.speed;
       const offTrack = Math.abs(q.d) > track.halfWidth;
 
-      // --- steering: pursue a point on the centerline ahead of the car ---
+      // --- steering: pursue a point on (an offset of) the centerline ahead ---
       const lookahead = offTrack ? 14 : 10 + v * 0.55;
       const target = sampleAt(q.s + lookahead);
-      const dx = target.x - car.x, dz = target.z - car.z;
+      const tx = target.x + target.nx * o.lineOffset;
+      const tz = target.z + target.nz * o.lineOffset;
+      const dx = tx - car.x, dz = tz - car.z;
       const desired = Math.atan2(dz, dx);
       let err = desired - car.theta;
       while (err > Math.PI) err -= 2 * Math.PI;
@@ -48,10 +61,10 @@
       const misaligned = Math.abs(err) > 0.9;
 
       // --- speed: brake for the tightest corner we can't yet make ---
-      const brakeDist = (v * v) / (2 * 5.5) + 15;
+      const brakeDist = (v * v) / (2 * o.brakeDecel) + 15;
       const kAhead = Math.max(maxKappaAhead(q.s, brakeDist), 1e-4);
-      const vCorner = Math.sqrt(6.5 / kAhead);
-      let vTarget = Math.max(8, Math.min(38, vCorner));
+      const vCorner = Math.sqrt(o.cornerG / kAhead);
+      let vTarget = Math.max(8, Math.min(o.vMax, vCorner));
 
       // recovery: off the road or facing the wrong way -> crawl back gently
       // (heavy throttle on grass just saturates the driven rear tires)

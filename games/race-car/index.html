@@ -28,6 +28,7 @@
       </div>
       <div class="hud-box hidden" id="hud-delta">+0.00</div>
       <div class="hud-box hidden" id="hud-sector">S1 0:00.00</div>
+      <div class="hud-box hidden" id="hud-pos">P4/4</div>
     </div>
     <div id="hud-speed"><span id="hud-speed-val">0</span><span class="hud-unit">km/h</span></div>
     <div id="hud-wrongway" class="hidden">WRONG WAY</div>
@@ -62,7 +63,10 @@
     </div>
     <div id="menu-medals" class="menu-medals"></div>
     <button id="btn-start" class="big-btn">START RACE</button>
-    <button id="btn-track" class="small-btn track-btn">TRACK: APEX GP</button>
+    <div class="menu-row">
+      <button id="btn-track" class="small-btn track-btn">TRACK: APEX GP</button>
+      <button id="btn-mode" class="small-btn track-btn">MODE: TIME TRIAL</button>
+    </div>
     <div class="menu-row">
       <button id="btn-quality" class="small-btn">QUALITY: MED</button>
       <button id="btn-mute" class="small-btn">SOUND: ON</button>
@@ -85,6 +89,8 @@
     <h2 id="finish-title">RACE COMPLETE</h2>
     <div id="finish-newbest" class="newbest hidden">&#9733; NEW BEST TIME &#9733;</div>
     <div id="finish-medal" class="finish-medal hidden"></div>
+    <div id="finish-position" class="finish-position hidden"></div>
+    <table id="finish-race-table" class="hidden-if-empty"><tbody id="race-results" class="hidden"></tbody></table>
     <table id="finish-table">
       <tbody id="finish-laps"></tbody>
       <tfoot>
@@ -116,6 +122,7 @@
   <script src="race.js"></script>
   <script src="ghost.js"></script>
   <script src="autopilot.js"></script>
+  <script src="opponents.js"></script>
   <script src="input.js"></script>
   <script src="audio.js"></script>
   <script src="hud.js"></script>

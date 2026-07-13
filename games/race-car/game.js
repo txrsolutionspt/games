@@ -61,16 +61,22 @@
     muted: false,
     ghost: true,
     track: RCTrack.DEFAULT_TRACK,
+    mode: 'time-trial', // 'time-trial' | 'race'
   }, store.get('settings', null) || {});
   if (!RCTrack.TRACKS[settings.track]) settings.track = RCTrack.DEFAULT_TRACK;
-  // URL override (session only; persisted only if the user cycles tracks)
+  if (settings.mode !== 'race') settings.mode = 'time-trial';
+  // URL overrides (session only; persisted only if the user cycles them)
   const urlTrack = params.get('track');
   if (urlTrack && RCTrack.TRACKS[urlTrack]) settings.track = urlTrack;
+  if (params.get('mode') === 'race') settings.mode = 'race';
+
+  const isRaceMode = () => settings.mode === 'race';
 
   audio.setMuted(!!settings.muted);
   hud.setQualityLabel(settings.quality);
   hud.setMuteLabel(!!settings.muted);
   hud.setGhostLabel(!!settings.ghost);
+  hud.setModeLabel(settings.mode);
 
   // ------------- per-track best-time storage (+ v1.0.0 migration) -------------
   function bestKey(name) {
@@ -124,6 +130,9 @@
   let bestSectors = null;    // all-time best per sector (persisted)
   let sessionSectors = null; // best per sector within the current race
   let stats = null;          // per-race driving stats
+  let opponents = null;      // AI pack (Race mode only)
+  let playerPos = 1;         // live standing in Race mode
+  let lastQ = null;          // most recent track query for the player
 
   function placeCarAtStart() {
     const p = world.track.startPose;
@@ -138,11 +147,13 @@
       gateS: world.track.gates.map((g) => g.s),
       laps: TOTAL_LAPS,
       validWidth: world.track.halfWidth + 3.5,
-      bestSplits: store.get(bestKey('splits'), null),
+      // checkpoint deltas track your TT best — meaningless with traffic
+      bestSplits: isRaceMode() ? null : store.get(bestKey('splits'), null),
     });
     clock = 0;
     ghostRecorder = RCGhost.createRecorder();
-    ghostPlayer = settings.ghost
+    // no ghost in Race mode — three live opponents are enough traffic
+    ghostPlayer = settings.ghost && !isRaceMode()
       ? RCGhost.createPlayer(store.get(bestKey('ghost'), null))
       : null;
     ghostPose = null;
@@ -150,6 +161,19 @@
     bestSectors = store.get(sectorKey(), null) || [null, null, null];
     sessionSectors = [Infinity, Infinity, Infinity];
     stats = { topSpeed: 0, offTrack: 0, driftTime: 0, resets: 0 };
+    lastQ = null;
+    if (isRaceMode()) {
+      opponents = RCOpponents.createOpponents(world.track, TOTAL_LAPS);
+      playerPos = opponents.entries.length + 1; // everyone starts ahead
+      syncOpponentNodes();
+      world.built.opponents.forEach((n) => n.root.setEnabled(true));
+      hud.setPositionVisible(true);
+      hud.setPosition(playerPos, opponents.entries.length + 1);
+    } else {
+      opponents = null;
+      world.built.opponents.forEach((n) => n.root.setEnabled(false));
+      hud.setPositionVisible(false);
+    }
     hud.setLap(1, TOTAL_LAPS);
     hud.setTimes(0, 0);
     hud.hideDelta();
@@ -172,6 +196,8 @@
     state = STATE.MENU;
     placeCarAtStart();
     world.built.ghost.root.setEnabled(false);
+    world.built.opponents.forEach((n) => n.root.setEnabled(false));
+    opponents = null;
     hud.screen('menu');
     hud.setHudVisible(false);
     hud.setTouchVisible(false);
@@ -188,6 +214,18 @@
 
   function finishRace(ev) {
     state = STATE.FINISHED;
+    if (isRaceMode()) {
+      // Race mode result = finishing position; time-trial PBs/ghosts/medals
+      // are reserved for clean laps without traffic
+      const order = opponents.standings({ rm: race, q: lastQ, finishTime: ev.total });
+      const pos = order.findIndex((r) => r.you) + 1;
+      hud.fillFinishRace(order, pos, ev.total, stats);
+      hud.screen('finish');
+      hud.setTouchVisible(false);
+      if (pos === 1) audio.bestJingle();
+      else audio.finishJingle();
+      return;
+    }
     const prevTotal = store.get(bestKey('total'), null);
     const prevLap = store.get(bestKey('lap'), null);
     const bestLapOfRun = Math.min.apply(null, ev.lapTimes);
@@ -280,6 +318,13 @@
     refreshMenuBest();
   }
 
+  function toggleMode() {
+    if (state !== STATE.MENU) return;
+    settings.mode = isRaceMode() ? 'time-trial' : 'race';
+    store.set('settings', settings);
+    hud.setModeLabel(settings.mode);
+  }
+
   // ---------------- wire UI ----------------
   document.getElementById('btn-start').addEventListener('click', startCountdown);
   document.getElementById('btn-restart').addEventListener('click', startCountdown);
@@ -293,6 +338,7 @@
   document.getElementById('btn-mute').addEventListener('click', toggleMute);
   document.getElementById('btn-ghost').addEventListener('click', toggleGhost);
   document.getElementById('btn-track').addEventListener('click', cycleTrack);
+  document.getElementById('btn-mode').addEventListener('click', toggleMode);
 
   input.on('confirm', () => {
     if (state === STATE.MENU || state === STATE.FINISHED) startCountdown();
@@ -364,6 +410,23 @@
     if (snap) {
       updateCamera(1, true);
     }
+  }
+
+  function syncOpponentNodes() {
+    if (!opponents) return;
+    opponents.entries.forEach((e, i) => {
+      const nodes = world.built.opponents[i];
+      if (!nodes) return;
+      nodes.root.position.x = e.car.x;
+      nodes.root.position.z = e.car.z;
+      nodes.root.rotation.y = Math.PI / 2 - e.car.theta;
+      nodes.bodyNode.rotation.z = -e.car.roll;
+      nodes.bodyNode.rotation.x = -e.car.pitch;
+      for (const w of nodes.wheels) {
+        w.hub.rotation.x = e.car.wheelSpin % (Math.PI * 2);
+        if (w.front) w.pivot.rotation.y = -e.car.steerAngle;
+      }
+    });
   }
 
   function syncGhost() {
@@ -441,14 +504,30 @@
       car.step(dt, ctrl,
         onTrack ? { grip: 1 } : { grip: 0.55, extraDrag: 900 });
 
+      if (opponents) {
+        opponents.update(dt, clock);
+        opponents.resolveCollisions(
+          [car].concat(opponents.entries.map((e) => e.car)));
+      }
+
       q = RCTrack.query(world.track, car.x, car.z, queryHint);
       queryHint = q.idx;
+      lastQ = q;
       const wall = RCTrack.wallAt(world.track, q.idx);
       if (wall) car.hitWall(q, wall);
 
       handleRaceEvents(race.update({
         s: q.s, d: q.d, speed: car.speed, dt, clock,
       }));
+
+      if (opponents && !race.finished) {
+        const order = opponents.standings({ rm: race, q, finishTime: null });
+        const pos = order.findIndex((r) => r.you) + 1;
+        if (pos !== playerPos) {
+          playerPos = pos;
+          hud.setPosition(pos, order.length);
+        }
+      }
 
       if (ghostRecorder) ghostRecorder.add(clock, car.x, car.z, car.theta);
       ghostPose = ghostPlayer ? ghostPlayer.sampleAt(clock) : null;
@@ -469,10 +548,14 @@
     }
 
     syncGhost();
+    syncOpponentNodes();
     syncCarNodes(false);
     updateCamera(dt, false);
     if (state === STATE.COUNTDOWN || state === STATE.RACING) {
-      hud.drawMinimap(car, ghostPose);
+      hud.drawMinimap(car, ghostPose,
+        opponents ? opponents.entries.map((e) => ({
+          x: e.car.x, z: e.car.z, color: e.color,
+        })) : null);
     }
     world.built.scene.render();
   }
@@ -502,6 +585,9 @@
     get race() { return race; },
     get clock() { return clock; },
     get ghostActive() { return !!ghostPose; },
-    startCountdown, resetToCheckpoint, cycleTrack,
+    get opponents() { return opponents; },
+    get mode() { return settings.mode; },
+    get playerPos() { return playerPos; },
+    startCountdown, resetToCheckpoint, cycleTrack, toggleMode,
   };
 })();

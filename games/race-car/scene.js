@@ -282,6 +282,14 @@
     // ---------------- car ----------------
     const car = buildCar(scene);
 
+    // ---------------- AI opponent cars (Race mode; hidden otherwise) ----------------
+    const roster = typeof RCOpponents !== 'undefined' ? RCOpponents.ROSTER : [];
+    const opponents = roster.map((def, i) => {
+      const nodes = buildCar(scene, C3(def.color[0], def.color[1], def.color[2]), 'ai' + i);
+      nodes.root.setEnabled(false);
+      return nodes;
+    });
+
     // ---------------- ghost car (best-run replay) ----------------
     const ghost = buildGhost(scene);
 
@@ -316,7 +324,7 @@
       }
     }
 
-    return { scene, camera, car, ghost, applyQuality, sun };
+    return { scene, camera, car, opponents, ghost, applyQuality, sun };
   }
 
   // Translucent ghost car for best-run replay: simplified body, one shared
@@ -348,16 +356,18 @@
   }
 
   // Low-poly car modeled facing +z. Returns nodes for game.js to animate.
-  function buildCar(scene) {
-    const root = new BABYLON.TransformNode('carRoot', scene);
-    const bodyNode = new BABYLON.TransformNode('carBody', scene);
+  // paintColor/tag are optional (defaults = the player's red car).
+  function buildCar(scene, paintColor, tag) {
+    const id = tag || 'player';
+    const root = new BABYLON.TransformNode('carRoot_' + id, scene);
+    const bodyNode = new BABYLON.TransformNode('carBody_' + id, scene);
     bodyNode.parent = root;
 
-    const paint = flatMat(scene, 'paint', C3(0.85, 0.16, 0.12));
-    const darkMat = flatMat(scene, 'carDark', C3(0.09, 0.09, 0.11));
-    const glassMat = flatMat(scene, 'glass', C3(0.25, 0.4, 0.55));
-    const lightMat = flatMat(scene, 'lightM', C3(1, 0.95, 0.7), 0.8);
-    const tailMat = flatMat(scene, 'tailM', C3(0.9, 0.1, 0.1), 0.6);
+    const paint = flatMat(scene, 'paint_' + id, paintColor || C3(0.85, 0.16, 0.12));
+    const darkMat = flatMat(scene, 'carDark_' + id, C3(0.09, 0.09, 0.11));
+    const glassMat = flatMat(scene, 'glass_' + id, C3(0.25, 0.4, 0.55));
+    const lightMat = flatMat(scene, 'lightM_' + id, C3(1, 0.95, 0.7), 0.8);
+    const tailMat = flatMat(scene, 'tailM_' + id, C3(0.9, 0.1, 0.1), 0.6);
 
     const body = BABYLON.MeshBuilder.CreateBox('body',
       { width: 1.8, height: 0.5, depth: 4.1 }, scene);
