@@ -62,13 +62,21 @@
     ghost: true,
     track: RCTrack.DEFAULT_TRACK,
     mode: 'time-trial', // 'time-trial' | 'race'
+    difficulty: 'medium',
+    rivals: 3,
   }, store.get('settings', null) || {});
   if (!RCTrack.TRACKS[settings.track]) settings.track = RCTrack.DEFAULT_TRACK;
   if (settings.mode !== 'race') settings.mode = 'time-trial';
+  if (!RCOpponents.DIFFICULTIES[settings.difficulty]) settings.difficulty = 'medium';
+  if (settings.rivals !== 3 && settings.rivals !== 5) settings.rivals = 3;
   // URL overrides (session only; persisted only if the user cycles them)
   const urlTrack = params.get('track');
   if (urlTrack && RCTrack.TRACKS[urlTrack]) settings.track = urlTrack;
   if (params.get('mode') === 'race') settings.mode = 'race';
+  const urlDiff = params.get('difficulty');
+  if (urlDiff && RCOpponents.DIFFICULTIES[urlDiff]) settings.difficulty = urlDiff;
+  const urlRivals = parseInt(params.get('rivals'), 10);
+  if (urlRivals === 3 || urlRivals === 5) settings.rivals = urlRivals;
 
   const isRaceMode = () => settings.mode === 'race';
 
@@ -77,6 +85,8 @@
   hud.setMuteLabel(!!settings.muted);
   hud.setGhostLabel(!!settings.ghost);
   hud.setModeLabel(settings.mode);
+  hud.setDifficultyLabel(settings.difficulty);
+  hud.setRivalsLabel(settings.rivals);
 
   // ------------- per-track best-time storage (+ v1.0.0 migration) -------------
   function bestKey(name) {
@@ -163,10 +173,14 @@
     stats = { topSpeed: 0, offTrack: 0, driftTime: 0, resets: 0 };
     lastQ = null;
     if (isRaceMode()) {
-      opponents = RCOpponents.createOpponents(world.track, TOTAL_LAPS);
+      opponents = RCOpponents.createOpponents(world.track, TOTAL_LAPS, {
+        count: settings.rivals,
+        difficulty: settings.difficulty,
+      });
       playerPos = opponents.entries.length + 1; // everyone starts ahead
       syncOpponentNodes();
-      world.built.opponents.forEach((n) => n.root.setEnabled(true));
+      world.built.opponents.forEach((n, i) =>
+        n.root.setEnabled(i < opponents.entries.length));
       hud.setPositionVisible(true);
       hud.setPosition(playerPos, opponents.entries.length + 1);
     } else {
@@ -325,6 +339,22 @@
     hud.setModeLabel(settings.mode);
   }
 
+  function cycleDifficulty() {
+    if (state !== STATE.MENU) return;
+    const ids = Object.keys(RCOpponents.DIFFICULTIES);
+    const i = ids.indexOf(settings.difficulty);
+    settings.difficulty = ids[(i + 1) % ids.length];
+    store.set('settings', settings);
+    hud.setDifficultyLabel(settings.difficulty);
+  }
+
+  function cycleRivals() {
+    if (state !== STATE.MENU) return;
+    settings.rivals = settings.rivals === 3 ? 5 : 3;
+    store.set('settings', settings);
+    hud.setRivalsLabel(settings.rivals);
+  }
+
   // ---------------- wire UI ----------------
   document.getElementById('btn-start').addEventListener('click', startCountdown);
   document.getElementById('btn-restart').addEventListener('click', startCountdown);
@@ -339,6 +369,8 @@
   document.getElementById('btn-ghost').addEventListener('click', toggleGhost);
   document.getElementById('btn-track').addEventListener('click', cycleTrack);
   document.getElementById('btn-mode').addEventListener('click', toggleMode);
+  document.getElementById('btn-difficulty').addEventListener('click', cycleDifficulty);
+  document.getElementById('btn-rivals').addEventListener('click', cycleRivals);
 
   input.on('confirm', () => {
     if (state === STATE.MENU || state === STATE.FINISHED) startCountdown();

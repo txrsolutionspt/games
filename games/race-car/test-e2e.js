@@ -228,20 +228,37 @@ function check(name, cond, detail) {
   const raceErrors = [];
   racePage.on('console', (m) => { if (m.type() === 'error') raceErrors.push(m.text()); });
   racePage.on('pageerror', (e) => raceErrors.push(String(e)));
-  await racePage.goto('http://localhost:8901/games/race-car/?mode=race&laps=1',
+  await racePage.goto(
+    'http://localhost:8901/games/race-car/?mode=race&laps=1&rivals=5&difficulty=hard',
     { waitUntil: 'load' });
   await racePage.waitForTimeout(1800);
   const modeLabel = await racePage.textContent('#btn-mode');
   check('mode button reflects ?mode=race', modeLabel.includes('RACE'), modeLabel);
+  check('difficulty button reflects ?difficulty=hard',
+    (await racePage.textContent('#btn-difficulty')).includes('HARD'));
+  check('rivals button reflects ?rivals=5',
+    (await racePage.textContent('#btn-rivals')).includes('5'));
+  check('race options visible in race mode',
+    await racePage.isVisible('#btn-difficulty') && await racePage.isVisible('#btn-rivals'));
   await racePage.click('#btn-mode');
   await racePage.waitForTimeout(200);
   check('mode button toggles', (await racePage.textContent('#btn-mode')).includes('TIME TRIAL'));
+  check('race options hidden in time trial',
+    !(await racePage.isVisible('#btn-difficulty')) && !(await racePage.isVisible('#btn-rivals')));
   await racePage.click('#btn-mode'); // back to race
+  await racePage.click('#btn-difficulty'); // hard -> easy (cycles)
+  check('difficulty cycles', (await racePage.textContent('#btn-difficulty')).includes('EASY'));
+  await racePage.click('#btn-rivals'); // 5 -> 3
+  await racePage.click('#btn-rivals'); // 3 -> 5
+  check('rivals cycles back to 5', (await racePage.textContent('#btn-rivals')).includes('5'));
   await racePage.click('#btn-start');
   await racePage.waitForFunction(() =>
     window.__rc.state === window.__rc.STATE.RACING, null, { timeout: 20000 });
-  check('opponents spawned in race mode', await racePage.evaluate(() =>
-    window.__rc.opponents && window.__rc.opponents.entries.length === 3));
+  check('5 opponents spawned', await racePage.evaluate(() =>
+    window.__rc.opponents && window.__rc.opponents.entries.length === 5));
+  check('5 AI meshes enabled', await racePage.evaluate(() =>
+    window.__rc.scene.getNodes().filter((n) =>
+      n.name && n.name.startsWith('carRoot_ai') && n.isEnabled()).length === 5));
   check('position indicator visible', await racePage.isVisible('#hud-pos'));
   const aiPos0 = await racePage.evaluate(() =>
     window.__rc.opponents.entries.map((e) => [e.car.x, e.car.z]));
@@ -252,7 +269,7 @@ function check(name, cond, detail) {
     Math.hypot(aiPos1[i][0] - p[0], aiPos1[i][1] - p[1]) > 5);
   check('all AI cars are driving', aiMoved);
   const posText = await racePage.textContent('#hud-pos');
-  check('position shows Pn/4', /^P[1-4]\/4$/.test(posText), posText);
+  check('position shows Pn/6', /^P[1-6]\/6$/.test(posText), posText);
   check('no console errors in race mode', raceErrors.length === 0,
     raceErrors.slice(0, 3).join(' | '));
   await racePage.screenshot({ path: path.join(SHOTS, '13-race-mode.png') });

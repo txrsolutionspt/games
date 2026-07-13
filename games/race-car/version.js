@@ -8,22 +8,31 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.3.0',
+  version: '1.4.0',
 
   // Git commit hash (short form)
-  gitHash: '6d03160',
+  gitHash: '48b08bd',
 
   // Full git commit hash
-  gitHashFull: '6d0316089ae2224ea0157943866f60325e487ad1',
+  gitHashFull: '48b08bd71224709901d0c759a45eafa6e90972f7',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-13',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-13T22:18:07Z',
+  buildTime: '2026-07-13T22:29:49Z',
 
   // Changelog for this version
   changelog: `
+    v1.4.0 - Race Options: AI Difficulty & Field Size
+    - AI difficulty selector (EASY / MEDIUM / HARD): scales every rival's
+      cornering, top speed and braking together; MEDIUM matches v1.3
+    - Field size selector (RIVALS: 3 or 5): two new drivers join the
+      roster - NOVA (purple) and FROST (cyan) - for six-car races
+    - Both options live on the menu (shown only in RACE mode), persist
+      across sessions, and accept ?difficulty= / ?rivals= URL params
+    - Position HUD, standings and results scale to the chosen field
+
     v1.3.0 - Race Mode: AI Opponents
     - New RACE mode (menu MODE button): race wheel-to-wheel against three
       AI opponents - VIPER, BLAZE and MOSS - each with its own skill

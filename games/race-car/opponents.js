@@ -9,7 +9,8 @@
   'use strict';
 
   // Roster: skill descends. lineOffset spreads the AI across the road so
-  // they hold distinct lines.
+  // they hold distinct lines. The first `count` drivers race (so a 3-car
+  // field is VIPER/BLAZE/MOSS, the same pack as v1.3).
   const ROSTER = [
     {
       name: 'VIPER', color: [0.16, 0.45, 0.85],
@@ -23,7 +24,32 @@
       name: 'MOSS', color: [0.2, 0.62, 0.32],
       skill: { cornerG: 6.1, vMax: 36, brakeDecel: 5.2, lineOffset: 0 },
     },
+    {
+      name: 'NOVA', color: [0.62, 0.3, 0.85],
+      skill: { cornerG: 7.3, vMax: 43, brakeDecel: 6.0, lineOffset: -0.8 },
+    },
+    {
+      name: 'FROST', color: [0.35, 0.75, 0.8],
+      skill: { cornerG: 6.5, vMax: 38, brakeDecel: 5.5, lineOffset: 0.8 },
+    },
   ];
+
+  // Difficulty scales every driver's skill profile together.
+  const DIFFICULTIES = {
+    easy: { label: 'EASY', cornerG: 0.8, vMax: 0.85, brakeDecel: 0.92 },
+    medium: { label: 'MEDIUM', cornerG: 1, vMax: 1, brakeDecel: 1 },
+    hard: { label: 'HARD', cornerG: 1.13, vMax: 1.12, brakeDecel: 1.08 },
+  };
+
+  function scaledSkill(skill, difficulty) {
+    const d = DIFFICULTIES[difficulty] || DIFFICULTIES.medium;
+    return {
+      cornerG: skill.cornerG * d.cornerG,
+      vMax: Math.min(50, skill.vMax * d.vMax), // physics tops out ~51 m/s
+      brakeDecel: skill.brakeDecel * d.brakeDecel,
+      lineOffset: skill.lineOffset,
+    };
+  }
 
   const COLLIDE_DIST = 2.7;   // m between car centers before contact resolves
   const RESTITUTION = 0.25;
@@ -47,8 +73,16 @@
     };
   }
 
-  function createOpponents(track, laps, defs) {
-    const roster = defs || ROSTER;
+  /*
+   * opts: { count: field size (default 3, capped at roster size),
+   *         difficulty: 'easy' | 'medium' | 'hard' (default 'medium'),
+   *         defs: roster override (tests) }
+   */
+  function createOpponents(track, laps, opts) {
+    const o = opts || {};
+    const difficulty = DIFFICULTIES[o.difficulty] ? o.difficulty : 'medium';
+    const roster = (o.defs || ROSTER).slice(0,
+      Math.max(1, Math.min(o.count || 3, (o.defs || ROSTER).length)));
     const entries = roster.map((def, i) => {
       const car = new RCCar.Car();
       const pose = gridPose(track, i + 1);
@@ -58,7 +92,7 @@
         name: def.name,
         color: def.color,
         car,
-        driver: RCAutopilot.createAutopilot(track, def.skill),
+        driver: RCAutopilot.createAutopilot(track, scaledSkill(def.skill, difficulty)),
         rm: new RCRace.RaceManager({
           length: track.length,
           gateS: track.gates.map((g) => g.s),
@@ -197,7 +231,9 @@
     return { entries, update, resolveCollisions, standings, resetToGrid, gridPose };
   }
 
-  const api = { createOpponents, ROSTER, COLLIDE_DIST, gridPose };
+  const api = {
+    createOpponents, ROSTER, DIFFICULTIES, scaledSkill, COLLIDE_DIST, gridPose,
+  };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.RCOpponents = api;
 })(typeof window !== 'undefined' ? window : globalThis);

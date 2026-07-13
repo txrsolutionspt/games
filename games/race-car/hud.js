@@ -34,6 +34,7 @@
       sector: $('hud-sector'), menuMedals: $('menu-medals'),
       finishMedal: $('finish-medal'), finishStats: $('finish-stats'),
       modeBtn: $('btn-mode'), pos: $('hud-pos'),
+      difficultyBtn: $('btn-difficulty'), rivalsBtn: $('btn-rivals'),
       finishPosition: $('finish-position'), finishTable: $('finish-table'),
       raceResults: $('race-results'),
     };
@@ -249,6 +250,15 @@
       setTrackLabel(name) { el.trackBtn.textContent = 'TRACK: ' + name; },
       setModeLabel(mode) {
         el.modeBtn.textContent = 'MODE: ' + (mode === 'race' ? 'RACE' : 'TIME TRIAL');
+        // difficulty/field size only matter when racing the AI
+        if (el.difficultyBtn) show(el.difficultyBtn, mode === 'race');
+        if (el.rivalsBtn) show(el.rivalsBtn, mode === 'race');
+      },
+      setDifficultyLabel(d) {
+        el.difficultyBtn.textContent = 'AI: ' + d.toUpperCase();
+      },
+      setRivalsLabel(n) {
+        el.rivalsBtn.textContent = 'RIVALS: ' + n;
       },
       setPositionVisible(v) { show(el.pos, v); },
       setPosition(pos, total) {
