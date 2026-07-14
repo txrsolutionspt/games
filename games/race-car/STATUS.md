@@ -1,11 +1,11 @@
 # Apex Racer (Race Car Game) — Status Report
 
 **Date:** 2026-07-13
-**Version:** 1.4.0 (see `version.js`)
+**Version:** 1.5.0 (see `version.js`)
 **Status:** ✅ Playable — v1 per `design.md`, plus v1.1 (ghost replay,
 second track + track selection, minimap), v1.2 (sector timing, medals,
-post-race stats), v1.3 (Race mode with AI opponents) and v1.4 (AI
-difficulty EASY/MEDIUM/HARD + field size 3 or 5 rivals)
+post-race stats), v1.3 (Race mode with AI opponents), v1.4 (AI
+difficulty + field size) and v1.5 (cinematic replay viewer)
 
 ---
 
@@ -33,6 +33,7 @@ installable.
 |------|------|
 | `track.js` | Pure geometry + track registry (`apex`, `coastal` with per-track palettes): Catmull-Rom centerline, arc-length resampling, curvature, procedural kerb/barrier placement, checkpoint gates, nearest-point queries |
 | `ghost.js` | Pure ghost record/playback: fixed-interval pose sampling, quantized serialization, interpolated replay |
+| `replaycam.js` | Pure cinematic camera director: corner-apex trackside stations, chase/drone shots, deterministic cutting |
 | `car.js` | Pure physics: semi-sim vehicle model + track-relative barrier collision |
 | `race.js` | Pure race logic: ordered checkpoint validation, lap/total/sector timing, splits & deltas, medal helper, wrong-way and course-cut detection |
 | `autopilot.js` | Pursuit driver with tunable skill (corner g, top speed, braking, line offset); used by AI opponents, tests and `?auto=1` |

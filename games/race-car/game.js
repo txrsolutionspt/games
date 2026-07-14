@@ -126,7 +126,7 @@
   }
 
   // ---------------- race state ----------------
-  const STATE = { MENU: 0, COUNTDOWN: 1, RACING: 2, PAUSED: 3, FINISHED: 4 };
+  const STATE = { MENU: 0, COUNTDOWN: 1, RACING: 2, PAUSED: 3, FINISHED: 4, REPLAY: 5 };
   let state = STATE.MENU;
   let race = null;
   let clock = 0;            // race clock, s (runs only while RACING)
@@ -143,6 +143,14 @@
   let opponents = null;      // AI pack (Race mode only)
   let playerPos = 1;         // live standing in Race mode
   let lastQ = null;          // most recent track query for the player
+  // replay viewer
+  let replayPlayer = null;
+  let replayDirector = null;
+  let replayT = 0;
+  let replaySpeed = 1;
+  let replayPaused = false;
+  let replayHint = null;
+  let replayPrev = null;     // previous pose, for speed/steer derivation
 
   function placeCarAtStart() {
     const p = world.track.startPose;
@@ -224,6 +232,46 @@
     hud.setMenuBest(pb, store.get(bestKey('lap'), null));
     hud.setMenuMedals(world.track.medals, TOTAL_LAPS,
       RCRace.medalFor(pb, world.track.medals, TOTAL_LAPS));
+    hud.setReplayAvailable(store.get(bestKey('ghost'), null) != null);
+  }
+
+  // ---------------- replay viewer ----------------
+  function startReplay() {
+    if (state !== STATE.MENU) return;
+    const player = RCGhost.createPlayer(store.get(bestKey('ghost'), null));
+    if (!player) return;
+    replayPlayer = player;
+    replayDirector = RCReplayCam.createDirector(world.track);
+    replayT = 0;
+    replaySpeed = 1;
+    replayPaused = false;
+    replayHint = null;
+    replayPrev = null;
+    state = STATE.REPLAY;
+    hud.screen(null);
+    hud.setHudVisible(false);
+    hud.setTouchVisible(false);
+    hud.setReplayBarVisible(true);
+    hud.setReplaySpeedLabel(replaySpeed);
+    hud.setReplayPausedLabel(false);
+    audio.unlock();
+  }
+
+  function exitReplay() {
+    replayPlayer = null;
+    replayDirector = null;
+    hud.setReplayBarVisible(false);
+    goToMenu();
+  }
+
+  function toggleReplayPause() {
+    replayPaused = !replayPaused;
+    hud.setReplayPausedLabel(replayPaused);
+  }
+
+  function cycleReplaySpeed() {
+    replaySpeed = replaySpeed === 1 ? 2 : 1;
+    hud.setReplaySpeedLabel(replaySpeed);
   }
 
   function finishRace(ev) {
@@ -371,14 +419,20 @@
   document.getElementById('btn-mode').addEventListener('click', toggleMode);
   document.getElementById('btn-difficulty').addEventListener('click', cycleDifficulty);
   document.getElementById('btn-rivals').addEventListener('click', cycleRivals);
+  document.getElementById('btn-replay').addEventListener('click', startReplay);
+  document.getElementById('btn-replay-exit').addEventListener('click', exitReplay);
+  document.getElementById('btn-replay-pause').addEventListener('click', toggleReplayPause);
+  document.getElementById('btn-replay-speed').addEventListener('click', cycleReplaySpeed);
 
   input.on('confirm', () => {
     if (state === STATE.MENU || state === STATE.FINISHED) startCountdown();
     else if (state === STATE.PAUSED) togglePause();
+    else if (state === STATE.REPLAY) toggleReplayPause();
   });
   input.on('reset', resetToCheckpoint);
   input.on('pause', () => {
     if (state === STATE.RACING || state === STATE.PAUSED) togglePause();
+    else if (state === STATE.REPLAY) exitReplay();
   });
   input.on('mute', toggleMute);
   input.on('interact', () => audio.unlock());
@@ -575,6 +629,50 @@
         ctrl.throttle,
         car.slipping ? car.slipMag : 0,
         true);
+    } else if (state === STATE.REPLAY && replayPlayer) {
+      if (!replayPaused) replayT += dt * replaySpeed;
+      if (replayT > replayPlayer.duration) replayT = 0; // loop the show
+      const pose = replayPlayer.sampleAt(replayT) ||
+        replayPlayer.sampleAt(replayPlayer.duration);
+
+      // derive speed/steer for wheel + body animation
+      let v = 0, yawRate = 0;
+      if (replayPrev && !replayPaused) {
+        v = Math.hypot(pose.x - replayPrev.x, pose.z - replayPrev.z) /
+          Math.max(dt * replaySpeed, 1e-4);
+        let dth = pose.theta - replayPrev.theta;
+        while (dth > Math.PI) dth -= 2 * Math.PI;
+        while (dth < -Math.PI) dth += 2 * Math.PI;
+        yawRate = dth / Math.max(dt * replaySpeed, 1e-4);
+      }
+      replayPrev = pose;
+      car.x = pose.x; car.z = pose.z; car.theta = pose.theta;
+      if (!replayPaused) {
+        car.wheelSpin += (v / 0.33) * dt * replaySpeed;
+        car.steerAngle = Math.max(-0.5, Math.min(0.5,
+          yawRate * 2.6 / Math.max(v, 3)));
+        const latG = Math.max(-1.3, Math.min(1.3, v * yawRate / 9.81));
+        car.roll += (-latG * 0.062 - car.roll) * Math.min(1, dt * 7);
+      }
+
+      const q = RCTrack.query(world.track, pose.x, pose.z, replayHint);
+      replayHint = q.idx;
+      const shot = replayDirector.update(replayT, pose, q.s);
+      const camera = world.built.camera;
+      if (shot.cut) {
+        camera.position.set(shot.pos.x, shot.pos.y, shot.pos.z);
+      } else if (shot.smooth > 0) {
+        const k = 1 - Math.exp(-dt * shot.smooth);
+        camera.position.x += (shot.pos.x - camera.position.x) * k;
+        camera.position.y += (shot.pos.y - camera.position.y) * k;
+        camera.position.z += (shot.pos.z - camera.position.z) * k;
+      }
+      camera.setTarget(new BABYLON.Vector3(
+        shot.target.x, shot.target.y, shot.target.z));
+      camera.fov = 0.9;
+
+      hud.setReplayTime(replayT, replayPlayer.duration);
+      audio.update(Math.min(1, v / 52), replayPaused ? 0 : 0.45, 0, !replayPaused);
     } else {
       audio.update(0, 0, 0, false);
     }
@@ -582,8 +680,8 @@
     syncGhost();
     syncOpponentNodes();
     syncCarNodes(false);
-    updateCamera(dt, false);
-    if (state === STATE.COUNTDOWN || state === STATE.RACING) {
+    if (state !== STATE.REPLAY) updateCamera(dt, false); // director owns the replay cam
+    if (state === STATE.COUNTDOWN || state === STATE.RACING || state === STATE.REPLAY) {
       hud.drawMinimap(car, ghostPose,
         opponents ? opponents.entries.map((e) => ({
           x: e.car.x, z: e.car.z, color: e.color,
@@ -620,6 +718,9 @@
     get opponents() { return opponents; },
     get mode() { return settings.mode; },
     get playerPos() { return playerPos; },
+    get replayT() { return replayT; },
+    get replayDuration() { return replayPlayer ? replayPlayer.duration : 0; },
     startCountdown, resetToCheckpoint, cycleTrack, toggleMode,
+    startReplay, exitReplay,
   };
 })();

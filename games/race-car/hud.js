@@ -35,6 +35,9 @@
       finishMedal: $('finish-medal'), finishStats: $('finish-stats'),
       modeBtn: $('btn-mode'), pos: $('hud-pos'),
       difficultyBtn: $('btn-difficulty'), rivalsBtn: $('btn-rivals'),
+      replayBtn: $('btn-replay'), replayBar: $('replay-bar'),
+      replayTime: $('replay-time'), replayPauseBtn: $('btn-replay-pause'),
+      replaySpeedBtn: $('btn-replay-speed'),
       finishPosition: $('finish-position'), finishTable: $('finish-table'),
       raceResults: $('race-results'),
     };
@@ -256,6 +259,17 @@
       },
       setDifficultyLabel(d) {
         el.difficultyBtn.textContent = 'AI: ' + d.toUpperCase();
+      },
+      setReplayAvailable(v) { show(el.replayBtn, v); },
+      setReplayBarVisible(v) { show(el.replayBar, v); },
+      setReplayTime(t, duration) {
+        el.replayTime.textContent = fmt(t) + ' / ' + fmt(duration);
+      },
+      setReplayPausedLabel(paused) {
+        el.replayPauseBtn.textContent = paused ? '▶' : '‖';
+      },
+      setReplaySpeedLabel(speed) {
+        el.replaySpeedBtn.textContent = speed + '×';
       },
       setRivalsLabel(n) {
         el.rivalsBtn.textContent = 'RIVALS: ' + n;

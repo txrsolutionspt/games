@@ -13,6 +13,7 @@ const PRECACHE_URLS = [
   './car.js',
   './race.js',
   './ghost.js',
+  './replaycam.js',
   './autopilot.js',
   './opponents.js',
   './input.js',

@@ -41,6 +41,15 @@
   <!-- countdown -->
   <div id="countdown" class="hidden"></div>
 
+  <!-- replay viewer controls -->
+  <div id="replay-bar" class="hidden">
+    <span class="replay-badge">REPLAY</span>
+    <span id="replay-time">0:00.00 / 0:00.00</span>
+    <button id="btn-replay-pause" class="replay-btn" aria-label="Pause replay">&#8214;</button>
+    <button id="btn-replay-speed" class="replay-btn" aria-label="Replay speed">1&#215;</button>
+    <button id="btn-replay-exit" class="replay-btn replay-exit" aria-label="Exit replay">EXIT</button>
+  </div>
+
   <!-- touch driving controls -->
   <div id="touch-controls" class="hidden">
     <div id="steer-zone">
@@ -63,6 +72,7 @@
     </div>
     <div id="menu-medals" class="menu-medals"></div>
     <button id="btn-start" class="big-btn">START RACE</button>
+    <button id="btn-replay" class="small-btn hidden">&#9654; WATCH BEST-RUN REPLAY</button>
     <div class="menu-row">
       <button id="btn-track" class="small-btn track-btn">TRACK: APEX GP</button>
       <button id="btn-mode" class="small-btn track-btn">MODE: TIME TRIAL</button>
@@ -123,6 +133,7 @@
   <script src="car.js"></script>
   <script src="race.js"></script>
   <script src="ghost.js"></script>
+  <script src="replaycam.js"></script>
   <script src="autopilot.js"></script>
   <script src="opponents.js"></script>
   <script src="input.js"></script>

@@ -8,22 +8,32 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.4.0',
+  version: '1.5.0',
 
   // Git commit hash (short form)
-  gitHash: '48b08bd',
+  gitHash: 'ee1cbad',
 
   // Full git commit hash
-  gitHashFull: '48b08bd71224709901d0c759a45eafa6e90972f7',
+  gitHashFull: 'ee1cbadaf8ed5f6f9a04fc9baf1a2a3560e5b08f',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-13',
+  releaseDate: '2026-07-14',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-13T22:29:49Z',
+  buildTime: '2026-07-14T08:55:31Z',
 
   // Changelog for this version
   changelog: `
+    v1.5.0 - Cinematic Replay Viewer
+    - Watch your best run back: a WATCH REPLAY button appears on the
+      menu once a personal best is saved for the current track
+    - Automatic TV-style camera direction: trackside corner cameras
+      (placed at the circuit's apexes), chase cam and aerial drone
+      shots, cutting between them as the car goes around
+    - Replay controls: pause/resume (Space), 1x/2x speed, EXIT (Esc);
+      the replay loops until you leave
+    - Replays are the ghost recordings - no extra storage needed
+
     v1.4.0 - Race Options: AI Difficulty & Field Size
     - AI difficulty selector (EASY / MEDIUM / HARD): scales every rival's
       cornering, top speed and braking together; MEDIUM matches v1.3
