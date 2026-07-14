@@ -51,17 +51,67 @@
     steerRateOut: 5.0,   // normalized units/s back to center
 
     yawDamping: 350,     // N m s, keeps limit handling catchable
+    frictionCircle: 0.75, // how hard longitudinal force eats lateral grip
+
+    tractionControl: false, // cap drive force to preserve rear lateral grip
+    stabilityAssist: false, // extra corrective yaw damping at high rear slip
 
     maxRoll: 0.062,      // rad of visual body roll at 1 g lateral
     maxPitch: 0.042,     // rad of visual pitch at 1 g longitudinal
   };
+
+  /*
+   * Driving-feel tuning applied via Car.setTuning(). The 'normal' handling
+   * and 'standard' steering presets reproduce DEFAULTS exactly, and both
+   * assists default OFF, so a bare `new Car()` behaves identically to
+   * previous versions (AI opponents and physics tests are unaffected).
+   */
+  const HANDLING_PRESETS = {
+    grip: { frontD: 1.04, rearD: 1.34, circle: 0.5, yawDamping: 520 },
+    normal: { frontD: 0.98, rearD: 1.18, circle: 0.75, yawDamping: 350 },
+    drift: { frontD: 1.0, rearD: 1.04, circle: 0.95, yawDamping: 180 },
+  };
+  const STEERING_PRESETS = {
+    relaxed: { rateIn: 2.2, rateOut: 4.0 },
+    standard: { rateIn: 3.0, rateOut: 5.0 },
+    sharp: { rateIn: 4.4, rateOut: 6.5 },
+  };
+  const DEFAULT_TUNING = {
+    handling: 'normal',
+    steering: 'standard',
+    traction: false,
+    stability: false,
+  };
+
+  const TC_LIMIT = 0.85;        // drive force cap as a fraction of rear grip
+  const STAB_EXTRA_DAMP = 950;  // N m s of added damping at full engagement
 
   const SUBSTEP = 1 / 240;
 
   class Car {
     constructor(params) {
       this.p = Object.assign({}, DEFAULTS, params || {});
+      this.tuning = Object.assign({}, DEFAULT_TUNING);
       this.reset(0, 0, 0);
+    }
+
+    /*
+     * Apply driving-feel settings: {handling: 'grip'|'normal'|'drift',
+     * steering: 'relaxed'|'standard'|'sharp', traction: bool,
+     * stability: bool}. Missing fields keep their current value.
+     */
+    setTuning(tuning) {
+      this.tuning = Object.assign({}, this.tuning, tuning || {});
+      const h = HANDLING_PRESETS[this.tuning.handling] || HANDLING_PRESETS.normal;
+      const s = STEERING_PRESETS[this.tuning.steering] || STEERING_PRESETS.standard;
+      this.p.tireFront = Object.assign({}, this.p.tireFront, { D: h.frontD });
+      this.p.tireRear = Object.assign({}, this.p.tireRear, { D: h.rearD });
+      this.p.frictionCircle = h.circle;
+      this.p.yawDamping = h.yawDamping;
+      this.p.steerRateIn = s.rateIn;
+      this.p.steerRateOut = s.rateOut;
+      this.p.tractionControl = !!this.tuning.traction;
+      this.p.stabilityAssist = !!this.tuning.stability;
     }
 
     reset(x, z, theta) {
@@ -156,6 +206,12 @@
       const FzF = Math.max(200, p.mass * G * p.b / L - transfer);
       const FzR = Math.max(200, p.mass * G * p.a / L + transfer);
 
+      // traction control: cap drive force so the rear tire keeps a healthy
+      // lateral reserve on the friction circle (tames corner-exit oversteer)
+      if (p.tractionControl && driveForce > 0) {
+        driveForce = Math.min(driveForce, TC_LIMIT * grip * p.tireRear.D * FzR);
+      }
+
       // per-axle longitudinal force (RWD; brakes split by bias)
       const brakeF = brakeTotal * p.brakeBias;
       const brakeR = brakeTotal * (1 - p.brakeBias);
@@ -174,8 +230,8 @@
       // friction circle: longitudinal usage reduces available lateral grip
       const capF = grip * p.tireFront.D * FzF;
       const capR = grip * p.tireRear.D * FzR;
-      const latCapF = Math.sqrt(Math.max(0.01, capF * capF - FxF * FxF * 0.75));
-      const latCapR = Math.sqrt(Math.max(0.01, capR * capR - FxR * FxR * 0.75));
+      const latCapF = Math.sqrt(Math.max(0.01, capF * capF - FxF * FxF * p.frictionCircle));
+      const latCapR = Math.sqrt(Math.max(0.01, capR * capR - FxR * FxR * p.frictionCircle));
       let FyF = -latCapF * Math.sin(p.tireFront.C * Math.atan(p.tireFront.B * slipF));
       let FyR = -latCapR * Math.sin(p.tireRear.C * Math.atan(p.tireRear.B * slipR));
 
@@ -203,7 +259,14 @@
       }
 
       // yaw: dynamic torque blended with kinematic steering response
-      const Mz = (p.a * FyF * cosD - p.b * FyR) * sgnV - p.yawDamping * this.yawRate;
+      // stability assist: extra corrective damping that ramps in as the
+      // rear starts to slide, catching the tail before it snaps around
+      let damping = p.yawDamping;
+      if (p.stabilityAssist) {
+        const engage = Math.min(1, Math.max(0, (Math.abs(slipR) - 0.07) / 0.1));
+        damping += STAB_EXTRA_DAMP * engage;
+      }
+      const Mz = (p.a * FyF * cosD - p.b * FyR) * sgnV - damping * this.yawRate;
       const rDyn = this.yawRate + (Mz / p.inertia) * h;
       const rKin = vF * Math.tan(delta) / L;
       this.yawRate = blend * rDyn + (1 - blend) * rKin;
@@ -260,7 +323,7 @@
     }
   }
 
-  const api = { Car, DEFAULTS };
+  const api = { Car, DEFAULTS, HANDLING_PRESETS, STEERING_PRESETS, DEFAULT_TUNING };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.RCCar = api;
 })(typeof window !== 'undefined' ? window : globalThis);

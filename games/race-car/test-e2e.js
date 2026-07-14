@@ -72,6 +72,40 @@ function check(name, cond, detail) {
   check('replay button hidden with no saved run', !(await page.isVisible('#btn-replay')));
   await page.screenshot({ path: path.join(SHOTS, '01-menu.png') });
 
+  // ---------- driving settings ----------
+  await page.click('#btn-driving');
+  await page.waitForTimeout(200);
+  check('driving settings screen opens', await page.isVisible('#screen-driving'));
+  check('traction control defaults ON',
+    (await page.textContent('#opt-traction')).includes('ON'));
+  check('stability assist defaults ON',
+    (await page.textContent('#opt-stability')).includes('ON'));
+  check('player car has assists applied', await page.evaluate(() =>
+    window.__rc.car.p.tractionControl && window.__rc.car.p.stabilityAssist));
+  await page.click('#opt-handling'); // normal -> drift
+  check('handling cycles to DRIFT',
+    (await page.textContent('#opt-handling')).includes('DRIFT'));
+  check('tuning applied to physics live', await page.evaluate(() =>
+    window.__rc.car.p.tireRear.D < 1.1));
+  await page.click('#opt-traction'); // ON -> OFF
+  check('traction toggles OFF', (await page.textContent('#opt-traction')).includes('OFF'));
+  await page.click('#btn-driving-back');
+  await page.waitForTimeout(200);
+  check('back returns to menu', await page.isVisible('#screen-menu'));
+  // settings persist across a reload
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForTimeout(2000);
+  check('driving settings persist after reload', await page.evaluate(() =>
+    window.__rc.car.tuning.handling === 'drift' &&
+    window.__rc.car.tuning.traction === false));
+  // restore defaults for the rest of the run
+  await page.click('#btn-driving');
+  await page.click('#opt-handling'); // drift -> grip
+  await page.click('#opt-handling'); // grip -> normal
+  await page.click('#opt-traction'); // OFF -> ON
+  await page.click('#btn-driving-back');
+  await page.waitForTimeout(200);
+
   // ---------- track selection ----------
   const track0 = await page.evaluate(() => window.__rc.trackId);
   const label0 = await page.textContent('#btn-track');

@@ -35,6 +35,9 @@
       finishMedal: $('finish-medal'), finishStats: $('finish-stats'),
       modeBtn: $('btn-mode'), pos: $('hud-pos'),
       difficultyBtn: $('btn-difficulty'), rivalsBtn: $('btn-rivals'),
+      driving: $('screen-driving'),
+      optHandling: $('opt-handling'), optSteering: $('opt-steering'),
+      optTraction: $('opt-traction'), optStability: $('opt-stability'),
       replayBtn: $('btn-replay'), replayBar: $('replay-bar'),
       replayTime: $('replay-time'), replayPauseBtn: $('btn-replay-pause'),
       replaySpeedBtn: $('btn-replay-speed'),
@@ -157,6 +160,13 @@
         show(el.menu, name === 'menu');
         show(el.pause, name === 'pause');
         show(el.finish, name === 'finish');
+        show(el.driving, name === 'driving');
+      },
+      setDrivingLabels(d) {
+        el.optHandling.textContent = 'HANDLING: ' + d.handling.toUpperCase();
+        el.optSteering.textContent = 'STEERING: ' + d.steering.toUpperCase();
+        el.optTraction.textContent = 'TRACTION CONTROL: ' + (d.traction ? 'ON' : 'OFF');
+        el.optStability.textContent = 'STABILITY ASSIST: ' + (d.stability ? 'ON' : 'OFF');
       },
       setMenuBest(total, lap) {
         show(el.menuBest, total != null);

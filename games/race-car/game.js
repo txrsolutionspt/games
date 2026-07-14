@@ -64,7 +64,18 @@
     mode: 'time-trial', // 'time-trial' | 'race'
     difficulty: 'medium',
     rivals: 3,
+    // driving feel: assists default ON so the car doesn't power-slide out
+    // of every slow corner under binary keyboard throttle
+    driving: {
+      handling: 'normal',
+      steering: 'standard',
+      traction: true,
+      stability: true,
+    },
   }, store.get('settings', null) || {});
+  settings.driving = Object.assign({
+    handling: 'normal', steering: 'standard', traction: true, stability: true,
+  }, settings.driving || {});
   if (!RCTrack.TRACKS[settings.track]) settings.track = RCTrack.DEFAULT_TRACK;
   if (settings.mode !== 'race') settings.mode = 'time-trial';
   if (!RCOpponents.DIFFICULTIES[settings.difficulty]) settings.difficulty = 'medium';
@@ -87,6 +98,8 @@
   hud.setModeLabel(settings.mode);
   hud.setDifficultyLabel(settings.difficulty);
   hud.setRivalsLabel(settings.rivals);
+  car.setTuning(settings.driving);
+  hud.setDrivingLabels(settings.driving);
 
   // ------------- per-track best-time storage (+ v1.0.0 migration) -------------
   function bestKey(name) {
@@ -403,6 +416,29 @@
     hud.setRivalsLabel(settings.rivals);
   }
 
+  // ---------------- driving settings ----------------
+  function applyDriving() {
+    car.setTuning(settings.driving);
+    store.set('settings', settings);
+    hud.setDrivingLabels(settings.driving);
+  }
+
+  function cycleDrivingOption(key) {
+    const d = settings.driving;
+    if (key === 'handling') {
+      const order = ['grip', 'normal', 'drift'];
+      d.handling = order[(order.indexOf(d.handling) + 1) % order.length];
+    } else if (key === 'steering') {
+      const order = ['relaxed', 'standard', 'sharp'];
+      d.steering = order[(order.indexOf(d.steering) + 1) % order.length];
+    } else if (key === 'traction') {
+      d.traction = !d.traction;
+    } else if (key === 'stability') {
+      d.stability = !d.stability;
+    }
+    applyDriving();
+  }
+
   // ---------------- wire UI ----------------
   document.getElementById('btn-start').addEventListener('click', startCountdown);
   document.getElementById('btn-restart').addEventListener('click', startCountdown);
@@ -419,6 +455,16 @@
   document.getElementById('btn-mode').addEventListener('click', toggleMode);
   document.getElementById('btn-difficulty').addEventListener('click', cycleDifficulty);
   document.getElementById('btn-rivals').addEventListener('click', cycleRivals);
+  document.getElementById('btn-driving').addEventListener('click', () => {
+    if (state === STATE.MENU) hud.screen('driving');
+  });
+  document.getElementById('btn-driving-back').addEventListener('click', () => {
+    hud.screen('menu');
+  });
+  document.getElementById('opt-handling').addEventListener('click', () => cycleDrivingOption('handling'));
+  document.getElementById('opt-steering').addEventListener('click', () => cycleDrivingOption('steering'));
+  document.getElementById('opt-traction').addEventListener('click', () => cycleDrivingOption('traction'));
+  document.getElementById('opt-stability').addEventListener('click', () => cycleDrivingOption('stability'));
   document.getElementById('btn-replay').addEventListener('click', startReplay);
   document.getElementById('btn-replay-exit').addEventListener('click', exitReplay);
   document.getElementById('btn-replay-pause').addEventListener('click', toggleReplayPause);

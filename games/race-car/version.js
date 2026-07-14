@@ -8,22 +8,36 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.5.0',
+  version: '1.6.0',
 
   // Git commit hash (short form)
-  gitHash: 'ee1cbad',
+  gitHash: '2e9973f',
 
   // Full git commit hash
-  gitHashFull: 'ee1cbadaf8ed5f6f9a04fc9baf1a2a3560e5b08f',
+  gitHashFull: '2e9973f16c7016000c552522b064baad5186ff41',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-14',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-14T08:55:31Z',
+  buildTime: '2026-07-14T20:57:04Z',
 
   // Changelog for this version
   changelog: `
+    v1.6.0 - Driving Settings & Assists
+    - New DRIVING settings screen on the menu to calibrate how the car
+      feels; all options persist and apply instantly
+    - Traction control (default ON): stops full keyboard throttle from
+      spinning the rear tires out of slow corners - the main cause of
+      the car feeling like it "drifts a lot"
+    - Stability assist (default ON): catches the tail when a slide
+      starts instead of letting it snap around
+    - Handling presets: GRIP (planted), NORMAL (balanced) and DRIFT
+      (loose tail, for sliding on purpose)
+    - Steering response: RELAXED / STANDARD / SHARP
+    - AI opponents and lap-time benchmarks are unaffected - assists
+      tune only the player's car
+
     v1.5.0 - Cinematic Replay Viewer
     - Watch your best run back: a WATCH REPLAY button appears on the
       menu once a personal best is saved for the current track
