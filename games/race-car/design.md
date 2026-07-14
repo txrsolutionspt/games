@@ -202,6 +202,15 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1.5 Implementation Notes
+v1.5.0 added the **cinematic replay viewer**: the ghost recording of your
+best run plays back through an automatic TV-style camera director
+(`replaycam.js` — trackside stations at corner apexes, chase and drone
+shots with deterministic cuts), with pause, 1×/2× speed and looping
+playback. No new storage: replays ARE the ghost recordings.
+
+---
+
 ## v1.4 Implementation Notes
 v1.4.0 added Race-mode options: an **AI difficulty selector**
 (EASY/MEDIUM/HARD — one multiplier set scaling every rival's cornering, top

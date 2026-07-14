@@ -69,6 +69,7 @@ function check(name, cond, detail) {
     `shown="${versionText}" expected="v${expectedVersion}"`);
   check('medal targets shown on menu', await page.evaluate(() =>
     document.querySelectorAll('#menu-medals .medal-target').length === 3));
+  check('replay button hidden with no saved run', !(await page.isVisible('#btn-replay')));
   await page.screenshot({ path: path.join(SHOTS, '01-menu.png') });
 
   // ---------- track selection ----------
@@ -211,6 +212,36 @@ function check(name, cond, detail) {
         await page2.evaluate(() => window.__rc.ghostActive));
       await page2.waitForTimeout(4000);
       await page2.screenshot({ path: path.join(SHOTS, '10-ghost.png') });
+
+      // ---------- replay viewer of the saved best run ----------
+      await page2.keyboard.press('KeyP'); // pause the race we restarted
+      await page2.click('#btn-quit');
+      await page2.waitForTimeout(400);
+      check('replay button visible after a saved run', await page2.isVisible('#btn-replay'));
+      await page2.click('#btn-replay');
+      await page2.waitForFunction(() =>
+        window.__rc.state === window.__rc.STATE.REPLAY, null, { timeout: 5000 });
+      check('replay bar shown', await page2.isVisible('#replay-bar'));
+      const rep0 = await page2.evaluate(() => ({
+        t: window.__rc.replayT, x: window.__rc.car.x, z: window.__rc.car.z,
+        dur: window.__rc.replayDuration,
+      }));
+      await page2.waitForTimeout(3500);
+      const rep1 = await page2.evaluate(() => ({
+        t: window.__rc.replayT, x: window.__rc.car.x, z: window.__rc.car.z,
+      }));
+      check('replay time advances', rep1.t > rep0.t + 1,
+        `t0=${rep0.t.toFixed(1)} t1=${rep1.t.toFixed(1)}`);
+      check('replay duration matches the run', rep0.dur > 30, `dur=${rep0.dur}`);
+      check('replayed car moves on its own',
+        Math.hypot(rep1.x - rep0.x, rep1.z - rep0.z) > 5);
+      await page2.screenshot({ path: path.join(SHOTS, '14-replay.png') });
+      await page2.click('#btn-replay-speed');
+      check('speed toggles to 2x',
+        (await page2.textContent('#btn-replay-speed')).includes('2'));
+      await page2.click('#btn-replay-exit');
+      await page2.waitForTimeout(400);
+      check('exit replay returns to menu', await page2.isVisible('#screen-menu'));
     } catch (e) {
       const st = await page2.evaluate(() => ({
         state: window.__rc.state, lap: window.__rc.race && window.__rc.race.nextGate,

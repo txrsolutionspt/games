@@ -14,6 +14,7 @@ const { RaceManager, medalFor } = require('./race.js');
 const { createAutopilot } = require('./autopilot.js');
 const RCGhost = require('./ghost.js');
 const RCOpponents = require('./opponents.js');
+const RCReplayCam = require('./replaycam.js');
 
 let passed = 0, failed = 0;
 function check(name, cond, detail) {
@@ -703,6 +704,67 @@ section('race options: difficulty & field size');
   check('hard AI finishes its lap', tHard != null, String(tHard));
   check('hard laps faster than easy', tHard != null && tEasy != null && tHard < tEasy - 3,
     `easy=${tEasy && tEasy.toFixed(1)} hard=${tHard && tHard.toFixed(1)}`);
+}
+
+// ---------------------------------------------------- replay director
+section('replay camera director');
+for (const id of RCTrack.trackIds()) {
+  const t = RCTrack.build(id);
+  const stations = RCReplayCam.pickStations(t);
+  check(`[${id}] picks corner stations (4–10)`,
+    stations.length >= 4 && stations.length <= 10, `n=${stations.length}`);
+  const offRoad = stations.every((st) =>
+    Math.abs(RCTrack.query(t, st.x, st.z, null).d) > t.halfWidth + 2);
+  check(`[${id}] stations stand clear of the road`, offRoad);
+  check(`[${id}] stations above ground`, stations.every((st) => st.y > 2));
+}
+{
+  // simulate a lap along the centerline and let the director cut shots
+  const director = RCReplayCam.createDirector(track);
+  const dt = 1 / 30;
+  let s = 0, cuts = 0, finite = true;
+  const types = new Set();
+  let lastPos = null, maxJumpWithoutCut = 0;
+  for (let t = 0; s < track.length - 30; t += dt) {
+    s += 28 * dt;
+    const idx = RCTrack.wrapIndex(Math.round(s / track.step), track.samples.length);
+    const sm = track.samples[idx];
+    const pose = { x: sm.x, z: sm.z, theta: Math.atan2(sm.tz, sm.tx) };
+    const shot = director.update(t, pose, s);
+    if (shot.cut) cuts++;
+    types.add(shot.type);
+    if (!Number.isFinite(shot.pos.x + shot.pos.y + shot.pos.z +
+      shot.target.x + shot.target.y + shot.target.z)) finite = false;
+    if (lastPos && !shot.cut) {
+      maxJumpWithoutCut = Math.max(maxJumpWithoutCut,
+        Math.hypot(shot.pos.x - lastPos.x, shot.pos.z - lastPos.z));
+    }
+    lastPos = shot.pos;
+    if (shot.pos.y < 1) finite = false;
+  }
+  check('director cuts between shots (5–40 per lap)', cuts >= 5 && cuts <= 40,
+    `cuts=${cuts}`);
+  check('uses trackside, chase and drone shots',
+    types.has('trackside') && types.has('chase') && types.has('drone'),
+    [...types].join(','));
+  check('camera positions finite and above ground', finite);
+  check('no camera teleports without a cut', maxJumpWithoutCut < 5,
+    `maxJump=${maxJumpWithoutCut.toFixed(1)}m`);
+  const sm0 = track.samples[0];
+  const first = RCReplayCam.createDirector(track)
+    .update(0, { x: sm0.x, z: sm0.z, theta: 0 }, 0);
+  check('first frame is a cut', first.cut === true);
+  check('trackside shots request no smoothing', (() => {
+    const d2 = RCReplayCam.createDirector(track);
+    for (let t = 0, s2 = 0; s2 < track.length; t += 1 / 30) {
+      s2 += 28 / 30;
+      const idx = RCTrack.wrapIndex(Math.round(s2 / track.step), track.samples.length);
+      const sm = track.samples[idx];
+      const shot = d2.update(t, { x: sm.x, z: sm.z, theta: Math.atan2(sm.tz, sm.tx) }, s2);
+      if (shot.type === 'trackside' && shot.smooth !== 0) return false;
+    }
+    return true;
+  })());
 }
 
 // ------------------------------------------------- end-to-end: autopilot
