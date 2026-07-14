@@ -202,6 +202,15 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1.4 Implementation Notes
+v1.4.0 added Race-mode options: an **AI difficulty selector**
+(EASY/MEDIUM/HARD — one multiplier set scaling every rival's cornering, top
+speed and braking; MEDIUM preserves v1.3 behavior) and a **field size
+selector** (3 or 5 rivals, with two new roster drivers NOVA and FROST).
+Both persist in settings and have `?difficulty=` / `?rivals=` debug params.
+
+---
+
 ## v1.3 Implementation Notes
 v1.3.0 added **Race mode**: three AI opponents (distinct skill profiles,
 racing lines and liveries) built on the test autopilot, with a standing grid,

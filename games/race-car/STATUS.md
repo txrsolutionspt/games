@@ -1,10 +1,11 @@
 # Apex Racer (Race Car Game) — Status Report
 
 **Date:** 2026-07-13
-**Version:** 1.3.0 (see `version.js`)
+**Version:** 1.4.0 (see `version.js`)
 **Status:** ✅ Playable — v1 per `design.md`, plus v1.1 (ghost replay,
 second track + track selection, minimap), v1.2 (sector timing, medals,
-post-race stats) and v1.3 (Race mode with AI opponents)
+post-race stats), v1.3 (Race mode with AI opponents) and v1.4 (AI
+difficulty EASY/MEDIUM/HARD + field size 3 or 5 rivals)
 
 ---
 
@@ -35,7 +36,7 @@ installable.
 | `car.js` | Pure physics: semi-sim vehicle model + track-relative barrier collision |
 | `race.js` | Pure race logic: ordered checkpoint validation, lap/total/sector timing, splits & deltas, medal helper, wrong-way and course-cut detection |
 | `autopilot.js` | Pursuit driver with tunable skill (corner g, top speed, braking, line offset); used by AI opponents, tests and `?auto=1` |
-| `opponents.js` | Race-mode AI pack: skill roster, grid placement, per-AI physics/race managers, arcade car-to-car collisions, live standings |
+| `opponents.js` | Race-mode AI pack: 5-driver skill roster, difficulty scaling, grid placement, per-AI physics/race managers, arcade car-to-car collisions, live standings |
 | `input.js` | Unified VehicleControl layer: keyboard + multi-touch UI |
 | `audio.js` | Procedural Web Audio: engine pitch, tire screech, beeps, jingles |
 | `hud.js` | DOM overlay: timers, deltas, toasts, screens |
@@ -88,6 +89,8 @@ the top of the changelog in `version.js`, commit.
 - `?auto=1` — autopilot demo drive
 - `?track=<id>` — start on a specific track (`apex`, `coastal`)
 - `?mode=race` — start in Race mode (vs AI opponents)
+- `?difficulty=easy|medium|hard` — AI skill tier (Race mode)
+- `?rivals=3|5` — AI field size (Race mode)
 
 ## Known Limitations / Future Work
 

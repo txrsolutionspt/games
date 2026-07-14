@@ -657,6 +657,54 @@ section('AI opponents (Race mode)');
     order.filter((r) => r.you).length === 1);
 }
 
+// ------------------------------------------- race options (v1.4)
+section('race options: difficulty & field size');
+{
+  check('5 drivers in the roster', RCOpponents.ROSTER.length === 5,
+    RCOpponents.ROSTER.map((r) => r.name).join(','));
+  check('3 difficulty tiers', Object.keys(RCOpponents.DIFFICULTIES).length === 3);
+
+  // scaledSkill: hard > medium > easy on every axis; vMax capped
+  const base = RCOpponents.ROSTER[0].skill;
+  const easy = RCOpponents.scaledSkill(base, 'easy');
+  const med = RCOpponents.scaledSkill(base, 'medium');
+  const hard = RCOpponents.scaledSkill(base, 'hard');
+  check('difficulty scales cornering', easy.cornerG < med.cornerG && med.cornerG < hard.cornerG);
+  check('difficulty scales top speed', easy.vMax < med.vMax && med.vMax < hard.vMax);
+  check('medium = unscaled roster values', med.cornerG === base.cornerG && med.vMax === base.vMax);
+  check('vMax capped at 50', RCOpponents.scaledSkill({ cornerG: 7, vMax: 49, brakeDecel: 6, lineOffset: 0 }, 'hard').vMax === 50);
+  check('unknown difficulty falls back to medium',
+    RCOpponents.scaledSkill(base, 'nightmare').vMax === med.vMax);
+
+  // field size option
+  const three = RCOpponents.createOpponents(track, 1, { count: 3 });
+  const five = RCOpponents.createOpponents(track, 1, { count: 5 });
+  check('default-style field of 3', three.entries.length === 3);
+  check('field of 5 spawns 5', five.entries.length === 5);
+  check('5-car grid slots all on the road', five.entries.every((e) =>
+    Math.abs(RCTrack.query(track, e.car.x, e.car.z, null).d) < track.halfWidth));
+
+  // same driver, one lap, easy vs hard -> hard is faster
+  function lapTimeAt(difficulty) {
+    const opp = RCOpponents.createOpponents(track, 1, {
+      count: 1, difficulty, defs: [RCOpponents.ROSTER[0]],
+    });
+    const dt = 1 / 60;
+    let clock = 0;
+    for (let i = 0; i < 60 * 240 && !opp.entries[0].rm.finished; i++) {
+      opp.update(dt, clock);
+      clock += dt;
+    }
+    return opp.entries[0].finishTime;
+  }
+  const tEasy = lapTimeAt('easy');
+  const tHard = lapTimeAt('hard');
+  check('easy AI finishes its lap', tEasy != null, String(tEasy));
+  check('hard AI finishes its lap', tHard != null, String(tHard));
+  check('hard laps faster than easy', tHard != null && tEasy != null && tHard < tEasy - 3,
+    `easy=${tEasy && tEasy.toFixed(1)} hard=${tHard && tHard.toFixed(1)}`);
+}
+
 // ------------------------------------------------- end-to-end: autopilot
 section('end-to-end: autopilot drives 3 laps');
 {
