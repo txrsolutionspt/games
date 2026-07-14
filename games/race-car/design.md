@@ -202,6 +202,17 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1.7 Implementation Notes
+v1.7.0 improved handling and controls further: **gamepad support** (analog
+stick with deadzone/response curve, trigger pedals, A/B/Start buttons,
+coexisting with keyboard and touch), **smooth pedal response** (binary
+keyboard/touch gas and brake ramp in like real pedals; INSTANT option
+available), and **counter-steer assist** (automatic opposite-lock
+proportional to body sideslip past a deadband, capped, default ON). As with
+v1.6, a bare `Car` and the AI opponents are unaffected.
+
+---
+
 ## v1.6 Implementation Notes
 v1.6.0 added the **Driving Settings** screen: traction control and stability
 assist (both default ON — binary keyboard throttle plus the RWD friction

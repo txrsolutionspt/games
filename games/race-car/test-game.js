@@ -794,6 +794,40 @@ section('driving tuning & assists');
   // presets exported for the UI
   check('presets exported', !!RCCar.HANDLING_PRESETS.grip &&
     !!RCCar.STEERING_PRESETS.sharp && !!RCCar.DEFAULT_TUNING);
+
+  // ---- counter-steer assist (v1.7) ----
+  check('counter-steer off on a bare Car', !bare.p.counterSteer);
+  function slideRecovery(countersteer) {
+    const car = new Car();
+    car.setTuning({ handling: 'drift', countersteer });
+    car.reset(0, 0, 0);
+    while (car.speed < 22) car.step(1 / 60, { throttle: 1 }, { grip: 1 });
+    for (let i = 0; i < 40; i++) car.step(1 / 60, { throttle: 1, steer: 0.9 }, { grip: 1 });
+    let maxSlip = 0;
+    for (let i = 0; i < 60 * 3; i++) {
+      car.step(1 / 60, { throttle: 0.3, steer: 0 }, { grip: 1 });
+      maxSlip = Math.max(maxSlip, Math.abs(car.slipRear));
+    }
+    return { maxSlip, v: car.speed };
+  }
+  const noCS = slideRecovery(false);
+  const withCS = slideRecovery(true);
+  check('counter-steer reduces peak slip in a slide', withCS.maxSlip < noCS.maxSlip * 0.9,
+    `off=${noCS.maxSlip.toFixed(2)} on=${withCS.maxSlip.toFixed(2)}`);
+  check('counter-steer carries more speed through the slide', withCS.v > noCS.v + 2,
+    `off=${noCS.v.toFixed(1)} on=${withCS.v.toFixed(1)}`);
+  check('counter-steer inactive in normal driving', (() => {
+    // straight-line + gentle cornering: assist must not alter the wheel angle
+    const c = new Car();
+    c.setTuning({ countersteer: true });
+    c.reset(0, 0, 0);
+    for (let i = 0; i < 60 * 4; i++) c.step(1 / 60, { throttle: 0.5 }, { grip: 1 });
+    for (let i = 0; i < 60 * 2; i++) c.step(1 / 60, { throttle: 0.4, steer: 0.25 }, { grip: 1 });
+    // gentle corner: body sideslip stays under the assist deadband (0.03),
+    // so the wheel angle is purely the commanded input
+    const beta = Math.abs(Math.atan2(c.vLat, c.vLong));
+    return beta < 0.03 && Number.isFinite(c.steerAngle);
+  })());
 }
 
 // ---------------------------------------------------- replay director

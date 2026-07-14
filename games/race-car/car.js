@@ -55,6 +55,7 @@
 
     tractionControl: false, // cap drive force to preserve rear lateral grip
     stabilityAssist: false, // extra corrective yaw damping at high rear slip
+    counterSteer: false,    // automatic opposite-lock when the body slides
 
     maxRoll: 0.062,      // rad of visual body roll at 1 g lateral
     maxPitch: 0.042,     // rad of visual pitch at 1 g longitudinal
@@ -81,10 +82,14 @@
     steering: 'standard',
     traction: false,
     stability: false,
+    countersteer: false,
   };
 
   const TC_LIMIT = 0.85;        // drive force cap as a fraction of rear grip
   const STAB_EXTRA_DAMP = 950;  // N m s of added damping at full engagement
+  const CS_GAIN = 0.75;         // counter-steer: fraction of body sideslip fed in
+  const CS_MAX = 0.3;           // rad of automatic opposite-lock, tops
+  const CS_DEADBAND = 0.03;     // rad of sideslip ignored (normal cornering)
 
   const SUBSTEP = 1 / 240;
 
@@ -112,6 +117,7 @@
       this.p.steerRateOut = s.rateOut;
       this.p.tractionControl = !!this.tuning.traction;
       this.p.stabilityAssist = !!this.tuning.stability;
+      this.p.counterSteer = !!this.tuning.countersteer;
     }
 
     reset(x, z, theta) {
@@ -175,7 +181,21 @@
 
       // steer input +1 (right) -> negative wheel angle (left-positive frame)
       const steerRange = p.steerMax / (1 + Math.max(0, vF) / p.steerSpeedRef);
-      const delta = -this.steerNorm * steerRange;
+      let delta = -this.steerNorm * steerRange;
+
+      // counter-steer assist: when the body slides (velocity no longer
+      // points where the nose does), feed a fraction of the sideslip angle
+      // back in as automatic opposite-lock. In an oversteer moment the
+      // velocity vector sits on the outside of the heading, so steering
+      // toward it is exactly the correction a skilled driver would apply.
+      if (p.counterSteer && vF > 4) {
+        const beta = Math.atan2(vL, vF);
+        const excess = Math.max(0, Math.abs(beta) - CS_DEADBAND);
+        if (excess > 0) {
+          const assist = Math.sign(beta) * Math.min(CS_MAX, excess * CS_GAIN);
+          delta += assist;
+        }
+      }
       this.steerAngle = delta;
 
       // --- longitudinal forces ---

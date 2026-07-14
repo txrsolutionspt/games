@@ -71,10 +71,13 @@
       steering: 'standard',
       traction: true,
       stability: true,
+      countersteer: true,
+      pedal: 'smooth',
     },
   }, store.get('settings', null) || {});
   settings.driving = Object.assign({
     handling: 'normal', steering: 'standard', traction: true, stability: true,
+    countersteer: true, pedal: 'smooth',
   }, settings.driving || {});
   if (!RCTrack.TRACKS[settings.track]) settings.track = RCTrack.DEFAULT_TRACK;
   if (settings.mode !== 'race') settings.mode = 'time-trial';
@@ -99,7 +102,10 @@
   hud.setDifficultyLabel(settings.difficulty);
   hud.setRivalsLabel(settings.rivals);
   car.setTuning(settings.driving);
+  input.setPedalMode(settings.driving.pedal);
   hud.setDrivingLabels(settings.driving);
+  input.on('padconnected', () =>
+    hud.toast('\u{1F3AE} Controller connected', 2500));
 
   // ------------- per-track best-time storage (+ v1.0.0 migration) -------------
   function bestKey(name) {
@@ -419,6 +425,7 @@
   // ---------------- driving settings ----------------
   function applyDriving() {
     car.setTuning(settings.driving);
+    input.setPedalMode(settings.driving.pedal);
     store.set('settings', settings);
     hud.setDrivingLabels(settings.driving);
   }
@@ -435,6 +442,10 @@
       d.traction = !d.traction;
     } else if (key === 'stability') {
       d.stability = !d.stability;
+    } else if (key === 'countersteer') {
+      d.countersteer = !d.countersteer;
+    } else if (key === 'pedal') {
+      d.pedal = d.pedal === 'smooth' ? 'instant' : 'smooth';
     }
     applyDriving();
   }
@@ -465,6 +476,8 @@
   document.getElementById('opt-steering').addEventListener('click', () => cycleDrivingOption('steering'));
   document.getElementById('opt-traction').addEventListener('click', () => cycleDrivingOption('traction'));
   document.getElementById('opt-stability').addEventListener('click', () => cycleDrivingOption('stability'));
+  document.getElementById('opt-countersteer').addEventListener('click', () => cycleDrivingOption('countersteer'));
+  document.getElementById('opt-pedal').addEventListener('click', () => cycleDrivingOption('pedal'));
   document.getElementById('btn-replay').addEventListener('click', startReplay);
   document.getElementById('btn-replay-exit').addEventListener('click', exitReplay);
   document.getElementById('btn-replay-pause').addEventListener('click', toggleReplayPause);
@@ -608,6 +621,7 @@
     // cap at 100 ms: car.step substeps internally, and clock uses the same
     // capped dt so the race timer and physics can never diverge
     const dt = Math.min(engine.getDeltaTime() / 1000, 0.1) || 0.016;
+    input.update(dt); // pedal ramping + gamepad polling
 
     if (state === STATE.COUNTDOWN) {
       countdownT -= dt;
@@ -754,7 +768,7 @@
   // debug/testing hook
   window.__rc = {
     get state() { return state; },
-    STATE, car, engine, store,
+    STATE, car, engine, store, input,
     get track() { return world.track; },
     get trackId() { return world.track.id; },
     get scene() { return world.built.scene; },
