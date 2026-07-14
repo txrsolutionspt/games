@@ -706,6 +706,96 @@ section('race options: difficulty & field size');
     `easy=${tEasy && tEasy.toFixed(1)} hard=${tHard && tHard.toFixed(1)}`);
 }
 
+// -------------------------------------------- driving tuning & assists
+section('driving tuning & assists');
+{
+  const RCCar = require('./car.js');
+  // bare Car === 'normal' preset with assists off (back-compat contract)
+  const bare = new Car();
+  const tuned = new Car();
+  tuned.setTuning({ handling: 'normal', steering: 'standard', traction: false, stability: false });
+  check('normal/standard tuning reproduces defaults',
+    bare.p.tireRear.D === tuned.p.tireRear.D &&
+    bare.p.frictionCircle === tuned.p.frictionCircle &&
+    bare.p.yawDamping === tuned.p.yawDamping &&
+    bare.p.steerRateIn === tuned.p.steerRateIn);
+  check('assists off by default on a bare Car',
+    !bare.p.tractionControl && !bare.p.stabilityAssist);
+  check('partial setTuning keeps other fields', (() => {
+    const c = new Car();
+    c.setTuning({ traction: true });
+    return c.p.tractionControl && c.tuning.handling === 'normal';
+  })());
+
+  // hairpin-exit scenario: full throttle + steer from low speed
+  function hairpinExit(tuning) {
+    const car = new Car();
+    if (tuning) car.setTuning(tuning);
+    car.reset(0, 0, 0);
+    while (car.speed < 10) car.step(1 / 60, { throttle: 0.5 }, { grip: 1 });
+    let maxSlip = 0;
+    for (let i = 0; i < 60 * 4; i++) {
+      car.step(1 / 60, { throttle: 1, steer: 0.9 }, { grip: 1 });
+      maxSlip = Math.max(maxSlip, Math.abs(car.slipRear));
+    }
+    return { slip: maxSlip, v: car.speed };
+  }
+  const raw = hairpinExit(null);
+  const tc = hairpinExit({ traction: true });
+  check('no assists: throttle mash spins the rear', raw.slip > 0.5,
+    `slip=${raw.slip.toFixed(2)}`);
+  check('traction control tames the corner exit', tc.slip < 0.25,
+    `slip=${tc.slip.toFixed(2)}`);
+  check('traction control exits faster (not sliding)', tc.v > raw.v + 5,
+    `raw=${raw.v.toFixed(1)} tc=${tc.v.toFixed(1)}`);
+
+  // stability assist reduces peak yaw once the rear actually slides —
+  // provoke a slide with the loose drift setup, with/without the assist
+  function peakYaw(stability) {
+    const car = new Car();
+    car.setTuning({ handling: 'drift', stability });
+    car.reset(0, 0, 0);
+    while (car.speed < 22) car.step(1 / 60, { throttle: 1 }, { grip: 1 });
+    let m = 0;
+    for (let i = 0; i < 60 * 4; i++) {
+      car.step(1 / 60, { throttle: 1, steer: 0.8 }, { grip: 1 });
+      m = Math.max(m, Math.abs(car.yawRate));
+    }
+    return m;
+  }
+  const yawAssisted = peakYaw(true), yawRaw = peakYaw(false);
+  check('stability assist damps peak yaw in a slide', yawAssisted < yawRaw * 0.9,
+    `raw=${yawRaw.toFixed(2)} assisted=${yawAssisted.toFixed(2)}`);
+
+  // handling presets change character in the expected direction
+  const gripCar = new Car(); gripCar.setTuning({ handling: 'grip' });
+  const driftCar = new Car(); driftCar.setTuning({ handling: 'drift' });
+  check('grip preset raises rear grip, drift lowers it',
+    gripCar.p.tireRear.D > bare.p.tireRear.D &&
+    driftCar.p.tireRear.D < bare.p.tireRear.D);
+  const gripRun = hairpinExit({ handling: 'grip', traction: true, stability: true });
+  const driftRun = hairpinExit({ handling: 'drift' });
+  check('grip+assists stays planted', gripRun.slip < 0.2, `slip=${gripRun.slip.toFixed(2)}`);
+  check('drift preset slides readily', driftRun.slip > raw.slip * 0.8,
+    `slip=${driftRun.slip.toFixed(2)}`);
+
+  // steering presets change response rate
+  function steerRamp(steering) {
+    const car = new Car();
+    car.setTuning({ steering });
+    car.reset(0, 0, 0);
+    for (let i = 0; i < 6; i++) car.step(1 / 60, { steer: 1 }, { grip: 1 });
+    return Math.abs(car.steerNorm);
+  }
+  check('sharp steering responds faster than relaxed',
+    steerRamp('sharp') > steerRamp('relaxed') * 1.5,
+    `sharp=${steerRamp('sharp').toFixed(2)} relaxed=${steerRamp('relaxed').toFixed(2)}`);
+
+  // presets exported for the UI
+  check('presets exported', !!RCCar.HANDLING_PRESETS.grip &&
+    !!RCCar.STEERING_PRESETS.sharp && !!RCCar.DEFAULT_TUNING);
+}
+
 // ---------------------------------------------------- replay director
 section('replay camera director');
 for (const id of RCTrack.trackIds()) {

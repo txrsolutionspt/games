@@ -202,6 +202,16 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1.6 Implementation Notes
+v1.6.0 added the **Driving Settings** screen: traction control and stability
+assist (both default ON — binary keyboard throttle plus the RWD friction
+circle made the stock car power-slide out of slow corners), GRIP/NORMAL/DRIFT
+handling presets and RELAXED/STANDARD/SHARP steering response. Tuning applies
+to the player's car only (`Car.setTuning()`); a bare `Car` — used by AI
+opponents and the physics tests — is byte-for-byte the previous behavior.
+
+---
+
 ## v1.5 Implementation Notes
 v1.5.0 added the **cinematic replay viewer**: the ghost recording of your
 best run plays back through an automatic TV-style camera director

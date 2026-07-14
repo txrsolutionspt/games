@@ -83,10 +83,27 @@
       <button id="btn-quality" class="small-btn">QUALITY: MED</button>
       <button id="btn-mute" class="small-btn">SOUND: ON</button>
       <button id="btn-ghost" class="small-btn">GHOST: ON</button>
+      <button id="btn-driving" class="small-btn">&#128295; DRIVING</button>
     </div>
     <p class="hint desktop-only">Drive: WASD / arrows &middot; Reset: R &middot; Pause: P</p>
     <p class="hint touch-only">Steer: left slider &middot; Gas &amp; brake: right pedals</p>
     <div id="menu-version" title="Game version"></div>
+  </div>
+
+  <!-- driving settings -->
+  <div id="screen-driving" class="screen hidden">
+    <h2>DRIVING SETTINGS</h2>
+    <div class="driving-options">
+      <button id="opt-handling" class="small-btn opt-btn">HANDLING: NORMAL</button>
+      <p class="opt-hint">GRIP plants the car &middot; NORMAL is balanced &middot; DRIFT loosens the tail</p>
+      <button id="opt-traction" class="small-btn opt-btn">TRACTION CONTROL: ON</button>
+      <p class="opt-hint">Stops full throttle from spinning the rear tires out of slow corners</p>
+      <button id="opt-stability" class="small-btn opt-btn">STABILITY ASSIST: ON</button>
+      <p class="opt-hint">Catches the tail when a slide starts</p>
+      <button id="opt-steering" class="small-btn opt-btn">STEERING: STANDARD</button>
+      <p class="opt-hint">How quickly the wheel responds to your input</p>
+    </div>
+    <button id="btn-driving-back" class="big-btn">BACK</button>
   </div>
 
   <!-- pause -->
