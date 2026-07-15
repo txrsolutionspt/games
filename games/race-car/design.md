@@ -202,6 +202,15 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1.9 Implementation Notes
+v1.9.0 made the checkpoints **visible** (the spec originally called for
+invisible trigger volumes): every gate gets edge pylons plus an overhead
+beam and chevron plate, the next required gate glows pulsing amber while
+the others stay dim translucent blue, and the minimap rings the next
+checkpoint. Validation logic is unchanged — this is pure feedback.
+
+---
+
 ## v1.8 Implementation Notes
 v1.8.0 added two tracks — **Speedbowl** (stadium oval with a full outer
 speedway wall) and **The Dragway** (a dead-straight 1 km sprint, walled both

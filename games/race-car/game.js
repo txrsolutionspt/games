@@ -157,6 +157,7 @@
   let countdownStep = -1;
   let queryHint = null;
   let menuAngle = 0;
+  let pulseT = 0; // free-running timer for the active-gate pulse
   let ghostRecorder = null;
   let ghostPlayer = null;
   let ghostPose = null;
@@ -742,15 +743,25 @@
       audio.update(0, 0, 0, false);
     }
 
+    // checkpoint gate highlight: show the player's next required gate
+    pulseT += dt;
+    const inPlay = state === STATE.COUNTDOWN || state === STATE.RACING ||
+      state === STATE.PAUSED;
+    world.built.gates.setActive(inPlay && race && !race.finished ? race.nextGate : -1);
+    world.built.gates.pulse(pulseT);
+
     syncGhost();
     syncOpponentNodes();
     syncCarNodes(false);
     if (state !== STATE.REPLAY) updateCamera(dt, false); // director owns the replay cam
     if (state === STATE.COUNTDOWN || state === STATE.RACING || state === STATE.REPLAY) {
+      const nextGate = (state !== STATE.REPLAY && race && !race.finished)
+        ? world.track.gates[race.nextGate] : null;
       hud.drawMinimap(car, ghostPose,
         opponents ? opponents.entries.map((e) => ({
           x: e.car.x, z: e.car.z, color: e.color,
-        })) : null);
+        })) : null,
+        nextGate);
     }
     world.built.scene.render();
   }
@@ -777,6 +788,7 @@
     get track() { return world.track; },
     get trackId() { return world.track.id; },
     get scene() { return world.built.scene; },
+    get gates() { return world.built.gates; },
     get race() { return race; },
     get clock() { return clock; },
     get ghostActive() { return !!ghostPose; },

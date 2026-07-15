@@ -8,22 +8,32 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.8.0',
+  version: '1.9.0',
 
   // Git commit hash (short form)
-  gitHash: '20c7b74',
+  gitHash: '4d66f37',
 
   // Full git commit hash
-  gitHashFull: '20c7b745df844416ba8f99cee677f7c4af630537',
+  gitHashFull: '4d66f37bb45d5b16cf17137f34cc546025bca28e',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-15',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-15T10:22:25Z',
+  buildTime: '2026-07-15T19:30:14Z',
 
   // Changelog for this version
   changelog: `
+    v1.9.0 - Visible Checkpoints
+    - Checkpoint gates are now visible on every track: pylons at the
+      road edges with a beam and chevron plate overhead at each of the
+      12 checkpoints
+    - The NEXT gate you must pass glows pulsing amber; the rest stay a
+      dim translucent blue so the course reads without clutter
+    - The minimap marks the next checkpoint with an amber ring
+    - Highlighting follows your progression (and hides in menus and
+      replays); missing a gate still shows the CHECKPOINT MISSED warning
+
     v1.8.0 - Two New Tracks: Speedbowl & The Dragway
     - SPEEDBOWL: a stadium oval at dusk - two long straights, two
       sweeping turns and a continuous speedway wall around the outside
