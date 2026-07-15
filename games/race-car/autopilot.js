@@ -20,19 +20,24 @@
       opts || {});
     const n = track.samples.length;
     const step = track.step;
+    const closed = track.closed !== false;
+    const at = closed
+      ? (i) => ((i % n) + n) % n
+      : (i) => Math.max(0, Math.min(n - 1, i));
 
     function sampleAt(s) {
-      let idx = Math.round((((s % track.length) + track.length) % track.length) / step);
-      return track.samples[((idx % n) + n) % n];
+      const wrapped = closed ? ((s % track.length) + track.length) % track.length : s;
+      return track.samples[at(Math.round(wrapped / step))];
     }
 
     // Max curvature over the next `dist` meters starting at s.
     function maxKappaAhead(s, dist) {
       let k = 0;
       const count = Math.max(1, Math.round(dist / step));
-      const start = Math.round((((s % track.length) + track.length) % track.length) / step);
+      const wrapped = closed ? ((s % track.length) + track.length) % track.length : s;
+      const start = Math.round(wrapped / step);
       for (let i = 0; i <= count; i++) {
-        const sm = track.samples[(start + i) % n];
+        const sm = track.samples[at(start + i)];
         k = Math.max(k, Math.abs(sm.kappa));
       }
       return k;

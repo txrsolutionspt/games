@@ -316,6 +316,59 @@ function check(name, cond, detail) {
     await page2.close();
   }
 
+  // ---------- dragway: open track, forced single run ----------
+  const dragPage = await browser.newPage({ viewport: { width: 900, height: 480 } });
+  const dragErrors = [];
+  dragPage.on('console', (m) => { if (m.type() === 'error') dragErrors.push(m.text()); });
+  dragPage.on('pageerror', (e) => dragErrors.push(String(e)));
+  await dragPage.goto('http://localhost:8901/games/race-car/?track=dragway&laps=3',
+    { waitUntil: 'load' });
+  await dragPage.waitForTimeout(1800);
+  check('dragway loads without errors', dragErrors.length === 0,
+    dragErrors.slice(0, 3).join(' | '));
+  check('dragway selected', await dragPage.evaluate(() => window.__rc.trackId === 'dragway'));
+  check('open track data exposed', await dragPage.evaluate(() =>
+    window.__rc.track.closed === false && window.__rc.track.forcedLaps === 1));
+  await dragPage.click('#btn-start');
+  await dragPage.waitForFunction(() =>
+    window.__rc.state === window.__rc.STATE.RACING, null, { timeout: 20000 });
+  check('forced single run despite ?laps=3',
+    (await dragPage.textContent('#hud-lap')) === 'LAP 1/1');
+  await dragPage.keyboard.down('KeyW');
+  await dragPage.waitForFunction(() => window.__rc.car.speed > 20, null, { timeout: 30000 });
+  const dragQ = await dragPage.evaluate(() => {
+    const rc = window.__rc;
+    const q = RCTrack.query(rc.track, rc.car.x, rc.car.z, null);
+    return { s: q.s, d: q.d };
+  });
+  check('drag car launches straight down the strip',
+    dragQ.s > 20 && Math.abs(dragQ.d) < 3, JSON.stringify(dragQ));
+  await dragPage.keyboard.up('KeyW');
+  check('no errors during drag run', dragErrors.length === 0,
+    dragErrors.slice(0, 3).join(' | '));
+  await dragPage.screenshot({ path: path.join(SHOTS, '16-dragway.png') });
+  await dragPage.close();
+
+  // ---------- speedbowl smoke: oval loads and races ----------
+  const ovalPage = await browser.newPage({ viewport: { width: 900, height: 480 } });
+  const ovalErrors = [];
+  ovalPage.on('pageerror', (e) => ovalErrors.push(String(e)));
+  await ovalPage.goto('http://localhost:8901/games/race-car/?track=speedbowl&auto=1&laps=1',
+    { waitUntil: 'load' });
+  await ovalPage.waitForTimeout(1800);
+  await ovalPage.click('#btn-start');
+  await ovalPage.waitForFunction(() =>
+    window.__rc.state === window.__rc.STATE.RACING, null, { timeout: 20000 });
+  await ovalPage.waitForFunction(() => window.__rc.car.speed > 15, null, { timeout: 30000 });
+  check('speedbowl races (autopilot up to speed)', true);
+  check('speedbowl full outer wall present', await ovalPage.evaluate(() =>
+    window.__rc.track.walls.length === 1 &&
+    window.__rc.track.walls[0].i1 - window.__rc.track.walls[0].i0 ===
+      window.__rc.track.samples.length - 1));
+  check('no errors on speedbowl', ovalErrors.length === 0, ovalErrors.slice(0, 3).join(' | '));
+  await ovalPage.screenshot({ path: path.join(SHOTS, '17-speedbowl.png') });
+  await ovalPage.close();
+
   // ---------- gamepad support (stubbed Gamepad API) ----------
   const padPage = await browser.newPage({ viewport: { width: 900, height: 480 } });
   await padPage.addInitScript(() => {

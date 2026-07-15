@@ -80,6 +80,52 @@
       },
       medals: { gold: 60, silver: 68, bronze: 81 },
     },
+    speedbowl: {
+      name: 'SPEEDBOWL',
+      // classic stadium oval: two long straights, two constant-radius turns,
+      // concrete wall around the whole outside (speedway style)
+      points: [
+        [-100, -95],  // start/finish straight (heading +x)
+        [100, -95],   // end of front straight
+        [162, -60],   // turn 1
+        [188, 0],
+        [162, 60],    // turn 2
+        [100, 95],    // back straight
+        [-100, 95],
+        [-162, 60],   // turn 3
+        [-188, 0],
+        [-162, -60],  // turn 4
+      ],
+      wallOverride: 'outer-full',
+      palette: {
+        grass: [0.42, 0.5, 0.3],
+        crown: [0.25, 0.4, 0.22],
+        skyTop: '#35548f', skyMid: '#7f8fc4', skyHorizon: '#f0c9a0',
+        fog: [0.82, 0.74, 0.66],
+        clear: [0.75, 0.7, 0.66],
+      },
+      medals: { gold: 33, silver: 39, bronze: 48 },
+    },
+    dragway: {
+      name: 'THE DRAGWAY',
+      // point-to-point: a dead-straight kilometer sprint, walled both sides.
+      // One run, no laps — launch hard and hold on.
+      closed: false,
+      forcedLaps: 1,
+      points: [
+        [0, 0], [250, 0], [500, 0], [750, 0], [1000, 0],
+      ],
+      wallOverride: 'both-full',
+      palette: {
+        grass: [0.72, 0.64, 0.45],
+        crown: [0.45, 0.4, 0.24],
+        skyTop: '#4d7bb5', skyMid: '#a8c2d8', skyHorizon: '#efe3c4',
+        fog: [0.9, 0.86, 0.74],
+        clear: [0.86, 0.82, 0.72],
+      },
+      // a perfect full-throttle run is ~29.9 s, so gold = near-perfect launch
+      medals: { gold: 30.5, silver: 32.5, bronze: 37 },
+    },
   };
   const DEFAULT_TRACK = 'apex';
 
@@ -101,28 +147,32 @@
     ];
   }
 
-  // Dense closed polyline through the control points.
-  function densePolyline(points, subdivisions) {
+  // Dense polyline through the control points (closed loop or open path;
+  // open paths clamp the Catmull-Rom end tangents).
+  function densePolyline(points, subdivisions, closed) {
     const n = points.length;
     const out = [];
-    for (let i = 0; i < n; i++) {
-      const p0 = points[(i - 1 + n) % n];
-      const p1 = points[i];
-      const p2 = points[(i + 1) % n];
-      const p3 = points[(i + 2) % n];
+    const segs = closed ? n : n - 1;
+    const pt = (i) => closed
+      ? points[((i % n) + n) % n]
+      : points[Math.max(0, Math.min(n - 1, i))];
+    for (let i = 0; i < segs; i++) {
+      const p0 = pt(i - 1), p1 = pt(i), p2 = pt(i + 1), p3 = pt(i + 2);
       for (let k = 0; k < subdivisions; k++) {
         out.push(catmullRom(p0, p1, p2, p3, k / subdivisions));
       }
     }
+    if (!closed) out.push(points[n - 1].slice());
     return out;
   }
 
-  // Resample a closed polyline to uniform arc-length spacing.
-  function resampleUniform(poly, spacing) {
+  // Resample a polyline to uniform arc-length spacing.
+  function resampleUniform(poly, spacing, closed) {
     const n = poly.length;
-    const segLen = new Array(n);
+    const segs = closed ? n : n - 1;
+    const segLen = new Array(segs);
     let total = 0;
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < segs; i++) {
       const a = poly[i], b = poly[(i + 1) % n];
       segLen[i] = Math.hypot(b[0] - a[0], b[1] - a[1]);
       total += segLen[i];
@@ -131,9 +181,10 @@
     const step = total / count;
     const out = [];
     let seg = 0, into = 0;
-    for (let k = 0; k < count; k++) {
-      const target = k * step;
-      while (into + segLen[seg] < target) { into += segLen[seg]; seg = (seg + 1) % n; }
+    const samples = closed ? count : count + 1; // open paths keep the endpoint
+    for (let k = 0; k < samples; k++) {
+      const target = Math.min(k * step, total - 1e-6);
+      while (seg < segs - 1 && into + segLen[seg] < target) { into += segLen[seg]; seg++; }
       const t = segLen[seg] > 1e-9 ? (target - into) / segLen[seg] : 0;
       const a = poly[seg], b = poly[(seg + 1) % n];
       out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
@@ -184,14 +235,19 @@
   function build(trackId) {
     const id = TRACKS[trackId] ? trackId : DEFAULT_TRACK;
     const def = TRACKS[id];
-    const dense = densePolyline(def.points, 16);
-    const { points, length, step } = resampleUniform(dense, SAMPLE_SPACING);
+    const closed = def.closed !== false;
+    // index lookup: wrap on loops, clamp on point-to-point tracks
+    const at = closed
+      ? (i, n) => wrapIndex(i, n)
+      : (i, n) => Math.max(0, Math.min(n - 1, i));
+    const dense = densePolyline(def.points, 16, closed);
+    const { points, length, step } = resampleUniform(dense, SAMPLE_SPACING, closed);
     const n = points.length;
 
     const samples = new Array(n);
     for (let i = 0; i < n; i++) {
-      const prev = points[wrapIndex(i - 1, n)];
-      const next = points[wrapIndex(i + 1, n)];
+      const prev = points[at(i - 1, n)];
+      const next = points[at(i + 1, n)];
       let tx = next[0] - prev[0], tz = next[1] - prev[1];
       const tl = Math.hypot(tx, tz) || 1;
       tx /= tl; tz /= tl;
@@ -206,26 +262,42 @@
     // curvature from tangent angle change (then smooth over ~10 m)
     const rawK = new Array(n);
     for (let i = 0; i < n; i++) {
-      const a = samples[wrapIndex(i - 1, n)];
-      const b = samples[wrapIndex(i + 1, n)];
+      const a = samples[at(i - 1, n)];
+      const b = samples[at(i + 1, n)];
       rawK[i] = angleDelta(Math.atan2(a.tz, a.tx), Math.atan2(b.tz, b.tx)) / (2 * step);
     }
     const win = Math.max(1, Math.round(5 / step));
     for (let i = 0; i < n; i++) {
       let sum = 0;
-      for (let k = -win; k <= win; k++) sum += rawK[wrapIndex(i + k, n)];
+      for (let k = -win; k <= win; k++) sum += rawK[at(i + k, n)];
       samples[i].kappa = sum / (2 * win + 1);
     }
 
     // Barriers on the outside of tight corners (radius < 55 m), kerbs on the
     // inside of moderate corners. side: +1 = left of travel, -1 = right.
-    const padWall = Math.round(14 / step);
-    const wallRegions = findRegions(samples, (sm) => Math.abs(sm.kappa) > 1 / 55, padWall);
-    const walls = wallRegions.map((r) => {
-      let kSum = 0;
-      for (let i = r.i0; i <= r.i1; i++) kSum += samples[wrapIndex(i, n)].kappa;
-      return { i0: r.i0, i1: r.i1, side: kSum > 0 ? -1 : 1, offset: WALL_OFFSET };
-    });
+    // Tracks can override barrier placement: 'outer-full' walls the entire
+    // outside (speedway), 'both-full' walls both sides (drag strip).
+    let walls;
+    if (def.wallOverride === 'outer-full') {
+      // outside = opposite the dominant turn direction
+      let kTotal = 0;
+      for (const sm of samples) kTotal += sm.kappa;
+      const side = kTotal > 0 ? -1 : 1;
+      walls = [{ i0: 0, i1: n - 1, side, offset: WALL_OFFSET }];
+    } else if (def.wallOverride === 'both-full') {
+      walls = [
+        { i0: 0, i1: n - 1, side: 1, offset: WALL_OFFSET },
+        { i0: 0, i1: n - 1, side: -1, offset: WALL_OFFSET },
+      ];
+    } else {
+      const padWall = Math.round(14 / step);
+      const wallRegions = findRegions(samples, (sm) => Math.abs(sm.kappa) > 1 / 55, padWall);
+      walls = wallRegions.map((r) => {
+        let kSum = 0;
+        for (let i = r.i0; i <= r.i1; i++) kSum += samples[wrapIndex(i, n)].kappa;
+        return { i0: r.i0, i1: r.i1, side: kSum > 0 ? -1 : 1, offset: WALL_OFFSET };
+      });
+    }
 
     const padKerb = Math.round(4 / step);
     const kerbRegions = findRegions(samples, (sm) => Math.abs(sm.kappa) > 1 / 75, padKerb);
@@ -235,22 +307,29 @@
       return { i0: r.i0, i1: r.i1, side: kSum > 0 ? 1 : -1 };
     });
 
-    // Checkpoint gates, evenly spaced; the last gate is the start/finish line.
+    // Checkpoint gates, evenly spaced; the last gate is the finish line.
+    // Loops: finish at s=0 (start/finish). Open tracks: finish shortly
+    // before the pavement ends so the capture window fits.
     const gates = [];
+    const gateSpan = closed ? length : length - 10;
     for (let g = 1; g <= GATE_COUNT; g++) {
-      const s = (length * g / GATE_COUNT) % length;
-      const idx = wrapIndex(Math.round(s / step), n);
+      const s = closed ? (length * g / GATE_COUNT) % length : gateSpan * g / GATE_COUNT;
+      const idx = at(Math.round(s / step), n);
       const sm = samples[idx];
       gates.push({ s: sm.s, x: sm.x, z: sm.z, tx: sm.tx, tz: sm.tz, nx: sm.nx, nz: sm.nz });
     }
 
-    // Start pose: a few meters before the start/finish line.
-    const startIdx = wrapIndex(-Math.round(6 / step), n);
+    // Start pose: just before the line on loops, at the strip head on
+    // open tracks.
+    const startIdx = closed
+      ? wrapIndex(-Math.round(6 / step), n)
+      : Math.round(5 / step);
     const st = samples[startIdx];
     const startPose = { x: st.x, z: st.z, theta: Math.atan2(st.tz, st.tx), s: st.s };
 
     return {
       id, name: def.name, palette: def.palette, medals: def.medals,
+      closed, forcedLaps: def.forcedLaps || null,
       samples, length, step,
       halfWidth: HALF_WIDTH, shoulder: SHOULDER, wallOffset: WALL_OFFSET,
       walls, kerbs, gates, gateCount: GATE_COUNT, startPose,
@@ -286,6 +365,10 @@
   function query(track, x, z, hintIdx) {
     const samples = track.samples;
     const n = samples.length;
+    const closed = track.closed !== false;
+    const at = closed
+      ? (i) => wrapIndex(i, n)
+      : (i) => Math.max(0, Math.min(n - 1, i));
     let bestIdx = 0, bestD2 = Infinity;
     if (hintIdx == null) {
       for (let i = 0; i < n; i++) {
@@ -296,7 +379,7 @@
     } else {
       const R = 40;
       for (let k = -R; k <= R; k++) {
-        const i = wrapIndex(hintIdx + k, n);
+        const i = at(hintIdx + k);
         const dx = x - samples[i].x, dz = z - samples[i].z;
         const d2 = dx * dx + dz * dz;
         if (d2 < bestD2) { bestD2 = d2; bestIdx = i; }
@@ -306,8 +389,8 @@
     }
     // refine by projecting onto the two segments adjacent to bestIdx
     let best = null;
-    for (const i0 of [wrapIndex(bestIdx - 1, n), bestIdx]) {
-      const a = samples[i0], b = samples[wrapIndex(i0 + 1, n)];
+    for (const i0 of [at(bestIdx - 1), Math.min(bestIdx, closed ? n - 1 : n - 2)]) {
+      const a = samples[i0], b = samples[at(i0 + 1)];
       const abx = b.x - a.x, abz = b.z - a.z;
       const len2 = abx * abx + abz * abz;
       let t = len2 > 1e-9 ? ((x - a.x) * abx + (z - a.z) * abz) / len2 : 0;
@@ -318,7 +401,8 @@
       if (!best || d2 < best.d2) best = { i0, t, px, pz, d2 };
     }
     const a = samples[best.i0];
-    const s = (a.s + best.t * track.step) % track.length;
+    const sRaw = a.s + best.t * track.step;
+    const s = closed ? sRaw % track.length : Math.min(sRaw, track.length);
     const d = (x - best.px) * a.nx + (z - best.pz) * a.nz;
     return { idx: bestIdx, s, d, tx: a.tx, tz: a.tz, kappa: a.kappa };
   }

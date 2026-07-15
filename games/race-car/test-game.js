@@ -442,16 +442,16 @@ section('medals');
 
 // ---------------------------------------------------------- all tracks
 section('all tracks: invariants + drivability');
-check('at least 2 tracks registered', RCTrack.trackIds().length >= 2,
+check('at least 4 tracks registered', RCTrack.trackIds().length >= 4,
   RCTrack.trackIds().join(','));
 for (const id of RCTrack.trackIds()) {
   const t = RCTrack.build(id);
   check(`[${id}] has a display name`, typeof t.name === 'string' && t.name.length > 0);
   check(`[${id}] has a palette`, !!t.palette && Array.isArray(t.palette.grass));
-  check(`[${id}] lap length plausible`, t.length > 800 && t.length < 2500,
+  check(`[${id}] length plausible`, t.length > 800 && t.length < 2500,
     `L=${t.length.toFixed(0)}`);
-  // closed loop + no ribbon overlap
-  {
+  if (t.closed) {
+    // closed loop + no ribbon overlap
     const a = t.samples[0], b = t.samples[t.samples.length - 1];
     check(`[${id}] loop closes`, Math.hypot(a.x - b.x, a.z - b.z) < t.step * 2);
     let minD = Infinity;
@@ -466,20 +466,31 @@ for (const id of RCTrack.trackIds()) {
     }
     check(`[${id}] no ribbon self-overlap`, minD > 2 * (t.halfWidth + t.shoulder),
       `min=${minD.toFixed(1)}`);
+    check(`[${id}] finish gate at s~0`, t.gates.length === 12 &&
+      (t.gates[11].s < t.step * 2 || t.length - t.gates[11].s < t.step * 2));
+  } else {
+    // point-to-point: endpoints far apart, finish gate near the end
+    const a = t.samples[0], b = t.samples[t.samples.length - 1];
+    check(`[${id}] endpoints are far apart (open)`,
+      Math.hypot(a.x - b.x, a.z - b.z) > t.length * 0.8);
+    check(`[${id}] finish gate near the strip end`, t.gates.length === 12 &&
+      t.length - t.gates[11].s < 15, `finish s=${t.gates[11].s.toFixed(0)}`);
+    let sOk = true;
+    for (let i = 1; i < t.gates.length; i++) {
+      if (t.gates[i].s <= t.gates[i - 1].s) sOk = false;
+    }
+    check(`[${id}] open-track gates strictly increasing`, sOk);
   }
-  check(`[${id}] 12 ordered gates, finish at s~0`, t.gates.length === 12 &&
-    (t.gates[11].s < t.step * 2 || t.length - t.gates[11].s < t.step * 2));
-  check(`[${id}] has kerbs and walls`, t.kerbs.length >= 1 && t.walls.length >= 1,
-    `kerbs=${t.kerbs.length} walls=${t.walls.length}`);
+  check(`[${id}] has walls`, t.walls.length >= 1, `walls=${t.walls.length}`);
 
-  // drivability: autopilot completes one validated lap
+  // drivability: autopilot completes one validated lap/run
   {
     const car = new Car();
     car.reset(t.startPose.x, t.startPose.z, t.startPose.theta);
     const auto = createAutopilot(t);
     const rm = new RaceManager({
       length: t.length, gateS: t.gates.map((g) => g.s), laps: 1,
-      validWidth: t.halfWidth + 3.5,
+      validWidth: t.halfWidth + 3.5, closed: t.closed,
     });
     const dt = 1 / 60;
     let clock = 0, hint = null, lapTime = null;
@@ -835,8 +846,13 @@ section('replay camera director');
 for (const id of RCTrack.trackIds()) {
   const t = RCTrack.build(id);
   const stations = RCReplayCam.pickStations(t);
-  check(`[${id}] picks corner stations (4–10)`,
-    stations.length >= 4 && stations.length <= 10, `n=${stations.length}`);
+  // corner-rich circuits get several trackside cams; a dead-straight strip
+  // legitimately has only the gantry cam
+  let maxK = 0;
+  for (const sm of t.samples) maxK = Math.max(maxK, Math.abs(sm.kappa));
+  const minStations = maxK > 1 / 90 ? 4 : 1;
+  check(`[${id}] picks stations (>=${minStations})`,
+    stations.length >= minStations && stations.length <= 10, `n=${stations.length}`);
   const offRoad = stations.every((st) =>
     Math.abs(RCTrack.query(t, st.x, st.z, null).d) > t.halfWidth + 2);
   check(`[${id}] stations stand clear of the road`, offRoad);
@@ -889,6 +905,59 @@ for (const id of RCTrack.trackIds()) {
     }
     return true;
   })());
+}
+
+// ------------------------------------------- open-track race mode
+section('drag race: AI opponents on an open track');
+{
+  const t = RCTrack.build('dragway');
+  const player = new Car();
+  const pose = RCOpponents.gridPose(t, 0);
+  player.reset(pose.x, pose.z, pose.theta);
+  const pRm = new RaceManager({
+    length: t.length, gateS: t.gates.map((g) => g.s), laps: 1,
+    validWidth: t.halfWidth + 3.5, closed: t.closed,
+  });
+  const opp = RCOpponents.createOpponents(t, 1, { count: 3 });
+  // grid: everyone distinct and on the strip
+  const gridPts = [player].concat(opp.entries.map((e) => e.car));
+  let gridOk = true;
+  for (let i = 0; i < gridPts.length; i++) {
+    for (let j = i + 1; j < gridPts.length; j++) {
+      if (Math.hypot(gridPts[i].x - gridPts[j].x, gridPts[i].z - gridPts[j].z) < 3) gridOk = false;
+    }
+    if (Math.abs(RCTrack.query(t, gridPts[i].x, gridPts[i].z, null).d) > t.halfWidth) gridOk = false;
+  }
+  check('drag grid: side-by-side rows, all on the strip', gridOk);
+
+  const dt = 1 / 60;
+  let clock = 0, hint = null, playerFinish = null;
+  for (let i = 0; i < 60 * 120 && !pRm.finished; i++) {
+    const q = RCTrack.query(t, player.x, player.z, hint);
+    hint = q.idx;
+    player.step(dt, { throttle: 1, steer: 0 }, { grip: 1 });
+    opp.update(dt, clock);
+    opp.resolveCollisions([player].concat(opp.entries.map((e) => e.car)));
+    const q2 = RCTrack.query(t, player.x, player.z, hint);
+    hint = q2.idx;
+    const wall = RCTrack.wallAt(t, q2.idx);
+    if (wall) player.hitWall(q2, wall);
+    clock += dt;
+    for (const ev of pRm.update({ s: q2.s, d: q2.d, speed: player.speed, dt, clock })) {
+      if (ev.type === 'finish') playerFinish = ev.total;
+    }
+  }
+  check('player finishes the drag run', pRm.finished,
+    playerFinish ? `t=${playerFinish.toFixed(1)}` : 'DNF');
+  for (let i = 0; i < 60 * 60 && !opp.entries.every((e) => e.rm.finished); i++) {
+    opp.update(dt, clock);
+    clock += dt;
+  }
+  check('all AI finish the drag run', opp.entries.every((e) => e.rm.finished),
+    opp.entries.map((e) => e.name + ':' + (e.rm.finished ? 'fin' : 'run')).join(' '));
+  const order = opp.standings({ rm: pRm, q: null, finishTime: playerFinish });
+  check('drag standings include all 4', order.length === 4 &&
+    order.filter((r) => r.you).length === 1);
 }
 
 // ------------------------------------------------- end-to-end: autopilot

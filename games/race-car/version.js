@@ -8,22 +8,33 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.7.0',
+  version: '1.8.0',
 
   // Git commit hash (short form)
-  gitHash: '9cf241b',
+  gitHash: '20c7b74',
 
   // Full git commit hash
-  gitHashFull: '9cf241b6836b049c452b0b5c6f826d26ceb73d0b',
+  gitHashFull: '20c7b745df844416ba8f99cee677f7c4af630537',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-14',
+  releaseDate: '2026-07-15',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-14T23:05:56Z',
+  buildTime: '2026-07-15T10:22:25Z',
 
   // Changelog for this version
   changelog: `
+    v1.8.0 - Two New Tracks: Speedbowl & The Dragway
+    - SPEEDBOWL: a stadium oval at dusk - two long straights, two
+      sweeping turns and a continuous speedway wall around the outside
+    - THE DRAGWAY: a dead-straight kilometer sprint, walled on both
+      sides; a single run instead of laps - launch and hold on
+    - Point-to-point track support throughout the engine: open
+      centerlines, start AND finish gantries, straight-line minimap,
+      two-wide drag grids in Race mode, drag-aware AI and replays
+    - Per-track medal targets calibrated against measured runs (a
+      perfect Dragway pass is ~29.9 s; gold means a near-perfect launch)
+
     v1.7.0 - Handling & Controls: Gamepad, Smooth Pedals, Counter-Steer
     - Gamepad support: analog stick steering (with deadzone + response
       curve), trigger throttle/brake, A = confirm, B = reset,

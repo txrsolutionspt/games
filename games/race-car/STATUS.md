@@ -1,13 +1,14 @@
 # Apex Racer (Race Car Game) — Status Report
 
-**Date:** 2026-07-14
-**Version:** 1.7.0 (see `version.js`)
+**Date:** 2026-07-15
+**Version:** 1.8.0 (see `version.js`)
 **Status:** ✅ Playable — v1 per `design.md`, plus v1.1 (ghost replay,
 second track + track selection, minimap), v1.2 (sector timing, medals,
 post-race stats), v1.3 (Race mode with AI opponents), v1.4 (AI
 difficulty + field size), v1.5 (cinematic replay viewer), v1.6
-(driving settings: assists + handling/steering presets) and v1.7
-(gamepad support, smooth pedal response, counter-steer assist)
+(driving settings: assists + handling/steering presets), v1.7
+(gamepad support, smooth pedal response, counter-steer assist) and
+v1.8 (Speedbowl oval + The Dragway sprint, point-to-point support)
 
 ---
 
@@ -33,7 +34,7 @@ installable.
 
 | File | Role |
 |------|------|
-| `track.js` | Pure geometry + track registry (`apex`, `coastal` with per-track palettes): Catmull-Rom centerline, arc-length resampling, curvature, procedural kerb/barrier placement, checkpoint gates, nearest-point queries |
+| `track.js` | Pure geometry + track registry (`apex`, `coastal`, `speedbowl`, `dragway`): Catmull-Rom centerlines (closed loops AND open point-to-point), arc-length resampling, curvature, procedural or overridden barrier placement, checkpoint gates, nearest-point queries |
 | `ghost.js` | Pure ghost record/playback: fixed-interval pose sampling, quantized serialization, interpolated replay |
 | `replaycam.js` | Pure cinematic camera director: corner-apex trackside stations, chase/drone shots, deterministic cutting |
 | `car.js` | Pure physics: semi-sim vehicle model, driving-feel tuning (handling/steering presets, traction control, stability assist), track-relative barrier collision |
@@ -90,7 +91,7 @@ the top of the changelog in `version.js`, commit.
 
 - `?laps=N` — shorten/lengthen the race (1–9, default 3)
 - `?auto=1` — autopilot demo drive
-- `?track=<id>` — start on a specific track (`apex`, `coastal`)
+- `?track=<id>` — start on a specific track (`apex`, `coastal`, `speedbowl`, `dragway`)
 - `?mode=race` — start in Race mode (vs AI opponents)
 - `?difficulty=easy|medium|hard` — AI skill tier (Race mode)
 - `?rivals=3|5` — AI field size (Race mode)

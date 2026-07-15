@@ -108,8 +108,12 @@
     hud.toast('\u{1F3AE} Controller connected', 2500));
 
   // ------------- per-track best-time storage (+ v1.0.0 migration) -------------
+  // Some tracks force a lap count (a drag strip is a single run)
+  function raceLaps() {
+    return (world && world.track.forcedLaps) || TOTAL_LAPS;
+  }
   function bestKey(name) {
-    return 'best.' + world.track.id + '.' + TOTAL_LAPS + 'laps.' + name;
+    return 'best.' + world.track.id + '.' + raceLaps() + 'laps.' + name;
   }
   // sector bests are per-lap segments, so they're lap-count independent
   function sectorKey() { return 'best.' + world.track.id + '.sectors'; }
@@ -182,7 +186,8 @@
     race = new RCRace.RaceManager({
       length: world.track.length,
       gateS: world.track.gates.map((g) => g.s),
-      laps: TOTAL_LAPS,
+      laps: raceLaps(),
+      closed: world.track.closed,
       validWidth: world.track.halfWidth + 3.5,
       // checkpoint deltas track your TT best — meaningless with traffic
       bestSplits: isRaceMode() ? null : store.get(bestKey('splits'), null),
@@ -200,7 +205,7 @@
     stats = { topSpeed: 0, offTrack: 0, driftTime: 0, resets: 0 };
     lastQ = null;
     if (isRaceMode()) {
-      opponents = RCOpponents.createOpponents(world.track, TOTAL_LAPS, {
+      opponents = RCOpponents.createOpponents(world.track, raceLaps(), {
         count: settings.rivals,
         difficulty: settings.difficulty,
       });
@@ -215,7 +220,7 @@
       world.built.opponents.forEach((n) => n.root.setEnabled(false));
       hud.setPositionVisible(false);
     }
-    hud.setLap(1, TOTAL_LAPS);
+    hud.setLap(1, raceLaps());
     hud.setTimes(0, 0);
     hud.hideDelta();
     hud.setWrongWay(false);
@@ -249,8 +254,8 @@
   function refreshMenuBest() {
     const pb = store.get(bestKey('total'), null);
     hud.setMenuBest(pb, store.get(bestKey('lap'), null));
-    hud.setMenuMedals(world.track.medals, TOTAL_LAPS,
-      RCRace.medalFor(pb, world.track.medals, TOTAL_LAPS));
+    hud.setMenuMedals(world.track.medals, raceLaps(),
+      RCRace.medalFor(pb, world.track.medals, raceLaps()));
     hud.setReplayAvailable(store.get(bestKey('ghost'), null) != null);
   }
 
@@ -321,12 +326,12 @@
     if (prevLap == null || bestLapOfRun < prevLap) {
       store.set(bestKey('lap'), bestLapOfRun);
     }
-    const medal = RCRace.medalFor(ev.total, world.track.medals, TOTAL_LAPS);
+    const medal = RCRace.medalFor(ev.total, world.track.medals, raceLaps());
     hud.fillFinish(ev.lapTimes, ev.total,
       isNewBest ? ev.total : prevTotal, isNewBest, {
         medal,
         medals: world.track.medals,
-        laps: TOTAL_LAPS,
+        laps: raceLaps(),
         stats,
       });
     hud.screen('finish');
@@ -522,7 +527,7 @@
       } else if (ev.type === 'lap') {
         if (!race.finished) {
           hud.toast('LAP ' + ev.lap + '  —  ' + hud.fmt(ev.time), 2600);
-          hud.setLap(race.lap, TOTAL_LAPS);
+          hud.setLap(race.lap, raceLaps());
           audio.lapChime();
         }
       } else if (ev.type === 'finish') {

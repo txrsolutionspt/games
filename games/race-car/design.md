@@ -202,6 +202,18 @@ Builds on the generic `VehicleControl { steer, throttle, brake }` abstraction fr
 
 ---
 
+## v1.8 Implementation Notes
+v1.8.0 added two tracks — **Speedbowl** (stadium oval with a full outer
+speedway wall) and **The Dragway** (a dead-straight 1 km sprint, walled both
+sides, forced to a single run) — and, to make the latter possible,
+**point-to-point track support** across the engine: open Catmull-Rom
+centerlines with clamped ends, non-wrapping distance/queries/race logic,
+separate START and FINISH gantries, open minimap paths, two-wide drag-race
+grids and open-track-aware AI, autopilot and replay direction. Tracks can
+also override barrier placement (`outer-full`, `both-full`).
+
+---
+
 ## v1.7 Implementation Notes
 v1.7.0 improved handling and controls further: **gamepad support** (analog
 stick with deadzone/response curve, trigger pedals, A/B/Start buttons,
