@@ -38,6 +38,7 @@
       driving: $('screen-driving'),
       optHandling: $('opt-handling'), optSteering: $('opt-steering'),
       optTraction: $('opt-traction'), optStability: $('opt-stability'),
+      optCountersteer: $('opt-countersteer'), optPedal: $('opt-pedal'),
       replayBtn: $('btn-replay'), replayBar: $('replay-bar'),
       replayTime: $('replay-time'), replayPauseBtn: $('btn-replay-pause'),
       replaySpeedBtn: $('btn-replay-speed'),
@@ -167,6 +168,8 @@
         el.optSteering.textContent = 'STEERING: ' + d.steering.toUpperCase();
         el.optTraction.textContent = 'TRACTION CONTROL: ' + (d.traction ? 'ON' : 'OFF');
         el.optStability.textContent = 'STABILITY ASSIST: ' + (d.stability ? 'ON' : 'OFF');
+        el.optCountersteer.textContent = 'COUNTER-STEER ASSIST: ' + (d.countersteer ? 'ON' : 'OFF');
+        el.optPedal.textContent = 'PEDAL RESPONSE: ' + d.pedal.toUpperCase();
       },
       setMenuBest(total, lap) {
         show(el.menuBest, total != null);

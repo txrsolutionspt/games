@@ -80,8 +80,20 @@ function check(name, cond, detail) {
     (await page.textContent('#opt-traction')).includes('ON'));
   check('stability assist defaults ON',
     (await page.textContent('#opt-stability')).includes('ON'));
+  check('counter-steer assist defaults ON',
+    (await page.textContent('#opt-countersteer')).includes('ON'));
+  check('pedal response defaults SMOOTH',
+    (await page.textContent('#opt-pedal')).includes('SMOOTH'));
   check('player car has assists applied', await page.evaluate(() =>
-    window.__rc.car.p.tractionControl && window.__rc.car.p.stabilityAssist));
+    window.__rc.car.p.tractionControl && window.__rc.car.p.stabilityAssist &&
+    window.__rc.car.p.counterSteer));
+  await page.click('#opt-countersteer');
+  check('counter-steer toggles OFF', (await page.textContent('#opt-countersteer')).includes('OFF'));
+  await page.click('#opt-countersteer'); // back ON
+  await page.click('#opt-pedal');
+  check('pedal response toggles INSTANT',
+    (await page.textContent('#opt-pedal')).includes('INSTANT'));
+  await page.click('#opt-pedal'); // back to SMOOTH
   await page.click('#opt-handling'); // normal -> drift
   check('handling cycles to DRIFT',
     (await page.textContent('#opt-handling')).includes('DRIFT'));
@@ -135,6 +147,22 @@ function check(name, cond, detail) {
 
   // ---------- drive forward with keyboard ----------
   await page.keyboard.down('KeyW');
+  // smooth pedal mode: throttle ramps rather than snapping to 1
+  const rampSample = await page.evaluate(() => new Promise((resolve) => {
+    const samples = [];
+    const iv = setInterval(() => {
+      samples.push(window.__rc.input.control.throttle);
+      // stop once full throttle is reached (or after ~2.4 s of sampling)
+      if (samples[samples.length - 1] >= 0.99 || samples.length >= 40) {
+        clearInterval(iv);
+        resolve(samples);
+      }
+    }, 60);
+  }));
+  const sawPartial = rampSample.some((v) => v > 0.05 && v < 0.95);
+  const reachedFull = rampSample.some((v) => v >= 0.99);
+  check('keyboard throttle ramps progressively', sawPartial && reachedFull,
+    JSON.stringify(rampSample.map((v) => +v.toFixed(2)).slice(0, 8)));
   await page.waitForFunction(() => window.__rc.car.speed > 10, null, { timeout: 20000 });
   const drive1 = await page.evaluate(() => ({
     speed: window.__rc.car.speed, clock: window.__rc.clock,
@@ -287,6 +315,42 @@ function check(name, cond, detail) {
     check('no console errors in autopilot run', errors2.length === 0, errors2.slice(0, 3).join(' | '));
     await page2.close();
   }
+
+  // ---------- gamepad support (stubbed Gamepad API) ----------
+  const padPage = await browser.newPage({ viewport: { width: 900, height: 480 } });
+  await padPage.addInitScript(() => {
+    window.__fakePad = {
+      connected: true, index: 0, id: 'Fake Pad', mapping: 'standard',
+      axes: [0, 0, 0, 0],
+      buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+    };
+    navigator.getGamepads = () => [window.__fakePad];
+  });
+  await padPage.goto('http://localhost:8901/games/race-car/?laps=1', { waitUntil: 'load' });
+  await padPage.waitForTimeout(1800);
+  await padPage.click('#btn-start');
+  await padPage.waitForFunction(() =>
+    window.__rc.state === window.__rc.STATE.RACING, null, { timeout: 20000 });
+  await padPage.evaluate(() => {
+    window.__fakePad.axes[0] = 0.8;       // steer right
+    window.__fakePad.buttons[7].value = 0.6; // right trigger
+  });
+  await padPage.waitForTimeout(300);
+  const padCtrl = await padPage.evaluate(() => ({
+    steer: window.__rc.input.control.steer,
+    throttle: window.__rc.input.control.throttle,
+    connected: window.__rc.input.gamepadConnected,
+  }));
+  check('gamepad detected', padCtrl.connected);
+  check('analog stick steers (curved, right)', padCtrl.steer > 0.4 && padCtrl.steer < 1,
+    `steer=${padCtrl.steer.toFixed(2)}`);
+  check('analog trigger throttles', Math.abs(padCtrl.throttle - 0.6) < 0.05,
+    `thr=${padCtrl.throttle.toFixed(2)}`);
+  await padPage.evaluate(() => { window.__fakePad.buttons[9].pressed = true; });
+  await padPage.waitForTimeout(300);
+  check('gamepad Start pauses', await padPage.evaluate(() =>
+    window.__rc.state === window.__rc.STATE.PAUSED));
+  await padPage.close();
 
   // ---------- Race mode: AI opponents ----------
   const racePage = await browser.newPage({ viewport: { width: 900, height: 480 } });

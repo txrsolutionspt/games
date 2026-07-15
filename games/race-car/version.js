@@ -8,22 +8,35 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.6.0',
+  version: '1.7.0',
 
   // Git commit hash (short form)
-  gitHash: '2e9973f',
+  gitHash: '9cf241b',
 
   // Full git commit hash
-  gitHashFull: '2e9973f16c7016000c552522b064baad5186ff41',
+  gitHashFull: '9cf241b6836b049c452b0b5c6f826d26ceb73d0b',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-14',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-14T20:57:04Z',
+  buildTime: '2026-07-14T23:05:56Z',
 
   // Changelog for this version
   changelog: `
+    v1.7.0 - Handling & Controls: Gamepad, Smooth Pedals, Counter-Steer
+    - Gamepad support: analog stick steering (with deadzone + response
+      curve), trigger throttle/brake, A = confirm, B = reset,
+      Start = pause; works alongside keyboard/touch
+    - Smooth pedal response (default ON): keyboard and touch gas/brake
+      ease in like real pedals instead of snapping to 100%, taking the
+      remaining snap out of corner exits; INSTANT option for purists
+    - Counter-steer assist (default ON): automatic opposite-lock
+      proportional to body sideslip - slides get caught the way a
+      skilled driver would, instead of spinning
+    - Both new options join the DRIVING settings screen; AI opponents
+      and benchmarks remain unaffected
+
     v1.6.0 - Driving Settings & Assists
     - New DRIVING settings screen on the menu to calibrate how the car
       feels; all options persist and apply instantly

@@ -1,12 +1,13 @@
 # Apex Racer (Race Car Game) — Status Report
 
 **Date:** 2026-07-14
-**Version:** 1.6.0 (see `version.js`)
+**Version:** 1.7.0 (see `version.js`)
 **Status:** ✅ Playable — v1 per `design.md`, plus v1.1 (ghost replay,
 second track + track selection, minimap), v1.2 (sector timing, medals,
 post-race stats), v1.3 (Race mode with AI opponents), v1.4 (AI
-difficulty + field size), v1.5 (cinematic replay viewer) and v1.6
-(driving settings: assists + handling/steering presets)
+difficulty + field size), v1.5 (cinematic replay viewer), v1.6
+(driving settings: assists + handling/steering presets) and v1.7
+(gamepad support, smooth pedal response, counter-steer assist)
 
 ---
 
@@ -39,7 +40,7 @@ installable.
 | `race.js` | Pure race logic: ordered checkpoint validation, lap/total/sector timing, splits & deltas, medal helper, wrong-way and course-cut detection |
 | `autopilot.js` | Pursuit driver with tunable skill (corner g, top speed, braking, line offset); used by AI opponents, tests and `?auto=1` |
 | `opponents.js` | Race-mode AI pack: 5-driver skill roster, difficulty scaling, grid placement, per-AI physics/race managers, arcade car-to-car collisions, live standings |
-| `input.js` | Unified VehicleControl layer: keyboard + multi-touch UI |
+| `input.js` | Unified VehicleControl layer: keyboard + multi-touch UI + gamepad (analog stick/triggers), progressive pedal ramping |
 | `audio.js` | Procedural Web Audio: engine pitch, tire screech, beeps, jingles |
 | `hud.js` | DOM overlay: timers, deltas, toasts, screens |
 | `scene.js` | Babylon scene: road ribbon, kerbs/barriers (thin instances), trees, gantry, car meshes, camera, quality tiers |
