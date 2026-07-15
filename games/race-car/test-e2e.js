@@ -185,6 +185,14 @@ function check(name, cond, detail) {
     return false;
   }));
 
+  // visible checkpoint markers: 12 gates built, the next one highlighted
+  check('gate marker meshes exist', await page.evaluate(() =>
+    !!window.__rc.scene.getMeshByName('gateBeam0') &&
+    window.__rc.gates.entries.length === 12));
+  check('first gate highlighted while racing', await page.evaluate(() =>
+    window.__rc.gates.activeIndex === window.__rc.race.nextGate &&
+    window.__rc.gates.activeIndex === 0));
+
   // keep driving straight until past first gate (gate 0 at ~1/12 of lap)
   let gateInfo = null;
   try {
@@ -196,6 +204,10 @@ function check(name, cond, detail) {
   await page.keyboard.up('KeyW');
   check('first checkpoint registered', gateInfo && gateInfo.nextGate >= 1 && gateInfo.splits >= 1,
     JSON.stringify(gateInfo));
+  check('highlight advances to the next gate', await page.evaluate(() =>
+    window.__rc.gates.activeIndex === window.__rc.race.nextGate &&
+    window.__rc.gates.activeIndex >= 1));
+  await page.screenshot({ path: path.join(SHOTS, '18-gates.png') });
 
   // ---------- reset to checkpoint ----------
   await page.keyboard.press('KeyR');

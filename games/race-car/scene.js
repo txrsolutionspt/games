@@ -292,6 +292,9 @@
       }
     }
 
+    // ---------------- checkpoint gate markers ----------------
+    const gates = buildGateMarkers(scene, track);
+
     // ---------------- car ----------------
     const car = buildCar(scene);
 
@@ -337,7 +340,83 @@
       }
     }
 
-    return { scene, camera, car, opponents, ghost, applyQuality, sun };
+    return { scene, camera, car, opponents, ghost, gates, applyQuality, sun };
+  }
+
+  /*
+   * Visible checkpoint gates: a pylon at each road edge plus a beam across
+   * the top, at every checkpoint. The NEXT gate the player must pass glows
+   * amber (with a gentle pulse); the rest stay dim so the course reads at a
+   * glance without stealing attention.
+   */
+  function buildGateMarkers(scene, track) {
+    const matActive = new BABYLON.StandardMaterial('gateActive', scene);
+    matActive.emissiveColor = C3(1.0, 0.72, 0.12);
+    matActive.diffuseColor = C3(0.4, 0.28, 0.04);
+    matActive.specularColor = C3(0, 0, 0);
+    matActive.disableLighting = true;
+    matActive.backFaceCulling = false;
+
+    const matInactive = new BABYLON.StandardMaterial('gateInactive', scene);
+    matInactive.emissiveColor = C3(0.42, 0.62, 0.78);
+    matInactive.diffuseColor = C3(0.15, 0.22, 0.28);
+    matInactive.specularColor = C3(0, 0, 0);
+    matInactive.alpha = 0.62;
+    matInactive.backFaceCulling = false;
+
+    const entries = track.gates.map((g, gi) => {
+      const root = new BABYLON.TransformNode('gate' + gi, scene);
+      const off = track.halfWidth + 0.7;
+      const meshes = [];
+      for (const side of [1, -1]) {
+        const pylon = BABYLON.MeshBuilder.CreateCylinder('gatePylon' + gi + '_' + side,
+          { height: 5.2, diameter: 0.62, tessellation: 8 }, scene);
+        pylon.position = V3(g.x + g.nx * side * off, 2.6, g.z + g.nz * side * off);
+        pylon.parent = root;
+        meshes.push(pylon);
+      }
+      const beam = BABYLON.MeshBuilder.CreateBox('gateBeam' + gi,
+        { width: off * 2 + 0.6, height: 0.45, depth: 0.45 }, scene);
+      beam.position = V3(g.x, 5.4, g.z);
+      beam.rotation.y = Math.PI / 2 - Math.atan2(g.tz, g.tx) + Math.PI / 2;
+      beam.parent = root;
+      meshes.push(beam);
+      // hanging chevron plate under the beam so the gate reads at distance
+      const plate = BABYLON.MeshBuilder.CreatePlane('gatePlate' + gi,
+        { width: 2.6, height: 1.1 }, scene);
+      plate.position = V3(g.x, 4.6, g.z);
+      plate.rotation.y = Math.PI / 2 - Math.atan2(g.tz, g.tx) + Math.PI / 2;
+      plate.parent = root;
+      plate.material = matInactive;
+      meshes.push(plate);
+      for (const m of meshes) {
+        if (!m.material) m.material = matInactive;
+        m.isPickable = false;
+      }
+      return { root, meshes };
+    });
+
+    let activeIndex = -1;
+    return {
+      entries,
+      get activeIndex() { return activeIndex; },
+      // i = gate index to highlight, or -1 for none (menu/replay)
+      setActive(i) {
+        if (i === activeIndex) return;
+        if (activeIndex >= 0 && entries[activeIndex]) {
+          entries[activeIndex].meshes.forEach((m) => { m.material = matInactive; });
+        }
+        activeIndex = i;
+        if (i >= 0 && entries[i]) {
+          entries[i].meshes.forEach((m) => { m.material = matActive; });
+        }
+      },
+      // attention pulse on the active gate
+      pulse(t) {
+        const k = 0.8 + 0.2 * Math.sin(t * 5);
+        matActive.emissiveColor.set(1.0 * k, 0.72 * k, 0.12 * k);
+      },
+    };
   }
 
   // Translucent ghost car for best-run replay: simplified body, one shared

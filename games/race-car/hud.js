@@ -76,7 +76,7 @@
       mm.start = mmPoint(track.samples[0].x, track.samples[0].z);
       ctx.clearRect(0, 0, W, H); // stale frame from the previous track
     }
-    function drawMinimap(car, ghostPose, aiPoses) {
+    function drawMinimap(car, ghostPose, aiPoses, nextGate) {
       if (!el.minimap || !mm.path) return;
       const ctx = el.minimap.getContext('2d');
       const W = el.minimap.width, H = el.minimap.height;
@@ -90,6 +90,15 @@
       ctx.beginPath();
       ctx.arc(mm.start[0], mm.start[1], 3, 0, Math.PI * 2);
       ctx.fill();
+      // next checkpoint: amber ring
+      if (nextGate) {
+        const [gx, gz] = mmPoint(nextGate.x, nextGate.z);
+        ctx.strokeStyle = 'rgba(255,196,60,0.95)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(gx, gz, 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       // AI opponent dots (under the car dot)
       if (aiPoses) {
         for (const p of aiPoses) {
