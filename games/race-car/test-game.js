@@ -354,6 +354,40 @@ section('race logic');
   check('wrong-way clears going forward', !rm.wrongWay);
 }
 
+// checkpoint fairness (v1.9.1): forgiving width + immediate miss warning
+{
+  const gateS = track.gates.map((g) => g.s);
+  function lapWideAtGate4(dWide, validWidth) {
+    const rm = new RaceManager({ length: track.length, gateS, laps: 1, validWidth });
+    let s = track.length - 6, clock = 0;
+    const dt = 1 / 60;
+    const missClocks = [];
+    for (let i = 0; i < 60 * 120 && !rm.finished; i++) {
+      s = (s + 30 * dt) % track.length;
+      clock += dt;
+      let d = 0.5;
+      const raw = Math.abs(((s - gateS[4]) % track.length + track.length) % track.length);
+      if (Math.min(raw, track.length - raw) < 12) d = dWide;
+      for (const ev of rm.update({ s, d, speed: 30, dt, clock })) {
+        if (ev.type === 'missedGate') missClocks.push({ clock, gate: ev.gate });
+      }
+    }
+    return { finished: rm.finished, missClocks, gate4Clock: (gateS[4] + 6) / 30 };
+  }
+  const W = track.halfWidth + 7; // the width the game now uses
+  check('slightly wide moment (9 m) still counts a gate',
+    lapWideAtGate4(9, W).finished);
+  check('11 m wide still counts (kerb + slide territory)',
+    lapWideAtGate4(11, W).finished);
+  const cut = lapWideAtGate4(16, W);
+  check('a genuine cut (16 m off line) still misses the gate', !cut.finished);
+  check('miss is reported immediately, not at the finish line',
+    cut.missClocks.length >= 1 &&
+    cut.missClocks[0].clock < cut.gate4Clock + 4,
+    cut.missClocks[0] && `warned at ${cut.missClocks[0].clock.toFixed(1)}s, gate at ~${cut.gate4Clock.toFixed(1)}s`);
+  check('immediate miss names the gate', cut.missClocks[0].gate === 4);
+}
+
 // gate requires being near the track (lateral validity)
 {
   const gateS = track.gates.map((g) => g.s);

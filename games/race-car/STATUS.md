@@ -9,7 +9,8 @@ difficulty + field size), v1.5 (cinematic replay viewer), v1.6
 (driving settings: assists + handling/steering presets), v1.7
 (gamepad support, smooth pedal response, counter-steer assist), v1.8
 (Speedbowl oval + The Dragway sprint, point-to-point support) and
-v1.9 (visible checkpoint gates with next-gate highlighting)
+v1.9 (visible checkpoint gates with next-gate highlighting; v1.9.1
+made capture forgiving and miss warnings immediate)
 
 ---
 
