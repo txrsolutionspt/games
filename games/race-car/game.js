@@ -189,7 +189,9 @@
       gateS: world.track.gates.map((g) => g.s),
       laps: raceLaps(),
       closed: world.track.closed,
-      validWidth: world.track.halfWidth + 3.5,
+      // forgiving lateral window: a slightly wide moment (kerb, shoulder,
+      // small slide) still counts — only genuine cuts miss the gate
+      validWidth: world.track.halfWidth + 7,
       // checkpoint deltas track your TT best — meaningless with traffic
       bestSplits: isRaceMode() ? null : store.get(bestKey('splits'), null),
     });
@@ -537,7 +539,9 @@
         hud.setWrongWay(ev.active);
         if (ev.active) audio.warnBuzz();
       } else if (ev.type === 'missedGate') {
-        hud.toast('CHECKPOINT MISSED — go back to complete the lap', 3200);
+        hud.toast(ev.gate != null
+          ? 'CHECKPOINT ' + (ev.gate + 1) + ' MISSED — turn back!'
+          : 'CHECKPOINT MISSED — go back to complete the lap', 3200);
         audio.warnBuzz();
       }
     }

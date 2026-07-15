@@ -104,7 +104,7 @@
           length: track.length,
           gateS: track.gates.map((g) => g.s),
           laps,
-          validWidth: track.halfWidth + 3.5,
+          validWidth: track.halfWidth + 7,
           closed: track.closed,
         }),
         hint: null,
@@ -126,7 +126,7 @@
           length: track.length,
           gateS: track.gates.map((g) => g.s),
           laps,
-          validWidth: track.halfWidth + 3.5,
+          validWidth: track.halfWidth + 7,
           closed: track.closed,
         });
       });

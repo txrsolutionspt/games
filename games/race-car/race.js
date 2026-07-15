@@ -17,7 +17,8 @@
 (function (global) {
   'use strict';
 
-  const CAPTURE = 7;        // m along s within which the next gate registers
+  const CAPTURE = 9;        // m along s within which the next gate registers
+  const MISS_DETECT = 80;   // m past a gate within which a miss is reported
   const REGRESS_ON = 14;    // m of net backward progress -> wrong-way warning
   const REGRESS_OFF = 4;
   const SECTORS = 3;        // timing sectors per lap
@@ -54,6 +55,8 @@
       this._regress = 0;
       this._lastS = null;
       this._missedCooldown = 0;
+      this._lastAhead = null;     // progress relative to the next gate
+      this._missWarnedGate = -1;  // last globalGateIndex we warned about
     }
 
     get gateCount() { return this.gateS.length; }
@@ -81,6 +84,7 @@
     notifyTeleport() {
       this._lastS = null;
       this._regress = 0;
+      this._lastAhead = null;
       if (this.wrongWay) this.wrongWay = false;
     }
 
@@ -106,8 +110,27 @@
 
       // --- next-gate capture ---
       const gs = this.gateS[this.nextGate];
-      const near = Math.abs(this.wrap(st.s - gs)) < CAPTURE;
+      const ahead = this.wrap(st.s - gs); // + = past the gate, - = before it
+      const near = Math.abs(ahead) < CAPTURE;
       const valid = Math.abs(st.d) < this.validWidth;
+
+      // immediate miss detection: the player just went PAST the next gate
+      // without it registering (too far off the road while crossing it).
+      // Warn right away so they can turn back, instead of only at the line.
+      if (!(near && valid) && st.speed > 0.5) {
+        if (this._lastAhead != null &&
+          this._lastAhead <= CAPTURE && ahead > CAPTURE && ahead < MISS_DETECT &&
+          this._missWarnedGate !== this.globalGateIndex) {
+          this._missWarnedGate = this.globalGateIndex;
+          events.push({ type: 'missedGate', gate: this.nextGate });
+        }
+        // re-arm the warning once they've come back behind the gate
+        if (ahead < -CAPTURE && this._missWarnedGate === this.globalGateIndex) {
+          this._missWarnedGate = -1;
+        }
+      }
+      this._lastAhead = ahead;
+
       if (near && valid && st.speed > 0.5 && !this.wrongWay) {
         const globalIndex = this.globalGateIndex;
         this.splits.push(st.clock);
@@ -132,6 +155,7 @@
           });
         }
         this.nextGate = (this.nextGate + 1) % this.gateCount;
+        this._lastAhead = null; // tracking restarts against the new gate
         if (isFinish) {
           const lapTime = st.clock - this.lapStartClock;
           this.lapTimes.push(lapTime);

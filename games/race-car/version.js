@@ -8,22 +8,33 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.9.0',
+  version: '1.9.1',
 
   // Git commit hash (short form)
-  gitHash: '4d66f37',
+  gitHash: '7b9d684',
 
   // Full git commit hash
-  gitHashFull: '4d66f37bb45d5b16cf17137f34cc546025bca28e',
+  gitHashFull: '7b9d684960e4049e8b9e35e072afa182cab16c94',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-15',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-15T19:30:14Z',
+  buildTime: '2026-07-15T20:34:57Z',
 
   // Changelog for this version
   changelog: `
+    v1.9.1 - Checkpoint Fairness
+    - Fixed constantly failing laps: the checkpoint window was so strict
+      that running ~9 m wide (half a car onto the grass) while passing a
+      gate silently invalidated the whole lap
+    - The lateral window is now forgiving (kerbs, shoulders and small
+      slides count); only genuine corner cuts miss a gate
+    - Missing a gate now warns IMMEDIATELY ("CHECKPOINT N MISSED - turn
+      back!") instead of only when you reach the finish line, and the
+      missed gate stays highlighted amber behind you
+    - Slightly wider along-track capture for slow devices
+
     v1.9.0 - Visible Checkpoints
     - Checkpoint gates are now visible on every track: pylons at the
       road edges with a beam and chevron plate overhead at each of the
