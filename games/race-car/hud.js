@@ -71,7 +71,7 @@
         if (i === 0) path.moveTo(px, pz);
         else path.lineTo(px, pz);
       });
-      path.closePath();
+      if (track.closed !== false) path.closePath();
       mm.path = path;
       mm.start = mmPoint(track.samples[0].x, track.samples[0].z);
       ctx.clearRect(0, 0, W, H); // stale frame from the previous track

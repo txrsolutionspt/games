@@ -71,6 +71,8 @@
 
   function createDirector(track) {
     const stations = pickStations(track);
+    const closed = track.closed !== false;
+    const dist = (a, b) => closed ? RCTrack.wrapDelta(a, b, track.length) : a - b;
     let shotId = null;
 
     /*
@@ -83,9 +85,9 @@
       // engaged station: car approaching or just past one
       let station = null, stationIdx = -1;
       for (let i = 0; i < stations.length; i++) {
-        const d = RCTrack.wrapDelta(stations[i].s, s, track.length);
+        const d = dist(stations[i].s, s);
         if (d > -STATION_WINDOW_BEHIND && d < STATION_WINDOW_AHEAD) {
-          if (!station || Math.abs(d) < Math.abs(RCTrack.wrapDelta(station.s, s, track.length))) {
+          if (!station || Math.abs(d) < Math.abs(dist(station.s, s))) {
             station = stations[i];
             stationIdx = i;
           }

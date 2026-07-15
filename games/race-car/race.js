@@ -38,6 +38,7 @@
       this.lapsTotal = opts.laps || 3;
       this.validWidth = opts.validWidth || 8;
       this.bestSplits = opts.bestSplits || null;
+      this.closed = opts.closed !== false; // false = point-to-point sprint
 
       this.lap = 1;
       this.nextGate = 0;
@@ -70,6 +71,7 @@
     }
 
     wrap(d) {
+      if (!this.closed) return d; // open tracks: distances are plain
       if (d > this.L / 2) d -= this.L;
       if (d < -this.L / 2) d += this.L;
       return d;

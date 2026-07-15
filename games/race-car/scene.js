@@ -87,9 +87,12 @@
     // ---------------- road ribbon ----------------
     const S = track.samples;
     const n = S.length;
+    const closed = track.closed !== false;
     const hw = track.halfWidth;
     const left = [], right = [], lineL = [], lineR = [];
-    for (let i = 0; i <= n; i++) {
+    // loops repeat the first sample to close the ribbon; open tracks don't
+    const last = closed ? n : n - 1;
+    for (let i = 0; i <= last; i++) {
       const sm = S[i % n];
       left.push(V3(sm.x + sm.nx * hw, 0, sm.z + sm.nz * hw));
       right.push(V3(sm.x - sm.nx * hw, 0, sm.z - sm.nz * hw));
@@ -117,9 +120,8 @@
       ribbon.freezeWorldMatrix();
     }
 
-    // ---------------- start/finish line + gantry ----------------
+    // ---------------- start/finish lines + gantries ----------------
     {
-      const sm = S[0];
       const checker = new BABYLON.DynamicTexture('checker', { width: 128, height: 32 }, scene, false);
       const cc = checker.getContext();
       const cell = 16;
@@ -134,33 +136,44 @@
       lineMat.diffuseTexture = checker;
       lineMat.emissiveColor = C3(0.35, 0.35, 0.35);
       lineMat.specularColor = C3(0, 0, 0);
-      const startLine = BABYLON.MeshBuilder.CreateGround('startLine',
-        { width: hw * 2, height: 2.4 }, scene);
-      startLine.position = V3(sm.x, 0.02, sm.z);
-      startLine.rotation.y = Math.PI / 2 - Math.atan2(sm.tz, sm.tx);
-      startLine.material = lineMat;
-      startLine.freezeWorldMatrix();
-
       const postMat = flatMat(scene, 'post', C3(0.75, 0.76, 0.8));
-      const bannerMat = new BABYLON.StandardMaterial('banner', scene);
-      const bannerTex = new BABYLON.DynamicTexture('bannerTex', { width: 512, height: 96 }, scene, true);
-      bannerTex.drawText('FINISH', null, 68, 'bold 64px sans-serif', '#ffffff', '#c0392b', true);
-      bannerMat.diffuseTexture = bannerTex;
-      bannerMat.emissiveColor = C3(0.4, 0.4, 0.4);
-      bannerMat.backFaceCulling = false;
-      for (const side of [1, -1]) {
-        const post = BABYLON.MeshBuilder.CreateCylinder('post' + side,
-          { height: 7, diameter: 0.5, tessellation: 8 }, scene);
-        post.position = V3(sm.x + sm.nx * side * (hw + 1.2), 3.5, sm.z + sm.nz * side * (hw + 1.2));
-        post.material = postMat;
-        post.freezeWorldMatrix();
+
+      function gantry(sm, text, tag) {
+        const line = BABYLON.MeshBuilder.CreateGround('line_' + tag,
+          { width: hw * 2, height: 2.4 }, scene);
+        line.position = V3(sm.x, 0.02, sm.z);
+        line.rotation.y = Math.PI / 2 - Math.atan2(sm.tz, sm.tx);
+        line.material = lineMat;
+        line.freezeWorldMatrix();
+        const bannerMat = new BABYLON.StandardMaterial('banner_' + tag, scene);
+        const bannerTex = new BABYLON.DynamicTexture('bannerTex_' + tag,
+          { width: 512, height: 96 }, scene, true);
+        bannerTex.drawText(text, null, 68, 'bold 64px sans-serif', '#ffffff', '#c0392b', true);
+        bannerMat.diffuseTexture = bannerTex;
+        bannerMat.emissiveColor = C3(0.4, 0.4, 0.4);
+        bannerMat.backFaceCulling = false;
+        for (const side of [1, -1]) {
+          const post = BABYLON.MeshBuilder.CreateCylinder('post_' + tag + side,
+            { height: 7, diameter: 0.5, tessellation: 8 }, scene);
+          post.position = V3(sm.x + sm.nx * side * (hw + 1.2), 3.5, sm.z + sm.nz * side * (hw + 1.2));
+          post.material = postMat;
+          post.freezeWorldMatrix();
+        }
+        const banner = BABYLON.MeshBuilder.CreatePlane('bannerPlane_' + tag,
+          { width: (hw + 1.2) * 2, height: 1.4 }, scene);
+        banner.position = V3(sm.x, 6.4, sm.z);
+        banner.rotation.y = Math.PI / 2 - Math.atan2(sm.tz, sm.tx) + Math.PI / 2;
+        banner.material = bannerMat;
+        banner.freezeWorldMatrix();
       }
-      const banner = BABYLON.MeshBuilder.CreatePlane('bannerPlane',
-        { width: (hw + 1.2) * 2, height: 1.4 }, scene);
-      banner.position = V3(sm.x, 6.4, sm.z);
-      banner.rotation.y = Math.PI / 2 - Math.atan2(sm.tz, sm.tx) + Math.PI / 2;
-      banner.material = bannerMat;
-      banner.freezeWorldMatrix();
+
+      if (closed) {
+        gantry(S[0], 'FINISH', 'sf');
+      } else {
+        // point-to-point: separate start and finish gantries
+        gantry(S[0], 'START', 'start');
+        gantry(S[n - 1 - Math.round(10 / track.step)], 'FINISH', 'finish');
+      }
     }
 
     // ---------------- kerbs (visual) ----------------

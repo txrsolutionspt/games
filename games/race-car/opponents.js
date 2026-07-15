@@ -57,15 +57,22 @@
   const STUCK_TIME = 4;       // s of no movement before auto-recovery
 
   /*
-   * Grid slot pose: slot 0 is the player (closest to the line); AI take
-   * slots 1..N staggered behind, alternating sides.
+   * Grid slot pose. Loops: slot 0 (player) closest to the line, AI
+   * staggered behind, alternating sides. Open tracks (drag strips):
+   * two-wide rows launching from the strip head.
    */
   function gridPose(track, slot) {
-    const backS = 6 + slot * 6;
-    const idx = RCTrack.wrapIndex(
-      -Math.round(backS / track.step), track.samples.length);
+    const n = track.samples.length;
+    let idx, side;
+    if (track.closed === false) {
+      const row = Math.floor(slot / 2);
+      idx = Math.min(n - 1, Math.round((5 + row * 8) / track.step));
+      side = slot % 2 === 0 ? 2.1 : -2.1;
+    } else {
+      idx = RCTrack.wrapIndex(-Math.round((6 + slot * 6) / track.step), n);
+      side = slot === 0 ? 0 : (slot % 2 === 1 ? -1.9 : 1.9);
+    }
     const sm = track.samples[idx];
-    const side = slot === 0 ? 0 : (slot % 2 === 1 ? -1.9 : 1.9);
     return {
       x: sm.x + sm.nx * side,
       z: sm.z + sm.nz * side,
@@ -98,6 +105,7 @@
           gateS: track.gates.map((g) => g.s),
           laps,
           validWidth: track.halfWidth + 3.5,
+          closed: track.closed,
         }),
         hint: null,
         stuckTimer: 0,
@@ -119,6 +127,7 @@
           gateS: track.gates.map((g) => g.s),
           laps,
           validWidth: track.halfWidth + 3.5,
+          closed: track.closed,
         });
       });
     }
