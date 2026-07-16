@@ -448,6 +448,31 @@ section('track query continuity (anti leg-flip)');
   check('gate NOT hit when far off track (d=15)', !gateHit && rm.nextGate === 0);
 }
 
+// v1.10.1: a clean multi-lap run must NEVER show a missed-checkpoint
+// warning — previously one fired right after every lap completion because
+// the car was still inside the finish-line region with nextGate already
+// advanced to the new lap
+{
+  const gateS = track.gates.map((g) => g.s);
+  const rm = new RaceManager({
+    length: track.length, gateS, laps: 3, validWidth: track.halfWidth + 7,
+  });
+  let s = track.length - 6, clock = 0;
+  const dt = 1 / 60;
+  let warnings = 0, laps = 0;
+  for (let i = 0; i < 60 * 300 && !rm.finished; i++) {
+    s = (s + 30 * dt) % track.length;
+    clock += dt;
+    for (const ev of rm.update({ s, d: 0.5, speed: 30, dt, clock })) {
+      if (ev.type === 'missedGate') warnings++;
+      if (ev.type === 'lap') laps++;
+    }
+  }
+  check('perfect 3-lap run completes', rm.finished && laps === 3);
+  check('perfect run shows ZERO missed-checkpoint warnings', warnings === 0,
+    `warnings=${warnings}`);
+}
+
 // per-checkpoint split times (sinceLast)
 {
   const gateS = track.gates.map((g) => g.s);

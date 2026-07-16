@@ -171,6 +171,7 @@
           events.push({ type: 'lap', lap: this.lap, time: lapTime, clock: st.clock });
           this.lapStartClock = st.clock;
           this.sectorStartClock = st.clock; // no-op when gates divide evenly
+          this._missedCooldown = 10; // belt & braces: never warn while exiting the line zone
           if (this.lap >= this.lapsTotal) {
             this.finished = true;
             events.push({
@@ -182,13 +183,18 @@
           }
         }
       } else if (!near && valid && st.speed > 0.5) {
-        // crossing the finish line region while it is NOT the next gate =
-        // the player skipped checkpoints (course cut)
+        // APPROACHING the finish line while it is NOT the next gate =
+        // the player skipped checkpoints (course cut).
         const fin = this.gateS[this.finishGateIndex];
-        const nearFinish = Math.abs(this.wrap(st.s - fin)) < CAPTURE;
+        const finAhead = this.wrap(st.s - fin);
+        // finAhead < 0 restricts this to the approach side: right after a
+        // legitimate lap completion the car is still inside the line region
+        // but PAST it (finAhead > 0) with nextGate already advanced to the
+        // new lap's first gate — that must never warn.
         // splits.length check: the standing start sits just before the line,
-        // so crossing it before gate 0 is expected — not a course cut
-        if (nearFinish && this.nextGate !== this.finishGateIndex &&
+        // so crossing it before gate 0 is expected — not a course cut.
+        if (finAhead > -CAPTURE && finAhead < 0 &&
+          this.nextGate !== this.finishGateIndex &&
           this.splits.length > 0 && this._missedCooldown <= 0) {
           this._missedCooldown = 10;
           events.push({ type: 'missedGate' });
