@@ -116,6 +116,7 @@
       update,
       countdownBeep() { unlock(); tone(880, 0.16, 'square', 0.18); },
       goBeep() { unlock(); tone(1320, 0.4, 'square', 0.22); },
+      gateTick() { if (ctx) tone(1250, 0.07, 'sine', 0.1); },
       lapChime() {
         if (!ctx) return;
         tone(988, 0.12, 'sine', 0.22);

@@ -514,6 +514,10 @@
   function handleRaceEvents(events) {
     for (const ev of events) {
       if (ev.type === 'gate') {
+        // positive confirmation on every checkpoint: which one, and the
+        // time taken since the previous one
+        hud.showGateSplit(ev.gate + 1, race.gateCount, ev.sinceLast);
+        audio.gateTick();
         if (ev.delta != null) hud.showDelta(ev.delta);
       } else if (ev.type === 'sector') {
         // purple = all-time best, green = best of this race, plain otherwise

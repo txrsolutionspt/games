@@ -448,6 +448,33 @@ section('track query continuity (anti leg-flip)');
   check('gate NOT hit when far off track (d=15)', !gateHit && rm.nextGate === 0);
 }
 
+// per-checkpoint split times (sinceLast)
+{
+  const gateS = track.gates.map((g) => g.s);
+  const rm = new RaceManager({ length: track.length, gateS, laps: 1, validWidth: 8 });
+  let s = track.length - 6, clock = 0;
+  const dt = 1 / 60;
+  const splits = [];
+  let lapTime = null;
+  for (let i = 0; i < 60 * 120 && !rm.finished; i++) {
+    s = (s + 30 * dt) % track.length;
+    clock += dt;
+    for (const ev of rm.update({ s, d: 0, speed: 30, dt, clock })) {
+      if (ev.type === 'gate') splits.push(ev.sinceLast);
+      if (ev.type === 'lap') lapTime = ev.time;
+    }
+  }
+  check('every gate event carries a split time', splits.length === 12 &&
+    splits.every((v) => v > 0));
+  const sum = splits.reduce((a, b) => a + b, 0);
+  check('checkpoint splits sum to the lap time', Math.abs(sum - lapTime) < 0.05,
+    `sum=${sum.toFixed(2)} lap=${lapTime.toFixed(2)}`);
+  check('splits are roughly even at constant speed', (() => {
+    const avg = sum / splits.length;
+    return splits.every((v) => Math.abs(v - avg) < avg * 0.5);
+  })());
+}
+
 // best-split deltas
 {
   const gateS = track.gates.map((g) => g.s);

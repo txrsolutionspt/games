@@ -11,7 +11,8 @@ difficulty + field size), v1.5 (cinematic replay viewer), v1.6
 (Speedbowl oval + The Dragway sprint, point-to-point support) and
 v1.9 (visible checkpoint gates with next-gate highlighting; v1.9.1
 made capture forgiving and miss warnings immediate; v1.9.2 fixed
-wrong-leg position tracking near self-approaching track sections)
+wrong-leg position tracking near self-approaching track sections) and
+v1.10 (per-checkpoint split-time confirmation in the HUD)
 
 ---
 

@@ -31,6 +31,7 @@
       qualityBtn: $('btn-quality'), muteBtn: $('btn-mute'),
       ghostBtn: $('btn-ghost'), trackBtn: $('btn-track'),
       minimap: $('minimap'),
+      gate: $('hud-gate'),
       sector: $('hud-sector'), menuMedals: $('menu-medals'),
       finishMedal: $('finish-medal'), finishStats: $('finish-stats'),
       modeBtn: $('btn-mode'), pos: $('hud-pos'),
@@ -45,7 +46,7 @@
       finishPosition: $('finish-position'), finishTable: $('finish-table'),
       raceResults: $('race-results'),
     };
-    let toastTimer = null, deltaTimer = null, sectorTimer = null;
+    let toastTimer = null, deltaTimer = null, sectorTimer = null, gateTimer = null;
     const MEDAL_ICONS = { gold: '\u{1F947}', silver: '\u{1F948}', bronze: '\u{1F949}' };
 
     // ---- minimap: track outline cached as a Path2D + fit transform ----
@@ -145,6 +146,14 @@
         deltaTimer = setTimeout(() => show(el.delta, false), 3200);
       },
       hideDelta() { show(el.delta, false); },
+      // checkpoint confirmation: "CP 5/12 ✓ 8.42" (time since previous gate)
+      showGateSplit(num, total, sinceLast) {
+        el.gate.textContent = 'CP ' + num + '/' + total + ' ✓ ' +
+          (sinceLast != null ? sinceLast.toFixed(2) : '');
+        show(el.gate, true);
+        clearTimeout(gateTimer);
+        gateTimer = setTimeout(() => show(el.gate, false), 2200);
+      },
       showSector(sector, time, tier) {
         el.sector.textContent = 'S' + (sector + 1) + '  ' + fmt(time);
         el.sector.className = 'hud-box sector-' + tier;

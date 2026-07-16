@@ -204,6 +204,9 @@ function check(name, cond, detail) {
   await page.keyboard.up('KeyW');
   check('first checkpoint registered', gateInfo && gateInfo.nextGate >= 1 && gateInfo.splits >= 1,
     JSON.stringify(gateInfo));
+  const gateChip = await page.textContent('#hud-gate');
+  check('checkpoint confirmation chip shows split time',
+    /^CP 1\/12 ✓ \d+\.\d\d$/.test(gateChip), gateChip);
   check('highlight advances to the next gate', await page.evaluate(() =>
     window.__rc.gates.activeIndex === window.__rc.race.nextGate &&
     window.__rc.gates.activeIndex >= 1));
@@ -400,7 +403,12 @@ function check(name, cond, detail) {
     window.__fakePad.axes[0] = 0.8;       // steer right
     window.__fakePad.buttons[7].value = 0.6; // right trigger
   });
-  await padPage.waitForTimeout(300);
+  // poll until a frame has consumed the pad input (fixed waits are
+  // unreliable when the machine is loaded and frames are sparse)
+  await padPage.waitForFunction(() =>
+    window.__rc.input.control.steer > 0.1 &&
+    window.__rc.input.control.throttle > 0.1, null, { timeout: 30000 })
+    .catch(() => {});
   const padCtrl = await padPage.evaluate(() => ({
     steer: window.__rc.input.control.steer,
     throttle: window.__rc.input.control.throttle,
@@ -456,7 +464,11 @@ function check(name, cond, detail) {
   check('position indicator visible', await racePage.isVisible('#hud-pos'));
   const aiPos0 = await racePage.evaluate(() =>
     window.__rc.opponents.entries.map((e) => [e.car.x, e.car.z]));
-  await racePage.waitForTimeout(4000);
+  // wait in SIM time (the race clock), not wall time — heavy machine load
+  // dilates the simulation and a fixed wall wait may cover <1 sim second
+  const clock0 = await racePage.evaluate(() => window.__rc.clock);
+  await racePage.waitForFunction((c0) => window.__rc.clock > c0 + 3.5,
+    clock0, { timeout: 60000 });
   const aiPos1 = await racePage.evaluate(() =>
     window.__rc.opponents.entries.map((e) => [e.car.x, e.car.z]));
   const aiMoved = aiPos0.every((p, i) =>
