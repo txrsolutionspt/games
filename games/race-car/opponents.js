@@ -135,7 +135,7 @@
     // Advance all AI cars one frame. clock: shared race clock.
     function update(dt, clock) {
       for (const e of entries) {
-        let q = RCTrack.query(track, e.car.x, e.car.z, e.hint);
+        let q = RCTrack.query(track, e.car.x, e.car.z, e.hint, e.car.theta);
         e.hint = q.idx;
         let input = e.driver.drive(e.car, q);
         if (e.rm.finished) {
@@ -146,7 +146,7 @@
         e.car.step(dt, input,
           onTrack ? { grip: 1 } : { grip: 0.55, extraDrag: 900 });
 
-        q = RCTrack.query(track, e.car.x, e.car.z, e.hint);
+        q = RCTrack.query(track, e.car.x, e.car.z, e.hint, e.car.theta);
         e.hint = q.idx;
         e.lastQ = q;
         const wall = RCTrack.wallAt(track, q.idx);

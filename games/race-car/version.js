@@ -8,22 +8,35 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.9.1',
+  version: '1.9.2',
 
   // Git commit hash (short form)
-  gitHash: '7b9d684',
+  gitHash: '0987e06',
 
   // Full git commit hash
-  gitHashFull: '7b9d684960e4049e8b9e35e072afa182cab16c94',
+  gitHashFull: '0987e069be33e549f51a60e9f38219dac81de5a8',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-15',
+  releaseDate: '2026-07-16',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-15T20:34:57Z',
+  buildTime: '2026-07-16T05:55:32Z',
 
   // Changelog for this version
   changelog: `
+    v1.9.2 - Checkpoint Fix: Track-Position Tracking
+    - Fixed the remaining cause of failed checkpoints: where two parts
+      of a track pass close together (the Apex GP hairpin, Coastal
+      Ring's final kink), the game could briefly track your position
+      against the WRONG piece of road - silently blocking checkpoint
+      registration and sometimes flashing false wrong-way warnings
+    - Position tracking now weighs continuity and your heading, so the
+      other leg of a hairpin (pointing the opposite way) can no longer
+      steal the projection
+    - Wrong-way detection ignores physically impossible position jumps
+    - New regression test sweeps every track at every gate-valid width
+      and proves track position can never jump or falsely trip wrong-way
+
     v1.9.1 - Checkpoint Fairness
     - Fixed constantly failing laps: the checkpoint window was so strict
       that running ~9 m wide (half a car onto the grass) while passing a

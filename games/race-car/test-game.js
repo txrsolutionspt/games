@@ -354,6 +354,48 @@ section('race logic');
   check('wrong-way clears going forward', !rm.wrongWay);
 }
 
+// query continuity (v1.9.2): near self-approaching track sections the
+// nearest-point query must never flip to the other piece of road — that
+// broke wrong-way detection and silently blocked checkpoint capture
+section('track query continuity (anti leg-flip)');
+{
+  let worstJump = 0, worstRegress = 0, where = '';
+  for (const id of RCTrack.trackIds()) {
+    const t = RCTrack.build(id);
+    for (const off of [0, 4.5, 8, 12]) {
+      for (const sign of [1, -1]) {
+        let hint = null, lastS = null, regress = 0;
+        for (let i = 0; i < t.samples.length; i++) {
+          const sm = t.samples[i];
+          const heading = Math.atan2(sm.tz, sm.tx);
+          const q = RCTrack.query(t,
+            sm.x + sm.nx * off * sign, sm.z + sm.nz * off * sign, hint, heading);
+          hint = q.idx;
+          if (lastS != null) {
+            let ds = q.s - lastS;
+            if (t.closed) {
+              if (ds > t.length / 2) ds -= t.length;
+              if (ds < -t.length / 2) ds += t.length;
+            }
+            if (Math.abs(ds) > worstJump) {
+              worstJump = Math.abs(ds);
+              where = `${id} off=${off * sign} s=${sm.s.toFixed(0)}`;
+            }
+            if (ds < 0) regress += -ds;
+            else regress = Math.max(0, regress - ds * 2);
+            worstRegress = Math.max(worstRegress, regress);
+          }
+          lastS = q.s;
+        }
+      }
+    }
+  }
+  check('s never jumps > 8 m at any gate-relevant offset (all tracks)',
+    worstJump <= 8, `worst=${worstJump.toFixed(1)}m at ${where}`);
+  check('projection jitter can never trip wrong-way (regress < 14 m)',
+    worstRegress < 14, `worst=${worstRegress.toFixed(1)}m`);
+}
+
 // checkpoint fairness (v1.9.1): forgiving width + immediate miss warning
 {
   const gateS = track.gates.map((g) => g.s);
@@ -529,12 +571,12 @@ for (const id of RCTrack.trackIds()) {
     const dt = 1 / 60;
     let clock = 0, hint = null, lapTime = null;
     for (let i = 0; i < 60 * 180 && !rm.finished; i++) {
-      const q = RCTrack.query(t, car.x, car.z, hint);
+      const q = RCTrack.query(t, car.x, car.z, hint, car.theta);
       hint = q.idx;
       const input = auto.drive(car, q);
       const onTrack = Math.abs(q.d) <= t.halfWidth + 0.3;
       car.step(dt, input, onTrack ? { grip: 1 } : { grip: 0.55, extraDrag: 900 });
-      const q2 = RCTrack.query(t, car.x, car.z, hint);
+      const q2 = RCTrack.query(t, car.x, car.z, hint, car.theta);
       hint = q2.idx;
       const wall = RCTrack.wallAt(t, q2.idx);
       if (wall) car.hitWall(q2, wall);
@@ -657,14 +699,14 @@ section('AI opponents (Race mode)');
   let clock = 0, hint = null, playerFinish = null;
   let posSeen = new Set();
   for (let i = 0; i < 60 * 240 && !pRm.finished; i++) {
-    let q = RCTrack.query(track, player.x, player.z, hint);
+    let q = RCTrack.query(track, player.x, player.z, hint, player.theta);
     hint = q.idx;
     const input = pDriver.drive(player, q);
     const onTrack = Math.abs(q.d) <= track.halfWidth + 0.3;
     player.step(dt, input, onTrack ? { grip: 1 } : { grip: 0.55, extraDrag: 900 });
     opp.update(dt, clock);
     opp.resolveCollisions([player].concat(opp.entries.map((e) => e.car)));
-    q = RCTrack.query(track, player.x, player.z, hint);
+    q = RCTrack.query(track, player.x, player.z, hint, player.theta);
     hint = q.idx;
     const wall = RCTrack.wallAt(track, q.idx);
     if (wall) player.hitWall(q, wall);
@@ -967,12 +1009,12 @@ section('drag race: AI opponents on an open track');
   const dt = 1 / 60;
   let clock = 0, hint = null, playerFinish = null;
   for (let i = 0; i < 60 * 120 && !pRm.finished; i++) {
-    const q = RCTrack.query(t, player.x, player.z, hint);
+    const q = RCTrack.query(t, player.x, player.z, hint, player.theta);
     hint = q.idx;
     player.step(dt, { throttle: 1, steer: 0 }, { grip: 1 });
     opp.update(dt, clock);
     opp.resolveCollisions([player].concat(opp.entries.map((e) => e.car)));
-    const q2 = RCTrack.query(t, player.x, player.z, hint);
+    const q2 = RCTrack.query(t, player.x, player.z, hint, player.theta);
     hint = q2.idx;
     const wall = RCTrack.wallAt(t, q2.idx);
     if (wall) player.hitWall(q2, wall);
@@ -1013,13 +1055,13 @@ section('end-to-end: autopilot drives 3 laps');
   const maxSteps = 60 * 60 * 8; // 8 minutes sim budget
   let steps = 0;
   for (; steps < maxSteps && !rm.finished; steps++) {
-    const q = RCTrack.query(track, car.x, car.z, hint);
+    const q = RCTrack.query(track, car.x, car.z, hint, car.theta);
     hint = q.idx;
     const input = auto.drive(car, q);
     const onTrack = Math.abs(q.d) <= track.halfWidth + 0.3;
     car.step(dt, input, onTrack ? { grip: 1 } : { grip: 0.55, extraDrag: 900 });
 
-    const q2 = RCTrack.query(track, car.x, car.z, hint);
+    const q2 = RCTrack.query(track, car.x, car.z, hint, car.theta);
     hint = q2.idx;
     const wall = RCTrack.wallAt(track, q2.idx);
     if (wall && car.hitWall(q2, wall)) wallHits++;
