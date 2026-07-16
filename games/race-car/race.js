@@ -57,6 +57,7 @@
       this._missedCooldown = 0;
       this._lastAhead = null;     // progress relative to the next gate
       this._missWarnedGate = -1;  // last globalGateIndex we warned about
+      this._lastGateClock = 0;    // for per-checkpoint split times
     }
 
     get gateCount() { return this.gateS.length; }
@@ -98,8 +99,13 @@
       // --- wrong-way detection (net backward progress) ---
       if (this._lastS != null) {
         const ds = this.wrap(st.s - this._lastS);
-        if (ds < 0) this._regress += -ds;
-        else this._regress = Math.max(0, this._regress - ds * 2);
+        // a physically impossible per-frame jump (> 25 m) is projection
+        // jitter (or an unnotified teleport), never real driving — never
+        // feed it into the regress accumulator
+        if (Math.abs(ds) <= 25) {
+          if (ds < 0) this._regress += -ds;
+          else this._regress = Math.max(0, this._regress - ds * 2);
+        }
         const was = this.wrongWay;
         if (this._regress > REGRESS_ON && st.speed > 2) this.wrongWay = true;
         if (this._regress < REGRESS_OFF) this.wrongWay = false;
@@ -120,6 +126,7 @@
       if (!(near && valid) && st.speed > 0.5) {
         if (this._lastAhead != null &&
           this._lastAhead <= CAPTURE && ahead > CAPTURE && ahead < MISS_DETECT &&
+          ahead - this._lastAhead <= 25 && // plausible frame step, not jitter
           this._missWarnedGate !== this.globalGateIndex) {
           this._missWarnedGate = this.globalGateIndex;
           events.push({ type: 'missedGate', gate: this.nextGate });
@@ -139,9 +146,11 @@
           delta = st.clock - this.bestSplits[globalIndex];
         }
         const isFinish = this.nextGate === this.finishGateIndex;
+        const sinceLast = st.clock - this._lastGateClock;
+        this._lastGateClock = st.clock;
         events.push({
           type: 'gate', gate: this.nextGate, globalIndex,
-          clock: st.clock, delta, isFinish,
+          clock: st.clock, delta, isFinish, sinceLast,
         });
         // sector boundary: every sectorSize-th gate closes a sector
         if ((this.nextGate + 1) % this.sectorSize === 0 &&

@@ -356,36 +356,66 @@
     return false;
   }
 
+  // Weight (in m^2 of squared-distance equivalent) for tangent/heading
+  // misalignment when a heading is supplied. Two legs of a hairpin have
+  // opposite tangents, so the wrong leg pays up to 2*ALIGN_W — it can only
+  // win when the car has genuinely moved onto it.
+  const ALIGN_W = 225;
+
   /*
    * Nearest-centerline query. hintIdx (from the previous frame) makes this
-   * O(1); pass null for a full scan. Returns:
+   * O(1); pass null for a full scan. heading (radians, optional) breaks
+   * ties between nearby pieces of road in favor of the one pointing the
+   * way the car does. Returns:
    *   { idx, s, d, tx, tz, kappa }
    * where d is the lateral offset along the left normal (d>0 = left of line).
    */
-  function query(track, x, z, hintIdx) {
+  function query(track, x, z, hintIdx, heading) {
     const samples = track.samples;
     const n = samples.length;
     const closed = track.closed !== false;
     const at = closed
       ? (i) => wrapIndex(i, n)
       : (i) => Math.max(0, Math.min(n - 1, i));
+    const hx = heading != null ? Math.cos(heading) : 0;
+    const hz = heading != null ? Math.sin(heading) : 0;
+    const alignCost = heading != null
+      ? (sm) => (1 - (sm.tx * hx + sm.tz * hz)) * ALIGN_W
+      : () => 0;
     let bestIdx = 0, bestD2 = Infinity;
     if (hintIdx == null) {
+      let bestCost = Infinity;
       for (let i = 0; i < n; i++) {
         const dx = x - samples[i].x, dz = z - samples[i].z;
         const d2 = dx * dx + dz * dz;
-        if (d2 < bestD2) { bestD2 = d2; bestIdx = i; }
+        const cost = d2 + alignCost(samples[i]);
+        if (cost < bestCost) { bestCost = cost; bestD2 = d2; bestIdx = i; }
       }
     } else {
+      /*
+       * Continuity beats proximity: where two parts of the track pass close
+       * together (hairpins, kinks near straights, anything near the lap
+       * wrap), the globally nearest centerline point can belong to the
+       * OTHER piece of road, making s jump by tens or hundreds of meters —
+       * which broke wrong-way detection and checkpoint capture. A car
+       * moves only a few samples per frame, so candidates far from the
+       * hint pay a distance penalty: the other leg can win only when the
+       * car has genuinely left this one (and the stale-hint rescan below
+       * catches full teleports).
+       */
       const R = 40;
+      let bestCost = Infinity;
       for (let k = -R; k <= R; k++) {
         const i = at(hintIdx + k);
         const dx = x - samples[i].x, dz = z - samples[i].z;
         const d2 = dx * dx + dz * dz;
-        if (d2 < bestD2) { bestD2 = d2; bestIdx = i; }
+        const excess = Math.max(0, Math.abs(k) - 4); // free within ~8 m of travel
+        const penalty = excess * track.step * 1.5;
+        const cost = d2 + penalty * penalty + alignCost(samples[i]);
+        if (cost < bestCost) { bestCost = cost; bestIdx = i; bestD2 = d2; }
       }
-      // hint too stale (teleport/reset) -> full scan
-      if (bestD2 > 60 * 60) return query(track, x, z, null);
+      // hint genuinely stale (teleport without notification) -> full scan
+      if (bestD2 > 60 * 60) return query(track, x, z, null, heading);
     }
     // refine by projecting onto the two segments adjacent to bestIdx
     let best = null;

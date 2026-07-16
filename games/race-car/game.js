@@ -514,6 +514,10 @@
   function handleRaceEvents(events) {
     for (const ev of events) {
       if (ev.type === 'gate') {
+        // positive confirmation on every checkpoint: which one, and the
+        // time taken since the previous one
+        hud.showGateSplit(ev.gate + 1, race.gateCount, ev.sinceLast);
+        audio.gateTick();
         if (ev.delta != null) hud.showDelta(ev.delta);
       } else if (ev.type === 'sector') {
         // purple = all-time best, green = best of this race, plain otherwise
@@ -652,7 +656,7 @@
     } else if (state === STATE.RACING) {
       clock += dt;
 
-      let q = RCTrack.query(world.track, car.x, car.z, queryHint);
+      let q = RCTrack.query(world.track, car.x, car.z, queryHint, car.theta);
       queryHint = q.idx;
       const onTrack = Math.abs(q.d) <= world.track.halfWidth + 0.3;
 
@@ -666,7 +670,7 @@
           [car].concat(opponents.entries.map((e) => e.car)));
       }
 
-      q = RCTrack.query(world.track, car.x, car.z, queryHint);
+      q = RCTrack.query(world.track, car.x, car.z, queryHint, car.theta);
       queryHint = q.idx;
       lastQ = q;
       const wall = RCTrack.wallAt(world.track, q.idx);
@@ -725,7 +729,7 @@
         car.roll += (-latG * 0.062 - car.roll) * Math.min(1, dt * 7);
       }
 
-      const q = RCTrack.query(world.track, pose.x, pose.z, replayHint);
+      const q = RCTrack.query(world.track, pose.x, pose.z, replayHint, pose.theta);
       replayHint = q.idx;
       const shot = replayDirector.update(replayT, pose, q.s);
       const camera = world.built.camera;

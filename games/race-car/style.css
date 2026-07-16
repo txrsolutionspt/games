@@ -72,6 +72,8 @@ html, body {
 #hud-sector.sector-green { color: #4ade80; border-color: rgba(74, 222, 128, 0.5); }
 #hud-sector.sector-plain { color: #e8ecf5; }
 
+#hud-gate { color: #4ade80; border-color: rgba(74, 222, 128, 0.45); }
+
 #hud-pos { font-size: 18px; }
 #hud-pos.leading { color: #ffd166; border-color: rgba(255, 209, 102, 0.55); }
 

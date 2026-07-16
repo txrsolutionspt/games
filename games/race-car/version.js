@@ -8,22 +8,44 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.9.1',
+  version: '1.10.0',
 
   // Git commit hash (short form)
-  gitHash: '7b9d684',
+  gitHash: '3597000',
 
   // Full git commit hash
-  gitHashFull: '7b9d684960e4049e8b9e35e072afa182cab16c94',
+  gitHashFull: '3597000e81f63c746fb4a02b06923e439cb1b9f1',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-15',
+  releaseDate: '2026-07-16',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-15T20:34:57Z',
+  buildTime: '2026-07-16T06:02:25Z',
 
   // Changelog for this version
   changelog: `
+    v1.10.0 - Checkpoint Split Times
+    - Every checkpoint you pass now confirms itself in the HUD: a green
+      "CP 5/12 [check] 8.42" chip showing which gate registered and the
+      time since the previous one, plus a soft confirmation tick sound
+    - Makes gate registration visible at a glance - if the chip doesn't
+      appear at a gate, that gate did not register
+    - (Includes the v1.9.2 wrong-leg tracking fix below - check the
+      version number on the menu says v1.10.0 to be sure you have it)
+
+    v1.9.2 - Checkpoint Fix: Track-Position Tracking
+    - Fixed the remaining cause of failed checkpoints: where two parts
+      of a track pass close together (the Apex GP hairpin, Coastal
+      Ring's final kink), the game could briefly track your position
+      against the WRONG piece of road - silently blocking checkpoint
+      registration and sometimes flashing false wrong-way warnings
+    - Position tracking now weighs continuity and your heading, so the
+      other leg of a hairpin (pointing the opposite way) can no longer
+      steal the projection
+    - Wrong-way detection ignores physically impossible position jumps
+    - New regression test sweeps every track at every gate-valid width
+      and proves track position can never jump or falsely trip wrong-way
+
     v1.9.1 - Checkpoint Fairness
     - Fixed constantly failing laps: the checkpoint window was so strict
       that running ~9 m wide (half a car onto the grass) while passing a
