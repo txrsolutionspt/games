@@ -12,7 +12,8 @@ difficulty + field size), v1.5 (cinematic replay viewer), v1.6
 v1.9 (visible checkpoint gates with next-gate highlighting; v1.9.1
 made capture forgiving and miss warnings immediate; v1.9.2 fixed
 wrong-leg position tracking near self-approaching track sections) and
-v1.10 (per-checkpoint split-time confirmation in the HUD)
+v1.10 (per-checkpoint split-time confirmation in the HUD; v1.10.1
+fixed the false "checkpoint missed" warning at every lap crossing)
 
 ---
 

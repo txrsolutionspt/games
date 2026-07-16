@@ -8,22 +8,36 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.10.0',
+  version: '1.10.1',
 
   // Git commit hash (short form)
-  gitHash: '3597000',
+  gitHash: '1123e36',
 
   // Full git commit hash
-  gitHashFull: '3597000e81f63c746fb4a02b06923e439cb1b9f1',
+  gitHashFull: '1123e3610b1550b97c64f5ab5573d5d73e796776',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-16',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-16T06:02:25Z',
+  buildTime: '2026-07-16T11:22:44Z',
 
   // Changelog for this version
   changelog: `
+    v1.10.1 - Fix: False "Checkpoint Missed" at Every Lap Crossing
+    - Fixed the warning that appeared at the finish line even though
+      every checkpoint had registered (all green CP chips): right after
+      a legitimate lap completion the car is still inside the line
+      region while the "next gate" has already advanced to the new
+      lap's first checkpoint, which the old logic misread as a cut
+    - The line-region warning now only fires while APPROACHING the
+      line with checkpoints actually missing, and is suppressed for a
+      few seconds after every real lap completion
+    - Laps were counting correctly all along - the warning was wrong,
+      not the lap validation
+    - New regression test: a perfect 3-lap run must produce ZERO
+      missed-checkpoint warnings (it produced 2 before this fix)
+
     v1.10.0 - Checkpoint Split Times
     - Every checkpoint you pass now confirms itself in the HUD: a green
       "CP 5/12 [check] 8.42" chip showing which gate registered and the
