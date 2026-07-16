@@ -29,6 +29,7 @@
       finishLaps: $('finish-laps'), finishTotal: $('finish-total'),
       finishPb: $('finish-pb'), finishNewBest: $('finish-newbest'),
       qualityBtn: $('btn-quality'), muteBtn: $('btn-mute'),
+      fullscreenBtn: $('btn-fullscreen'),
       ghostBtn: $('btn-ghost'), trackBtn: $('btn-track'),
       minimap: $('minimap'),
       gate: $('hud-gate'),
@@ -280,6 +281,9 @@
       },
       setQualityLabel(q) { el.qualityBtn.textContent = 'QUALITY: ' + q.toUpperCase(); },
       setMuteLabel(muted) { el.muteBtn.textContent = 'SOUND: ' + (muted ? 'OFF' : 'ON'); },
+      setFullscreenLabel(on) {
+        el.fullscreenBtn.textContent = 'FULLSCREEN: ' + (on ? 'ON' : 'OFF');
+      },
       setGhostLabel(on) { el.ghostBtn.textContent = 'GHOST: ' + (on ? 'ON' : 'OFF'); },
       setTrackLabel(name) { el.trackBtn.textContent = 'TRACK: ' + name; },
       setModeLabel(mode) {

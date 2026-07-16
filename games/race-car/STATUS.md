@@ -14,6 +14,7 @@ made capture forgiving and miss warnings immediate; v1.9.2 fixed
 wrong-leg position tracking near self-approaching track sections) and
 v1.10 (per-checkpoint split-time confirmation in the HUD; v1.10.1
 fixed the false "checkpoint missed" warning at every lap crossing)
+and v1.11 (fullscreen on race start + F toggle + landscape lock)
 
 ---
 

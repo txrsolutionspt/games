@@ -121,6 +121,7 @@
       else if (e.code === 'Space' || e.code === 'Enter') { fire('confirm'); e.preventDefault(); }
       else if (e.code === 'KeyP' || e.code === 'Escape') fire('pause');
       else if (e.code === 'KeyM') fire('mute');
+      else if (e.code === 'KeyF') fire('fullscreen');
     });
     window.addEventListener('keyup', (e) => {
       const k = KEYMAP[e.code];
