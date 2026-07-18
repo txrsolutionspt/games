@@ -384,6 +384,42 @@ function check(name, cond, detail) {
   await ovalPage.screenshot({ path: path.join(SHOTS, '17-speedbowl.png') });
   await ovalPage.close();
 
+  // ---------- fullscreen (stubbed Fullscreen API) ----------
+  const fsPage = await browser.newPage({ viewport: { width: 900, height: 480 } });
+  await fsPage.addInitScript(() => {
+    // documentElement doesn't exist yet at init-script time — patch the
+    // prototype so the game's requestFullscreen call hits the stub
+    window.__fsCalls = 0;
+    Element.prototype.requestFullscreen = function () {
+      window.__fsCalls++;
+      return Promise.resolve();
+    };
+  });
+  await fsPage.goto('http://localhost:8901/games/race-car/?laps=1', { waitUntil: 'load' });
+  await fsPage.waitForTimeout(1800);
+  check('fullscreen button defaults ON',
+    (await fsPage.textContent('#btn-fullscreen')).includes('ON'));
+  await fsPage.click('#btn-start');
+  await fsPage.waitForTimeout(400);
+  check('starting a race requests fullscreen',
+    await fsPage.evaluate(() => window.__fsCalls >= 1));
+  // pause works only once racing (not during the countdown)
+  await fsPage.waitForFunction(() =>
+    window.__rc.state === window.__rc.STATE.RACING, null, { timeout: 20000 });
+  await fsPage.keyboard.press('KeyP');
+  await fsPage.waitForTimeout(200);
+  await fsPage.click('#btn-quit');
+  await fsPage.waitForTimeout(300);
+  await fsPage.click('#btn-fullscreen'); // ON -> OFF
+  check('fullscreen toggles OFF',
+    (await fsPage.textContent('#btn-fullscreen')).includes('OFF'));
+  const fsCallsBefore = await fsPage.evaluate(() => window.__fsCalls);
+  await fsPage.click('#btn-start');
+  await fsPage.waitForTimeout(400);
+  check('no fullscreen request when setting is OFF',
+    await fsPage.evaluate((n) => window.__fsCalls === n, fsCallsBefore));
+  await fsPage.close();
+
   // ---------- gamepad support (stubbed Gamepad API) ----------
   const padPage = await browser.newPage({ viewport: { width: 900, height: 480 } });
   await padPage.addInitScript(() => {

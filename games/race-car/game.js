@@ -64,6 +64,7 @@
     mode: 'time-trial', // 'time-trial' | 'race'
     difficulty: 'medium',
     rivals: 3,
+    fullscreen: true,   // request fullscreen when a race starts
     // driving feel: assists default ON so the car doesn't power-slide out
     // of every slow corner under binary keyboard throttle
     driving: {
@@ -104,6 +105,7 @@
   car.setTuning(settings.driving);
   input.setPedalMode(settings.driving.pedal);
   hud.setDrivingLabels(settings.driving);
+  hud.setFullscreenLabel(!!settings.fullscreen);
   input.on('padconnected', () =>
     hud.toast('\u{1F3AE} Controller connected', 2500));
 
@@ -230,6 +232,7 @@
   }
 
   function startCountdown() {
+    if (settings.fullscreen && !isFullscreen()) enterFullscreen();
     placeCarAtStart();
     newRace();
     state = STATE.COUNTDOWN;
@@ -376,6 +379,45 @@
     }
   }
 
+  // ---------------- fullscreen ----------------
+  // Browsers only grant fullscreen from a user gesture; starting a race is
+  // one (button click / Space), so we piggyback on it. iOS Safari doesn't
+  // support element fullscreen at all — there, installing the PWA is the
+  // fullscreen path (manifest display is already 'fullscreen').
+  function enterFullscreen() {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return;
+    Promise.resolve(req.call(el, { navigationUI: 'hide' }))
+      .then(() => {
+        // in fullscreen we may also lock to landscape on mobile
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }
+
+  function exitFullscreen() {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (exit && (document.fullscreenElement || document.webkitFullscreenElement)) {
+      Promise.resolve(exit.call(document)).catch(() => {});
+    }
+  }
+
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  function toggleFullscreenSetting() {
+    settings.fullscreen = !settings.fullscreen;
+    store.set('settings', settings);
+    hud.setFullscreenLabel(settings.fullscreen);
+    // apply immediately — the click on the button is our user gesture
+    if (settings.fullscreen) enterFullscreen();
+    else exitFullscreen();
+  }
+
   function toggleMute() {
     settings.muted = !settings.muted;
     audio.setMuted(settings.muted);
@@ -469,6 +511,7 @@
   });
   document.getElementById('btn-quality').addEventListener('click', cycleQuality);
   document.getElementById('btn-mute').addEventListener('click', toggleMute);
+  document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreenSetting);
   document.getElementById('btn-ghost').addEventListener('click', toggleGhost);
   document.getElementById('btn-track').addEventListener('click', cycleTrack);
   document.getElementById('btn-mode').addEventListener('click', toggleMode);
@@ -502,6 +545,10 @@
     else if (state === STATE.REPLAY) exitReplay();
   });
   input.on('mute', toggleMute);
+  input.on('fullscreen', () => {
+    if (isFullscreen()) exitFullscreen();
+    else enterFullscreen();
+  });
   input.on('interact', () => audio.unlock());
 
   document.addEventListener('visibilitychange', () => {

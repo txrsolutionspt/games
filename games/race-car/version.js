@@ -8,22 +8,32 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.10.1',
+  version: '1.11.0',
 
   // Git commit hash (short form)
-  gitHash: '1123e36',
+  gitHash: 'abc561d',
 
   // Full git commit hash
-  gitHashFull: '1123e3610b1550b97c64f5ab5573d5d73e796776',
+  gitHashFull: 'abc561da3f73790f0969ec5eba94942df6130eab',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-16',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-16T11:22:44Z',
+  buildTime: '2026-07-16T23:04:31Z',
 
   // Changelog for this version
   changelog: `
+    v1.11.0 - Fullscreen
+    - The game now goes fullscreen when a race starts (no more browser
+      URL bar during play); FULLSCREEN: ON/OFF on the menu, F toggles
+      any time, Esc leaves fullscreen as usual
+    - Locks to landscape orientation on mobile where the browser
+      allows it
+    - Note for iPhone/iPad: Safari doesn't allow web-page fullscreen -
+      use "Add to Home Screen" to install the game, which launches
+      fullscreen via the PWA manifest
+
     v1.10.1 - Fix: False "Checkpoint Missed" at Every Lap Crossing
     - Fixed the warning that appeared at the finish line even though
       every checkpoint had registered (all green CP chips): right after
