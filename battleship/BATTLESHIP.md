@@ -1,6 +1,6 @@
 # ⚓ Battleship Game
 
-**Version: 1.0.0**
+**Version: 1.1.0**
 
 A two-player turn-based naval battle game for playing on the same phone or computer screen.
 
@@ -105,6 +105,22 @@ During battle, track your performance:
 - **Board:** 10×10 grid (100 cells)
 - **Players:** 2 (local, same screen)
 - **Offline:** Fully playable without internet connection
+
+## Changelog
+
+### v1.1.0 - Enhanced UX
+- ✨ Removed all pop-up modals for cleaner gameplay
+- 🔵 Added visual board highlighting to show active player
+- 📱 Implemented landscape mode with boards side-by-side
+- ✅ Fixed grid layout for all viewport sizes
+- ⚡ Faster player switching (500ms between turns)
+
+### v1.0.0 - Initial Release
+- Complete two-player Battleship game
+- Ship placement phase with random placement option
+- Turn-based battle phase with hidden ships
+- Mobile responsive design
+- Full documentation
 
 ## Starting a New Game
 
