@@ -1,5 +1,7 @@
 # ⚓ Battleship Game
 
+**Version: 1.0.0**
+
 A two-player turn-based naval battle game for playing on the same phone or computer screen.
 
 ## How to Play
