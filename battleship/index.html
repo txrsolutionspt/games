@@ -818,17 +818,10 @@
             gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
             gameState.placingShipIndex = gameState.currentPlayer === 1 ? gameState.player1.ships.length : gameState.player2.ships.length;
 
-            const message = phase === 'Placement'
-                ? `Player ${gameState.currentPlayer}, it's your turn to place ships!`
-                : `Player ${gameState.currentPlayer}, it's your turn to attack!`;
-
-            showModal('🎮 Switch Players', message, () => {
-                hideModal();
-                if (phase === 'Placement') {
-                    renderPlacementBoard();
-                    updatePlacementUI();
-                }
-            });
+            if (phase === 'Placement') {
+                renderPlacementBoard();
+                updatePlacementUI();
+            }
         }
 
         function startBattle() {
@@ -919,8 +912,8 @@
             document.getElementById('yourBoardTitle').textContent = `Player 1's Board`;
 
             // Highlight the opponent's board (the one being attacked)
-            const yourBoardWrapper = document.querySelector('#yourBoard').parentElement;
-            const opponentBoardWrapper = document.querySelector('#opponentBoard').parentElement;
+            const yourBoardWrapper = document.querySelector('#yourBoard').closest('.board-wrapper');
+            const opponentBoardWrapper = document.querySelector('#opponentBoard').closest('.board-wrapper');
 
             if (gameState.currentPlayer === 1) {
                 opponentBoardWrapper.classList.add('active');
