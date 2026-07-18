@@ -368,19 +368,14 @@
       setMinimapTrack,
       drawMinimap,
       setSteeringWheelVisible(visible) {
-        const wheel = el.steering || document.getElementById('steering-wheel');
-        if (wheel) {
-          wheel.classList.toggle('visible', visible);
-        }
+        const wheel = document.getElementById('steering-wheel');
+        if (wheel) wheel.classList.toggle('hidden', !visible);
       },
-      updateSteeringWheelAngle(angle) {
-        const indicator = document.getElementById('steering-wheel-angle');
-        if (indicator) {
-          // angle is in degrees, convert to match steering input (-1..1)
-          // -45 to 45 degrees = -1 to 1 steering
-          const clampedAngle = Math.max(-45, Math.min(45, angle));
-          indicator.style.transform = 'rotate(' + (clampedAngle) + 'deg)';
-        }
+      updateSteeringWheelAngle(deg) {
+        // rotate the whole rim like a real wheel; deg is already the
+        // desired visual rotation (caller maps steering onto it)
+        const rim = document.getElementById('steering-wheel-rim');
+        if (rim) rim.style.transform = 'rotate(' + deg + 'deg)';
       },
     };
   }

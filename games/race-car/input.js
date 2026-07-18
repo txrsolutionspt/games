@@ -18,8 +18,8 @@
     brakeDown: 10,
   };
   const PAD_DEADZONE = 0.12;
-  const TILT_SENSITIVITY = 1.5; // multiplier for tilt angle to steering (-1..1)
-  const TILT_DEADZONE = 8; // degrees
+  const TILT_DEADZONE = 4;   // degrees of tilt ignored around level
+  const TILT_MAX_ANGLE = 28; // degrees past the deadzone for full lock
 
   function createInput() {
     const control = { steer: 0, throttle: 0, brake: 0, tiltAngle: 0 };
@@ -121,81 +121,79 @@
     // legacy immediate refresh (kept for touch handlers; ramping happens in update)
     function refresh() { /* values are recomputed every frame in update(dt) */ }
 
-    // ---------- device motion (tilt control) ----------
-    function initTiltControl() {
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceMotionEvent !== 'undefined') {
-        tiltSupported = true;
-      }
+    // ---------- device orientation (tilt control) ----------
+    let tiltListenerAttached = false;
 
-      // Request permission on iOS 13+
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          DeviceOrientationEvent.requestPermission) {
-        // Request permission via user gesture
-        return new Promise((resolve) => {
-          window._tiltPermissionResolver = resolve;
-        });
-      } else if (tiltSupported) {
-        // Non-iOS or older iOS: enable immediately
-        enableTiltControl();
-        return Promise.resolve();
+    function screenAngle() {
+      if (typeof screen !== 'undefined' && screen.orientation &&
+          typeof screen.orientation.angle === 'number') {
+        return screen.orientation.angle;
       }
-      return Promise.resolve();
+      return (typeof window !== 'undefined' && window.orientation) || 0;
+    }
+
+    function onDeviceOrientation(e) {
+      if (!tiltPermissionGranted || controlMode !== 'tilt') {
+        steerTilt = 0;
+        control.tiltAngle = 0;
+        return;
+      }
+      // The game runs in landscape, so the "steering wheel" tilt is a
+      // rotation around the device's x axis (beta), not gamma — gamma is
+      // the left/right axis only while the phone is in portrait. Pick the
+      // axis (and sign) from the current screen rotation so it also works
+      // if the phone is flipped to the other landscape or left in portrait.
+      const angle = screenAngle();
+      let raw;
+      if (angle === 90) raw = e.beta || 0;               // landscape, rotated left
+      else if (angle === 270 || angle === -90) raw = -(e.beta || 0); // landscape, rotated right
+      else if (angle === 180) raw = -(e.gamma || 0);     // portrait upside-down
+      else raw = e.gamma || 0;                           // portrait
+
+      control.tiltAngle = raw;
+
+      // deadzone, then map the remaining angle onto -1..1
+      let a = raw;
+      if (Math.abs(a) < TILT_DEADZONE) a = 0;
+      else a = a > 0 ? a - TILT_DEADZONE : a + TILT_DEADZONE;
+      steerTilt = Math.max(-1, Math.min(1, a / TILT_MAX_ANGLE));
+    }
+
+    function initTiltControl() {
+      tiltSupported = typeof DeviceOrientationEvent !== 'undefined';
+      // iOS 13+ needs a user-gesture permission request first
+      // (requestTiltPermission); everywhere else listen right away
+      if (tiltSupported && !DeviceOrientationEvent.requestPermission) {
+        enableTiltControl();
+      }
+      return Promise.resolve(tiltSupported);
     }
 
     function enableTiltControl() {
       if (!tiltSupported) return;
       tiltPermissionGranted = true;
-
-      window.addEventListener('deviceorientation', (e) => {
-        if (!tiltPermissionGranted || controlMode !== 'tilt') return;
-
-        // beta: rotation around X axis (pitch): -180 to 180
-        // gamma: rotation around Y axis (roll): -90 to 90
-        // Use gamma (left-right tilt) for steering
-        let angle = e.gamma || 0;
-
-        // Apply deadzone
-        if (Math.abs(angle) < TILT_DEADZONE) {
-          angle = 0;
-        } else if (angle > 0) {
-          angle = Math.max(0, angle - TILT_DEADZONE);
-        } else {
-          angle = Math.min(0, angle + TILT_DEADZONE);
-        }
-
-        // Convert angle range (-90 to 90) to steering range (-1 to 1)
-        const maxAngle = 45; // 45 degrees = max steering
-        steerTilt = Math.max(-1, Math.min(1, angle / maxAngle * TILT_SENSITIVITY));
-        control.tiltAngle = angle;
-      }, { passive: true });
+      if (tiltListenerAttached) return;
+      tiltListenerAttached = true;
+      window.addEventListener('deviceorientation', onDeviceOrientation, { passive: true });
     }
 
     function requestTiltPermission() {
-      if (!tiltSupported) return Promise.reject('Tilt not supported');
+      if (!tiltSupported) return Promise.resolve(false);
 
-      if (DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) {
+      if (DeviceOrientationEvent.requestPermission) {
         return DeviceOrientationEvent.requestPermission()
           .then((state) => {
             if (state === 'granted') {
               enableTiltControl();
-              tiltPermissionGranted = true;
               return true;
             }
             return false;
           })
-          .catch(() => {
-            // User denied or error
-            return false;
-          });
-      } else {
-        // Non-iOS: assume permission granted
-        if (tiltSupported) {
-          enableTiltControl();
-          return Promise.resolve(true);
-        }
-        return Promise.resolve(false);
+          .catch(() => false); // user denied or error
       }
+      // non-iOS: no permission gate
+      enableTiltControl();
+      return Promise.resolve(true);
     }
 
     function setControlMode(mode) {
