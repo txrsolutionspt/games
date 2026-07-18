@@ -161,6 +161,110 @@
             background: #bbdefb;
         }
 
+        .cell.preview {
+            background: #81c784;
+            opacity: 0.6;
+            border: 2px dashed #2e7d32;
+        }
+
+        .cell.preview-invalid {
+            background: #e57373;
+            opacity: 0.6;
+            border: 2px dashed #c62828;
+        }
+
+        .setup-screen {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .setup-screen.active {
+            display: block;
+        }
+
+        .difficulty-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .difficulty-card {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .difficulty-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            border-color: #764ba2;
+        }
+
+        .difficulty-card.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #764ba2;
+        }
+
+        .difficulty-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .difficulty-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .difficulty-desc {
+            font-size: 0.9em;
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+
+        .ship-count {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .difficulty-card.selected .ship-count {
+            color: white;
+        }
+
+        .custom-count {
+            margin: 20px 0;
+        }
+
+        .custom-count label {
+            font-size: 1.1em;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .custom-count input {
+            padding: 10px 15px;
+            font-size: 1em;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            width: 100px;
+            text-align: center;
+        }
+
+        .setup-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
         .cell-marker {
             width: 100%;
             height: 100%;
@@ -501,6 +605,42 @@
             <div class="game-phase" id="gamePhase">Placement Phase - Player 1</div>
         </div>
 
+        <div id="setupScreen" class="setup-screen active">
+            <h2>🎮 Game Setup</h2>
+            <p style="font-size: 1.1em; color: #666; margin: 15px 0;">Select Difficulty Level</p>
+
+            <div class="difficulty-grid">
+                <div class="difficulty-card" data-difficulty="easy">
+                    <div class="difficulty-icon">🟢</div>
+                    <div class="difficulty-name">Easy</div>
+                    <div class="difficulty-desc">Perfect for beginners</div>
+                    <div class="ship-count">3 Large Ships</div>
+                </div>
+                <div class="difficulty-card" data-difficulty="medium">
+                    <div class="difficulty-icon">🟡</div>
+                    <div class="difficulty-name">Medium</div>
+                    <div class="difficulty-desc">Balanced gameplay</div>
+                    <div class="ship-count">5 Mixed Ships</div>
+                </div>
+                <div class="difficulty-card" data-difficulty="hard">
+                    <div class="difficulty-icon">🔴</div>
+                    <div class="difficulty-name">Hard</div>
+                    <div class="difficulty-desc">Challenge yourself</div>
+                    <div class="ship-count">8 Small Ships</div>
+                </div>
+            </div>
+
+            <div class="custom-count">
+                <label for="customShipCount">Or Choose Custom:</label>
+                <input type="number" id="customShipCount" min="2" max="20" value="5">
+                <span style="margin-left: 10px; color: #666;">ships</span>
+            </div>
+
+            <div class="setup-buttons">
+                <button class="btn-primary" id="startGameBtn">Start Game</button>
+            </div>
+        </div>
+
         <div id="placementPhase">
             <div class="info-panel">
                 <p class="placement-instructions" id="placementText"></p>
@@ -590,13 +730,54 @@
         const BOARD_SIZE = 10;
         const COLS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
         const ROWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        const SHIPS = [
-            { name: 'Battleship', size: 4 },
-            { name: 'Cruiser 1', size: 3 },
-            { name: 'Cruiser 2', size: 3 },
-            { name: 'Destroyer 1', size: 2 },
-            { name: 'Destroyer 2', size: 2 }
-        ];
+
+        const DIFFICULTY_PRESETS = {
+            easy: { count: 3, config: [4, 4, 4] }, // 3 large ships
+            medium: { count: 5, config: [4, 3, 3, 2, 2] }, // Classic setup
+            hard: { count: 8, config: [3, 3, 2, 2, 2, 2, 2, 2] } // Many small ships
+        };
+
+        let SHIPS = [];
+
+        function generateShips(count) {
+            const ships = [];
+            const config = DIFFICULTY_PRESETS.medium.config;
+
+            if (count === 3) {
+                return [
+                    { name: 'Battleship', size: 4 },
+                    { name: 'Battleship 2', size: 4 },
+                    { name: 'Battleship 3', size: 4 }
+                ];
+            } else if (count === 5) {
+                return [
+                    { name: 'Battleship', size: 4 },
+                    { name: 'Cruiser 1', size: 3 },
+                    { name: 'Cruiser 2', size: 3 },
+                    { name: 'Destroyer 1', size: 2 },
+                    { name: 'Destroyer 2', size: 2 }
+                ];
+            } else if (count === 8) {
+                return [
+                    { name: 'Cruiser 1', size: 3 },
+                    { name: 'Cruiser 2', size: 3 },
+                    { name: 'Destroyer 1', size: 2 },
+                    { name: 'Destroyer 2', size: 2 },
+                    { name: 'Destroyer 3', size: 2 },
+                    { name: 'Destroyer 4', size: 2 },
+                    { name: 'Destroyer 5', size: 2 },
+                    { name: 'Destroyer 6', size: 2 }
+                ];
+            } else {
+                // Custom count: mix of different sizes
+                const avgSize = Math.max(2, Math.floor(count / 3));
+                for (let i = 0; i < count; i++) {
+                    const size = i % 3 === 0 ? Math.min(4, avgSize + 1) : Math.max(2, avgSize);
+                    ships.push({ name: `Ship ${i + 1}`, size });
+                }
+                return ships;
+            }
+        }
 
         let gameState = {
             currentPlayer: 1,
@@ -648,9 +829,43 @@
                 }
 
                 cell.addEventListener('click', () => placeCellClick(i));
+                cell.addEventListener('mouseenter', () => showPreview(i));
+                cell.addEventListener('mouseleave', () => clearPreview());
 
                 board.appendChild(cell);
             }
+        }
+
+        function showPreview(index) {
+            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            if (gameState.placingShipIndex >= SHIPS.length) return;
+
+            clearPreview();
+            const ship = SHIPS[gameState.placingShipIndex];
+            const { col, row } = getColRow(index);
+
+            const previewCells = gameState.shipOrientation
+                ? getShipCells(col, row, ship.size, true)
+                : getShipCells(col, row, ship.size, false);
+
+            const isValid = previewCells.every(cellIdx => {
+                const c = getColRow(cellIdx).col;
+                const r = getColRow(cellIdx).row;
+                return c < BOARD_SIZE && r < BOARD_SIZE && currentPlayerData.board[cellIdx] === 0;
+            });
+
+            previewCells.forEach(cellIdx => {
+                const cell = document.getElementById(`placement-${cellIdx}`);
+                if (cell && !cell.classList.contains('ship')) {
+                    cell.classList.add(isValid ? 'preview' : 'preview-invalid');
+                }
+            });
+        }
+
+        function clearPreview() {
+            document.querySelectorAll('.cell.preview, .cell.preview-invalid').forEach(cell => {
+                cell.classList.remove('preview', 'preview-invalid');
+            });
         }
 
         function placeCellClick(index) {
@@ -776,6 +991,36 @@
                 readyBtn.textContent = '✓ Ready to Battle';
             }
         }
+
+        // Setup Screen Handlers
+        let selectedDifficulty = 'medium';
+
+        document.querySelectorAll('.difficulty-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.difficulty-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedDifficulty = card.dataset.difficulty;
+                document.getElementById('customShipCount').value = DIFFICULTY_PRESETS[selectedDifficulty].count;
+            });
+        });
+
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            let shipCount = parseInt(document.getElementById('customShipCount').value) || 5;
+            shipCount = Math.max(2, Math.min(20, shipCount)); // Clamp between 2-20
+
+            SHIPS = generateShips(shipCount);
+            gameState.player1.ships = [];
+            gameState.player2.ships = [];
+            gameState.placingShipIndex = 0;
+
+            document.getElementById('setupScreen').classList.remove('active');
+            document.getElementById('placementPhase').style.display = 'block';
+            updatePlacementUI();
+            renderPlacementBoard();
+        });
+
+        // Set initial selection
+        document.querySelector('.difficulty-card[data-difficulty="medium"]').classList.add('selected');
 
         document.getElementById('rotateBtn').addEventListener('click', () => {
             if (gameState.currentPlayer === 1 && gameState.player1.ready) return;
