@@ -88,12 +88,15 @@
 
         .board {
             display: grid;
-            grid-template-columns: repeat(10, 1fr);
+            grid-template-columns: repeat(10, 40px);
+            grid-template-rows: repeat(10, 40px);
             gap: 1px;
             background: #ddd;
             padding: 1px;
             border-radius: 4px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: fit-content;
+            margin: 0 auto;
         }
 
         .cell {
@@ -110,6 +113,7 @@
             transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .cell:hover {
@@ -378,12 +382,34 @@
                 height: 35px;
             }
 
+            .board {
+                grid-template-columns: repeat(10, 35px);
+                grid-template-rows: repeat(10, 35px);
+            }
+
             .container {
                 padding: 15px;
             }
 
             h1 {
                 font-size: 1.8em;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .cell {
+                width: 30px;
+                height: 30px;
+            }
+
+            .board {
+                grid-template-columns: repeat(10, 30px);
+                grid-template-rows: repeat(10, 30px);
+            }
+
+            .column-labels > span {
+                width: 30px;
+                font-size: 10px;
             }
         }
     </style>
