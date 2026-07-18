@@ -73,6 +73,13 @@
             margin-bottom: 30px;
         }
 
+        @media (orientation: landscape) {
+            .boards-container {
+                flex-wrap: nowrap;
+                gap: 20px;
+            }
+        }
+
         .board-section {
             display: flex;
             flex-direction: column;
@@ -410,6 +417,66 @@
             .column-labels > span {
                 width: 30px;
                 font-size: 10px;
+            }
+        }
+
+        @media (max-width: 600px) and (orientation: landscape) {
+            .cell {
+                width: 25px;
+                height: 25px;
+            }
+
+            .board {
+                grid-template-columns: repeat(10, 25px);
+                grid-template-rows: repeat(10, 25px);
+            }
+
+            .column-labels > span {
+                width: 25px;
+                font-size: 9px;
+            }
+
+            .board-title {
+                font-size: 1em;
+                margin-bottom: 8px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                margin-bottom: 10px;
+                font-size: 0.9em;
+            }
+
+            .game-state {
+                padding: 8px;
+                margin-bottom: 10px;
+                font-size: 0.9em;
+            }
+
+            .boards-container {
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+
+            .stats {
+                gap: 10px;
+            }
+
+            .stat-item {
+                padding: 5px;
+                font-size: 0.8em;
+            }
+
+            .stat-value {
+                font-size: 1em;
             }
         }
     </style>
