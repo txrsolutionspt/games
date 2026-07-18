@@ -73,6 +73,13 @@
             margin-bottom: 30px;
         }
 
+        @media (orientation: landscape) {
+            .boards-container {
+                flex-wrap: nowrap;
+                gap: 20px;
+            }
+        }
+
         .board-section {
             display: flex;
             flex-direction: column;
@@ -366,6 +373,15 @@
         .board-wrapper {
             display: flex;
             flex-direction: column;
+            padding: 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .board-wrapper.active {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid #667eea;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
         }
 
         .board-grid-wrapper {
@@ -410,6 +426,66 @@
             .column-labels > span {
                 width: 30px;
                 font-size: 10px;
+            }
+        }
+
+        @media (max-width: 600px) and (orientation: landscape) {
+            .cell {
+                width: 25px;
+                height: 25px;
+            }
+
+            .board {
+                grid-template-columns: repeat(10, 25px);
+                grid-template-rows: repeat(10, 25px);
+            }
+
+            .column-labels > span {
+                width: 25px;
+                font-size: 9px;
+            }
+
+            .board-title {
+                font-size: 1em;
+                margin-bottom: 8px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                margin-bottom: 10px;
+                font-size: 0.9em;
+            }
+
+            .game-state {
+                padding: 8px;
+                margin-bottom: 10px;
+                font-size: 0.9em;
+            }
+
+            .boards-container {
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+
+            .stats {
+                gap: 10px;
+            }
+
+            .stat-item {
+                padding: 5px;
+                font-size: 0.8em;
+            }
+
+            .stat-value {
+                font-size: 1em;
             }
         }
     </style>
@@ -742,17 +818,10 @@
             gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
             gameState.placingShipIndex = gameState.currentPlayer === 1 ? gameState.player1.ships.length : gameState.player2.ships.length;
 
-            const message = phase === 'Placement'
-                ? `Player ${gameState.currentPlayer}, it's your turn to place ships!`
-                : `Player ${gameState.currentPlayer}, it's your turn to attack!`;
-
-            showModal('🎮 Switch Players', message, () => {
-                hideModal();
-                if (phase === 'Placement') {
-                    renderPlacementBoard();
-                    updatePlacementUI();
-                }
-            });
+            if (phase === 'Placement') {
+                renderPlacementBoard();
+                updatePlacementUI();
+            }
         }
 
         function startBattle() {
@@ -825,18 +894,13 @@
             updateBattleUI();
             renderBattleBoards();
 
-            setTimeout(() => switchPlayerBattle(), 1000);
+            setTimeout(() => switchPlayerBattle(), 500);
         }
 
         function switchPlayerBattle() {
             gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
-
-            const message = `Player ${gameState.currentPlayer}, it's your turn to attack!`;
-            showModal('🎮 Switch Players', message, () => {
-                hideModal();
-                renderBattleBoards();
-                updateBattleUI();
-            });
+            renderBattleBoards();
+            updateBattleUI();
         }
 
         function updateBattleUI() {
@@ -846,6 +910,18 @@
             document.getElementById('currentPlayer').textContent = `Player ${gameState.currentPlayer}'s Turn`;
             document.getElementById('gamePhase').textContent = `Battle Phase - Player ${gameState.currentPlayer} Attacking`;
             document.getElementById('yourBoardTitle').textContent = `Player 1's Board`;
+
+            // Highlight the opponent's board (the one being attacked)
+            const yourBoardWrapper = document.querySelector('#yourBoard').closest('.board-wrapper');
+            const opponentBoardWrapper = document.querySelector('#opponentBoard').closest('.board-wrapper');
+
+            if (gameState.currentPlayer === 1) {
+                opponentBoardWrapper.classList.add('active');
+                yourBoardWrapper.classList.remove('active');
+            } else {
+                yourBoardWrapper.classList.add('active');
+                opponentBoardWrapper.classList.remove('active');
+            }
 
             const hits = currentPlayer.shots.filter(s => s === 1).length;
             const misses = currentPlayer.shots.filter(s => s === -1).length;
