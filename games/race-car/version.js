@@ -8,22 +8,36 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.11.0',
+  version: '1.12.0',
 
   // Git commit hash (short form)
-  gitHash: 'abc561d',
+  gitHash: '2a2e34b',
 
   // Full git commit hash
-  gitHashFull: 'abc561da3f73790f0969ec5eba94942df6130eab',
+  gitHashFull: '2a2e34bc90883843f271cc08f4fb6207645f3dbb',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-16',
+  releaseDate: '2026-07-18',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-16T23:04:31Z',
+  buildTime: '2026-07-18T17:02:27Z',
 
   // Changelog for this version
   changelog: `
+    v1.12.0 - Tilt Steering
+    - New CONTROLS button on the menu (phones/tablets): switch between
+      SLIDER (the on-screen steering slider) and TILT (steer by tilting
+      the phone like a steering wheel)
+    - Tilt mode shows an on-screen steering wheel that rotates with
+      your phone and the car's steering
+    - Works in both landscape directions; small 4-degree deadzone so
+      the car drives straight when the phone is roughly level, full
+      lock at about 30 degrees of tilt
+    - iPhone/iPad: the first switch to TILT asks for motion-sensor
+      permission (required by iOS)
+    - Gas/brake pedals stay the same in both modes; the choice is
+      remembered between sessions
+
     v1.11.0 - Fullscreen
     - The game now goes fullscreen when a race starts (no more browser
       URL bar during play); FULLSCREEN: ON/OFF on the menu, F toggles

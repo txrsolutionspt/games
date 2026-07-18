@@ -753,9 +753,10 @@
     const dt = Math.min(engine.getDeltaTime() / 1000, 0.1) || 0.016;
     input.update(dt); // pedal ramping + gamepad polling
 
-    // Update steering wheel visual for tilt mode
+    // Tilt mode: rotate the on-screen wheel with the applied steering, so
+    // it mirrors both the phone tilt and what the car's front wheels do
     if (input.controlMode === 'tilt' && (state === STATE.RACING || state === STATE.COUNTDOWN)) {
-      hud.updateSteeringWheelAngle(input.control.tiltAngle);
+      hud.updateSteeringWheelAngle(input.control.steer * 90);
     }
 
     if (state === STATE.COUNTDOWN) {
