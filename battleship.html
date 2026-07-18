@@ -427,7 +427,7 @@
         <div id="battlePhase" style="display: none;">
             <div class="boards-container">
                 <div class="board-section">
-                    <div class="board-title" id="yourBoardTitle">Your Board - Player 1</div>
+                    <div class="board-title" id="yourBoardTitle">Player 1's Board</div>
                     <div class="board-wrapper">
                         <div class="column-labels">
                             <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span>
@@ -438,7 +438,7 @@
                 </div>
 
                 <div class="board-section">
-                    <div class="board-title">Opponent's Board</div>
+                    <div class="board-title" id="opponentBoardTitle">Player 2's Board</div>
                     <div class="board-wrapper">
                         <div class="column-labels">
                             <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span>
@@ -739,14 +739,14 @@
         }
 
         function renderBattleBoards() {
-            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
-            const opponentData = gameState.currentPlayer === 1 ? gameState.player2 : gameState.player1;
+            // Player 1's board (attacked by Player 2)
+            renderBattleBoard('yourBoard', gameState.player1.board, gameState.player2.shots, gameState.currentPlayer === 2);
 
-            renderBattleBoard('yourBoard', currentPlayerData.board, currentPlayerData.shots, true);
-            renderBattleBoard('opponentBoard', opponentData.board, currentPlayerData.shots, false);
+            // Player 2's board (attacked by Player 1)
+            renderBattleBoard('opponentBoard', gameState.player2.board, gameState.player1.shots, gameState.currentPlayer === 1);
         }
 
-        function renderBattleBoard(elementId, board, shots, isYourBoard) {
+        function renderBattleBoard(elementId, board, shots, isCurrentPlayerAttacking) {
             const boardElement = document.getElementById(elementId);
             boardElement.innerHTML = '';
 
@@ -755,29 +755,15 @@
                 cell.className = 'cell';
                 cell.id = `${elementId}-${i}`;
 
-                if (isYourBoard) {
-                    // Your board: show your ships
-                    if (board[i] > 0) {
-                        cell.classList.add('ship');
-                        if (shots[i] === 1) {
-                            cell.classList.add('hit');
-                            cell.textContent = '✕';
-                        } else if (shots[i] === -1) {
-                            cell.textContent = '○';
-                        }
-                    } else if (shots[i] === -1) {
-                        cell.classList.add('miss');
-                        cell.textContent = '○';
-                    }
-                } else {
-                    // Opponent's board: hide ships
-                    if (shots[i] === 1) {
-                        cell.classList.add('hit');
-                        cell.textContent = '✕';
-                    } else if (shots[i] === -1) {
-                        cell.classList.add('miss');
-                        cell.textContent = '○';
-                    }
+                if (shots[i] === 1) {
+                    cell.classList.add('hit');
+                    cell.textContent = '✕';
+                } else if (shots[i] === -1) {
+                    cell.classList.add('miss');
+                    cell.textContent = '○';
+                }
+
+                if (isCurrentPlayerAttacking) {
                     cell.addEventListener('click', () => makeShot(i));
                 }
 
@@ -832,7 +818,7 @@
 
             document.getElementById('currentPlayer').textContent = `Player ${gameState.currentPlayer}'s Turn`;
             document.getElementById('gamePhase').textContent = `Battle Phase - Player ${gameState.currentPlayer} Attacking`;
-            document.getElementById('yourBoardTitle').textContent = `Your Board - Player ${gameState.currentPlayer}`;
+            document.getElementById('yourBoardTitle').textContent = `Player 1's Board`;
 
             const hits = currentPlayer.shots.filter(s => s === 1).length;
             const misses = currentPlayer.shots.filter(s => s === -1).length;
