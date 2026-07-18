@@ -18,17 +18,23 @@
     brakeDown: 10,
   };
   const PAD_DEADZONE = 0.12;
+  const TILT_SENSITIVITY = 1.5; // multiplier for tilt angle to steering (-1..1)
+  const TILT_DEADZONE = 8; // degrees
 
   function createInput() {
-    const control = { steer: 0, throttle: 0, brake: 0 };
+    const control = { steer: 0, throttle: 0, brake: 0, tiltAngle: 0 };
     const handlers = {}; // action -> [fn]
     const keys = { left: false, right: false, up: false, down: false };
     let steerTouch = 0;
+    let steerTilt = 0;
     let padGas = false, padBrake = false; // touch pedal buttons
     let usingTouch = false;
     let pedalMode = 'smooth'; // 'smooth' | 'instant'
     let padConnected = false;
     let prevPadButtons = [];
+    let controlMode = 'touch-slider'; // 'touch-slider' | 'tilt'
+    let tiltSupported = false;
+    let tiltPermissionGranted = false;
 
     function on(action, fn) {
       (handlers[action] = handlers[action] || []).push(fn);
@@ -81,10 +87,19 @@
     function update(dt) {
       const pad = pollGamepad();
 
-      // steering: gamepad stick wins when deflected, else keyboard/touch
+      // steering: priority is gamepad > tilt > keyboard/touch-slider
       const kSteer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-      const digitalSteer = usingTouch && steerTouch !== 0 ? steerTouch : kSteer || steerTouch;
-      control.steer = pad && pad.steer !== 0 ? pad.steer : digitalSteer;
+      let steering = kSteer || steerTouch;
+
+      if (pad && pad.steer !== 0) {
+        control.steer = pad.steer;
+      } else if (controlMode === 'tilt' && steerTilt !== 0) {
+        control.steer = steerTilt;
+      } else if (usingTouch && steerTouch !== 0) {
+        control.steer = steerTouch;
+      } else {
+        control.steer = steering;
+      }
 
       // pedals: ramp the binary sources, merge with analog triggers
       const tTarget = (keys.up || padGas) ? 1 : 0;
@@ -105,6 +120,99 @@
 
     // legacy immediate refresh (kept for touch handlers; ramping happens in update)
     function refresh() { /* values are recomputed every frame in update(dt) */ }
+
+    // ---------- device motion (tilt control) ----------
+    function initTiltControl() {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceMotionEvent !== 'undefined') {
+        tiltSupported = true;
+      }
+
+      // Request permission on iOS 13+
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          DeviceOrientationEvent.requestPermission) {
+        // Request permission via user gesture
+        return new Promise((resolve) => {
+          window._tiltPermissionResolver = resolve;
+        });
+      } else if (tiltSupported) {
+        // Non-iOS or older iOS: enable immediately
+        enableTiltControl();
+        return Promise.resolve();
+      }
+      return Promise.resolve();
+    }
+
+    function enableTiltControl() {
+      if (!tiltSupported) return;
+      tiltPermissionGranted = true;
+
+      window.addEventListener('deviceorientation', (e) => {
+        if (!tiltPermissionGranted || controlMode !== 'tilt') return;
+
+        // beta: rotation around X axis (pitch): -180 to 180
+        // gamma: rotation around Y axis (roll): -90 to 90
+        // Use gamma (left-right tilt) for steering
+        let angle = e.gamma || 0;
+
+        // Apply deadzone
+        if (Math.abs(angle) < TILT_DEADZONE) {
+          angle = 0;
+        } else if (angle > 0) {
+          angle = Math.max(0, angle - TILT_DEADZONE);
+        } else {
+          angle = Math.min(0, angle + TILT_DEADZONE);
+        }
+
+        // Convert angle range (-90 to 90) to steering range (-1 to 1)
+        const maxAngle = 45; // 45 degrees = max steering
+        steerTilt = Math.max(-1, Math.min(1, angle / maxAngle * TILT_SENSITIVITY));
+        control.tiltAngle = angle;
+      }, { passive: true });
+    }
+
+    function requestTiltPermission() {
+      if (!tiltSupported) return Promise.reject('Tilt not supported');
+
+      if (DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) {
+        return DeviceOrientationEvent.requestPermission()
+          .then((state) => {
+            if (state === 'granted') {
+              enableTiltControl();
+              tiltPermissionGranted = true;
+              return true;
+            }
+            return false;
+          })
+          .catch(() => {
+            // User denied or error
+            return false;
+          });
+      } else {
+        // Non-iOS: assume permission granted
+        if (tiltSupported) {
+          enableTiltControl();
+          return Promise.resolve(true);
+        }
+        return Promise.resolve(false);
+      }
+    }
+
+    function setControlMode(mode) {
+      if (mode === 'tilt') {
+        if (tiltSupported && !tiltPermissionGranted) {
+          // Will need permission; don't auto-switch yet
+          return false;
+        }
+        controlMode = 'tilt';
+        fire('controlModeChanged');
+        return true;
+      } else {
+        controlMode = 'touch-slider';
+        fire('controlModeChanged');
+        return true;
+      }
+    }
 
     // ---------------- keyboard ----------------
     const KEYMAP = {
@@ -210,8 +318,12 @@
 
     return {
       control, on, bindTouchUI, hasTouch, refresh, update, setPedalMode,
+      initTiltControl, requestTiltPermission, setControlMode,
       get pedalMode() { return pedalMode; },
       get gamepadConnected() { return padConnected; },
+      get tiltSupported() { return tiltSupported; },
+      get tiltPermissionGranted() { return tiltPermissionGranted; },
+      get controlMode() { return controlMode; },
     };
   }
 
