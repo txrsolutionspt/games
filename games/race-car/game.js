@@ -65,6 +65,7 @@
     difficulty: 'medium',
     rivals: 3,
     fullscreen: true,   // request fullscreen when a race starts
+    controlMode: 'touch-slider', // 'touch-slider' | 'tilt'
     // driving feel: assists default ON so the car doesn't power-slide out
     // of every slow corner under binary keyboard throttle
     driving: {
@@ -108,6 +109,15 @@
   hud.setFullscreenLabel(!!settings.fullscreen);
   input.on('padconnected', () =>
     hud.toast('\u{1F3AE} Controller connected', 2500));
+
+  // Initialize tilt control support
+  input.initTiltControl().then(() => {
+    updateControlModeLabel();
+    // Restore control mode from settings if available
+    if (settings.controlMode === 'tilt' && input.tiltSupported) {
+      input.setControlMode('tilt');
+    }
+  });
 
   // ------------- per-track best-time storage (+ v1.0.0 migration) -------------
   // Some tracks force a lap count (a drag strip is a single run)
@@ -241,6 +251,9 @@
     hud.screen(null);
     hud.setHudVisible(true);
     hud.setTouchVisible(input.hasTouch);
+    if (input.hasTouch) {
+      hud.setSteeringWheelVisible(input.controlMode === 'tilt');
+    }
     audio.unlock();
   }
 
@@ -500,6 +513,53 @@
     applyDriving();
   }
 
+  function cycleControlMode() {
+    if (!input.tiltSupported) {
+      hud.toast('Tilt controls not supported on this device', 2000);
+      return;
+    }
+
+    if (input.controlMode === 'touch-slider') {
+      // Switch to tilt mode
+      if (input.tiltPermissionGranted) {
+        input.setControlMode('tilt');
+        settings.controlMode = 'tilt';
+        store.set('settings', settings);
+        updateControlModeLabel();
+        hud.toast('Tilt mode', 1500);
+      } else {
+        // Request permission
+        input.requestTiltPermission().then((granted) => {
+          if (granted) {
+            input.setControlMode('tilt');
+            settings.controlMode = 'tilt';
+            store.set('settings', settings);
+            updateControlModeLabel();
+            hud.toast('Tilt controls enabled', 1500);
+          } else {
+            hud.toast('Permission denied for tilt controls', 2000);
+          }
+        });
+        return;
+      }
+    } else {
+      // Switch back to touch slider
+      input.setControlMode('touch-slider');
+      settings.controlMode = 'touch-slider';
+      store.set('settings', settings);
+      updateControlModeLabel();
+      hud.toast('Slider mode', 1500);
+    }
+  }
+
+  function updateControlModeLabel() {
+    const btn = document.getElementById('btn-controls');
+    if (btn) {
+      const mode = input.controlMode === 'tilt' ? 'TILT' : 'SLIDER';
+      btn.textContent = 'CONTROLS: ' + mode;
+    }
+  }
+
   // ---------------- wire UI ----------------
   document.getElementById('btn-start').addEventListener('click', startCountdown);
   document.getElementById('btn-restart').addEventListener('click', startCountdown);
@@ -533,6 +593,10 @@
   document.getElementById('btn-replay-exit').addEventListener('click', exitReplay);
   document.getElementById('btn-replay-pause').addEventListener('click', toggleReplayPause);
   document.getElementById('btn-replay-speed').addEventListener('click', cycleReplaySpeed);
+  const btnControls = document.getElementById('btn-controls');
+  if (btnControls) {
+    btnControls.addEventListener('click', cycleControlMode);
+  }
 
   input.on('confirm', () => {
     if (state === STATE.MENU || state === STATE.FINISHED) startCountdown();
@@ -550,6 +614,11 @@
     else enterFullscreen();
   });
   input.on('interact', () => audio.unlock());
+  input.on('controlModeChanged', () => {
+    if (state === STATE.RACING || state === STATE.COUNTDOWN) {
+      hud.setSteeringWheelVisible(input.controlMode === 'tilt');
+    }
+  });
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && state === STATE.RACING) togglePause();
@@ -683,6 +752,11 @@
     // capped dt so the race timer and physics can never diverge
     const dt = Math.min(engine.getDeltaTime() / 1000, 0.1) || 0.016;
     input.update(dt); // pedal ramping + gamepad polling
+
+    // Update steering wheel visual for tilt mode
+    if (input.controlMode === 'tilt' && (state === STATE.RACING || state === STATE.COUNTDOWN)) {
+      hud.updateSteeringWheelAngle(input.control.tiltAngle);
+    }
 
     if (state === STATE.COUNTDOWN) {
       countdownT -= dt;

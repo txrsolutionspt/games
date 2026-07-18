@@ -1,7 +1,7 @@
 # Apex Racer (Race Car Game) — Status Report
 
-**Date:** 2026-07-15
-**Version:** 1.8.0 (see `version.js`)
+**Date:** 2026-07-18
+**Version:** 1.12.0 (see `version.js`)
 **Status:** ✅ Playable — v1 per `design.md`, plus v1.1 (ghost replay,
 second track + track selection, minimap), v1.2 (sector timing, medals,
 post-race stats), v1.3 (Race mode with AI opponents), v1.4 (AI
@@ -14,7 +14,8 @@ made capture forgiving and miss warnings immediate; v1.9.2 fixed
 wrong-leg position tracking near self-approaching track sections) and
 v1.10 (per-checkpoint split-time confirmation in the HUD; v1.10.1
 fixed the false "checkpoint missed" warning at every lap crossing)
-and v1.11 (fullscreen on race start + F toggle + landscape lock)
+and v1.11 (fullscreen on race start + F toggle + landscape lock) and
+v1.12 (tilt controls: device orientation steering with visual steering wheel)
 
 ---
 
@@ -33,7 +34,7 @@ installable.
 | Rendering | WebGL (Babylon default engine). WebGPU progressive enhancement deferred to a future version — it needs extra WASM tooling that conflicts with the no-build-step goal |
 | Vehicle physics | Custom semi-sim bicycle model in `car.js` (slip-angle Pacejka-lite tires, load transfer, friction circle, speed-sensitive steering, RWD) instead of wiring the unmaintained Cannon.js — deterministic and unit-testable in Node |
 | `.glb`/`.gltf` + KTX2 assets | **Zero external assets** — car/track/scenery are procedural low-poly meshes, textures are generated `DynamicTexture`s, audio is synthesized Web Audio. Initial payload ≈ 7.9 MB (almost entirely the engine), well under the 20 MB budget |
-| Mobile steering (slider vs tilt) | On-screen steering slider (bottom-left) + gas/brake pedals (bottom-right). Tilt deferred |
+| Mobile steering (slider vs tilt) | **Toggle-able:** On-screen steering slider (bottom-left, default) OR device tilt via DeviceOrientationEvent (visual steering wheel, center). iOS 13+ requires user permission. Menu has CONTROLS button to switch modes. Tilt uses 45° max angle with 8° deadzone. |
 | Quality tiers | LOW/MED/HIGH toggle: render resolution scaling, tree density, dynamic shadows (HIGH only). Defaults MED on touch devices, HIGH on desktop |
 
 ## File Map
@@ -104,11 +105,13 @@ the top of the changelog in `version.js`, commit.
 
 ## Known Limitations / Future Work
 
-- Tilt steering, WebGPU path, online leaderboards — still future work.
+- WebGPU path, online leaderboards — still future work.
   (Ghost replay and multiple tracks shipped in v1.1.0; AI opponents in
-  v1.3.0.)
+  v1.3.0; tilt steering in v1.12.0.)
 - Car-to-car collision uses an equal-mass circle model — simple and
   stable, but contact along a car's length is approximate.
 - Race clock and physics share one frame-time cap (100 ms), so timing stays
   fair on slow devices down to 10 FPS; below that, sim time dilates rather
   than making the car skip through walls/checkpoints.
+- Tilt steering requires DeviceOrientationEvent support; older devices may
+  not have accelerometer access (Android 2.x, some non-smartphone browsers).
