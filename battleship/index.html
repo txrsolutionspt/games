@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battleship - Priest Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .game-state {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .current-player {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .game-phase {
+            font-size: 1em;
+            color: #666;
+        }
+
+        .boards-container {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .board-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 1px;
+            background: #ddd;
+            padding: 1px;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            background: #e3f2fd;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 10px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cell:hover {
+            background: #bbdefb;
+            transform: scale(1.05);
+        }
+
+        .cell.ship {
+            background: #4caf50;
+            color: white;
+        }
+
+        .cell.ship:hover {
+            background: #45a049;
+        }
+
+        .cell.hit {
+            background: #f44336;
+            color: white;
+        }
+
+        .cell.miss {
+            background: #90caf9;
+            color: #333;
+        }
+
+        .cell.sunk {
+            background: #c62828;
+            color: white;
+            font-weight: bold;
+        }
+
+        .cell.ship.hidden {
+            background: #e3f2fd;
+        }
+
+        .cell.ship.hidden:hover {
+            background: #bbdefb;
+        }
+
+        .cell-marker {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #f1f3f5;
+            color: #333;
+            border: 2px solid #ccc;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .info-panel {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .ship-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .ship-badge {
+            background: #667eea;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .ship-badge.placed {
+            background: #4caf50;
+        }
+
+        .placement-instructions {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h2 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .modal-content p {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .stat-item {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .end-message {
+            font-size: 1.3em;
+            color: #f44336;
+            margin-bottom: 20px;
+        }
+
+        .column-labels, .row-labels {
+            display: flex;
+            font-size: 12px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .column-labels {
+            gap: 1px;
+            padding: 0 1px;
+            margin-bottom: 5px;
+            margin-left: 1px;
+        }
+
+        .column-labels > span {
+            width: 40px;
+            text-align: center;
+        }
+
+        .row-column {
+            display: flex;
+            gap: 1px;
+            align-items: center;
+            margin-bottom: 1px;
+        }
+
+        .row-label {
+            width: 30px;
+            text-align: right;
+            font-weight: bold;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .board-grid-wrapper {
+            display: flex;
+        }
+
+        @media (max-width: 1000px) {
+            .boards-container {
+                gap: 20px;
+            }
+
+            .cell {
+                width: 35px;
+                height: 35px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚓ Battleship ⚓</h1>
+        <p class="subtitle">Two-Player Turn-Based Naval Battle</p>
+
+        <div class="game-state">
+            <div class="current-player" id="currentPlayer">Player 1's Turn</div>
+            <div class="game-phase" id="gamePhase">Placement Phase - Player 1</div>
+        </div>
+
+        <div id="placementPhase">
+            <div class="info-panel">
+                <p class="placement-instructions" id="placementText"></p>
+                <div class="ship-list" id="shipList"></div>
+            </div>
+
+            <div class="boards-container">
+                <div class="board-section">
+                    <div class="board-title" id="placementBoardTitle">Your Board - Player 1</div>
+                    <div class="board-wrapper">
+                        <div class="column-labels">
+                            <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span>
+                            <span>F</span><span>G</span><span>H</span><span>I</span><span>J</span>
+                        </div>
+                        <div id="placementBoard"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn-secondary" id="randomPlaceBtn">🎲 Random Placement</button>
+                <button class="btn-secondary" id="clearBtn">🗑️ Clear Board</button>
+                <button class="btn-primary" id="readyBtn" disabled>✓ Ready</button>
+            </div>
+        </div>
+
+        <div id="battlePhase" style="display: none;">
+            <div class="boards-container">
+                <div class="board-section">
+                    <div class="board-title" id="yourBoardTitle">Player 1's Board</div>
+                    <div class="board-wrapper">
+                        <div class="column-labels">
+                            <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span>
+                            <span>F</span><span>G</span><span>H</span><span>I</span><span>J</span>
+                        </div>
+                        <div id="yourBoard"></div>
+                    </div>
+                </div>
+
+                <div class="board-section">
+                    <div class="board-title" id="opponentBoardTitle">Player 2's Board</div>
+                    <div class="board-wrapper">
+                        <div class="column-labels">
+                            <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span>
+                            <span>F</span><span>G</span><span>H</span><span>I</span><span>J</span>
+                        </div>
+                        <div id="opponentBoard"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn-secondary" id="passBtn">👉 Pass Phone to Opponent</button>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">Hits</div>
+                    <div class="stat-value" id="hitsCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Misses</div>
+                    <div class="stat-value" id="missesCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Your Ships Hit</div>
+                    <div class="stat-value" id="shipsHitCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Ships Remaining</div>
+                    <div class="stat-value" id="shipsRemainingCount">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="gameOverModal" class="modal">
+            <div class="modal-content">
+                <h2 id="gameOverTitle">🎉 Game Over!</h2>
+                <p id="gameOverMessage"></p>
+                <button class="btn-primary" onclick="location.reload()">🔄 Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 10;
+        const COLS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        const ROWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        const SHIPS = [
+            { name: 'Battleship', size: 4 },
+            { name: 'Cruiser 1', size: 3 },
+            { name: 'Cruiser 2', size: 3 },
+            { name: 'Destroyer 1', size: 2 },
+            { name: 'Destroyer 2', size: 2 }
+        ];
+
+        let gameState = {
+            currentPlayer: 1,
+            phase: 'placement', // 'placement' or 'battle'
+            player1: {
+                board: Array(100).fill(0),
+                shots: Array(100).fill(0), // 0: not shot, 1: hit, -1: miss
+                ships: [],
+                ready: false
+            },
+            player2: {
+                board: Array(100).fill(0),
+                shots: Array(100).fill(0),
+                ships: [],
+                ready: false
+            },
+            placingShipIndex: 0,
+            draggedCell: null
+        };
+
+        function initGame() {
+            updatePlacementUI();
+            renderPlacementBoard();
+        }
+
+        function getIndex(col, row) {
+            return row * BOARD_SIZE + col;
+        }
+
+        function getColRow(index) {
+            return { col: index % BOARD_SIZE, row: Math.floor(index / BOARD_SIZE) };
+        }
+
+        function renderPlacementBoard() {
+            const board = document.getElementById('placementBoard');
+            board.innerHTML = '';
+            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+
+            for (let i = 0; i < 100; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.id = `placement-${i}`;
+
+                if (currentPlayerData.board[i] > 0) {
+                    cell.classList.add('ship');
+                    cell.textContent = currentPlayerData.board[i];
+                }
+
+                cell.addEventListener('click', () => placeCellClick(i));
+
+                board.appendChild(cell);
+            }
+        }
+
+        function placeCellClick(index) {
+            if (gameState.currentPlayer === 1 && gameState.player1.ready) return;
+            if (gameState.currentPlayer === 2 && gameState.player2.ready) return;
+
+            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            const ship = SHIPS[gameState.placingShipIndex];
+            const { col, row } = getColRow(index);
+
+            // Try horizontal placement
+            if (col + ship.size <= BOARD_SIZE) {
+                if (canPlaceShip(currentPlayerData.board, col, row, ship.size, true)) {
+                    placeShip(currentPlayerData.board, col, row, ship.size, true, gameState.placingShipIndex + 1);
+                    currentPlayerData.ships.push({
+                        id: gameState.placingShipIndex + 1,
+                        size: ship.size,
+                        cells: getShipCells(col, row, ship.size, true),
+                        health: ship.size
+                    });
+                    gameState.placingShipIndex++;
+                    updatePlacementUI();
+                    renderPlacementBoard();
+                    return;
+                }
+            }
+
+            // Try vertical placement
+            if (row + ship.size <= BOARD_SIZE) {
+                if (canPlaceShip(currentPlayerData.board, col, row, ship.size, false)) {
+                    placeShip(currentPlayerData.board, col, row, ship.size, false, gameState.placingShipIndex + 1);
+                    currentPlayerData.ships.push({
+                        id: gameState.placingShipIndex + 1,
+                        size: ship.size,
+                        cells: getShipCells(col, row, ship.size, false),
+                        health: ship.size
+                    });
+                    gameState.placingShipIndex++;
+                    updatePlacementUI();
+                    renderPlacementBoard();
+                    return;
+                }
+            }
+        }
+
+        function canPlaceShip(board, col, row, size, horizontal) {
+            for (let i = 0; i < size; i++) {
+                const checkCol = horizontal ? col + i : col;
+                const checkRow = horizontal ? row : row + i;
+                const idx = getIndex(checkCol, checkRow);
+                if (board[idx] !== 0) return false;
+            }
+            return true;
+        }
+
+        function placeShip(board, col, row, size, horizontal, shipId) {
+            for (let i = 0; i < size; i++) {
+                const placeCol = horizontal ? col + i : col;
+                const placeRow = horizontal ? row : row + i;
+                board[getIndex(placeCol, placeRow)] = shipId;
+            }
+        }
+
+        function getShipCells(col, row, size, horizontal) {
+            const cells = [];
+            for (let i = 0; i < size; i++) {
+                const c = horizontal ? col + i : col;
+                const r = horizontal ? row : row + i;
+                cells.push(getIndex(c, r));
+            }
+            return cells;
+        }
+
+        function updatePlacementUI() {
+            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            const placedCount = gameState.placingShipIndex;
+            const totalCount = SHIPS.length;
+
+            document.getElementById('currentPlayer').textContent = `Player ${gameState.currentPlayer}'s Turn`;
+            document.getElementById('gamePhase').textContent = `Placement Phase - Player ${gameState.currentPlayer}`;
+            document.getElementById('placementBoardTitle').textContent = `Your Board - Player ${gameState.currentPlayer}`;
+
+            document.getElementById('placementText').textContent =
+                `Place your ships! Placed: ${placedCount}/${totalCount}. Click on the board to place the next ship.`;
+
+            const shipList = document.getElementById('shipList');
+            shipList.innerHTML = '';
+            SHIPS.forEach((ship, idx) => {
+                const badge = document.createElement('div');
+                badge.className = `ship-badge ${idx < placedCount ? 'placed' : ''}`;
+                badge.textContent = `${ship.name} (${ship.size} cells)`;
+                shipList.appendChild(badge);
+            });
+
+            const readyBtn = document.getElementById('readyBtn');
+            readyBtn.disabled = placedCount < SHIPS.length;
+
+            if (placedCount === SHIPS.length) {
+                readyBtn.textContent = '✓ Ready to Battle';
+            }
+        }
+
+        document.getElementById('randomPlaceBtn').addEventListener('click', () => {
+            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            currentPlayerData.board = Array(100).fill(0);
+            currentPlayerData.ships = [];
+            gameState.placingShipIndex = 0;
+
+            SHIPS.forEach((ship, idx) => {
+                let placed = false;
+                while (!placed) {
+                    const col = Math.floor(Math.random() * BOARD_SIZE);
+                    const row = Math.floor(Math.random() * BOARD_SIZE);
+                    const horizontal = Math.random() > 0.5;
+
+                    if (horizontal && col + ship.size <= BOARD_SIZE) {
+                        if (canPlaceShip(currentPlayerData.board, col, row, ship.size, true)) {
+                            placeShip(currentPlayerData.board, col, row, ship.size, true, idx + 1);
+                            currentPlayerData.ships.push({
+                                id: idx + 1,
+                                size: ship.size,
+                                cells: getShipCells(col, row, ship.size, true),
+                                health: ship.size
+                            });
+                            placed = true;
+                        }
+                    } else if (!horizontal && row + ship.size <= BOARD_SIZE) {
+                        if (canPlaceShip(currentPlayerData.board, col, row, ship.size, false)) {
+                            placeShip(currentPlayerData.board, col, row, ship.size, false, idx + 1);
+                            currentPlayerData.ships.push({
+                                id: idx + 1,
+                                size: ship.size,
+                                cells: getShipCells(col, row, ship.size, false),
+                                health: ship.size
+                            });
+                            placed = true;
+                        }
+                    }
+                }
+            });
+
+            gameState.placingShipIndex = SHIPS.length;
+            updatePlacementUI();
+            renderPlacementBoard();
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            currentPlayerData.board = Array(100).fill(0);
+            currentPlayerData.ships = [];
+            gameState.placingShipIndex = 0;
+            updatePlacementUI();
+            renderPlacementBoard();
+        });
+
+        document.getElementById('readyBtn').addEventListener('click', () => {
+            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            currentPlayerData.ready = true;
+
+            if (gameState.player1.ready && gameState.player2.ready) {
+                startBattle();
+            } else {
+                switchPlayer('Placement');
+            }
+        });
+
+        function switchPlayer(phase) {
+            gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+            gameState.placingShipIndex = gameState.currentPlayer === 1 ? gameState.player1.ships.length : gameState.player2.ships.length;
+
+            const message = phase === 'Placement'
+                ? `Player ${gameState.currentPlayer}, it's your turn to place ships!`
+                : `Player ${gameState.currentPlayer}, it's your turn to attack!`;
+
+            showModal('🎮 Switch Players', message, () => {
+                hideModal();
+                if (phase === 'Placement') {
+                    renderPlacementBoard();
+                    updatePlacementUI();
+                }
+            });
+        }
+
+        function startBattle() {
+            document.getElementById('placementPhase').style.display = 'none';
+            document.getElementById('battlePhase').style.display = 'block';
+            gameState.phase = 'battle';
+            gameState.currentPlayer = 1;
+
+            renderBattleBoards();
+            updateBattleUI();
+        }
+
+        function renderBattleBoards() {
+            // Player 1's board (attacked by Player 2)
+            renderBattleBoard('yourBoard', gameState.player1.board, gameState.player2.shots, gameState.currentPlayer === 2);
+
+            // Player 2's board (attacked by Player 1)
+            renderBattleBoard('opponentBoard', gameState.player2.board, gameState.player1.shots, gameState.currentPlayer === 1);
+        }
+
+        function renderBattleBoard(elementId, board, shots, isCurrentPlayerAttacking) {
+            const boardElement = document.getElementById(elementId);
+            boardElement.innerHTML = '';
+
+            for (let i = 0; i < 100; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.id = `${elementId}-${i}`;
+
+                if (shots[i] === 1) {
+                    cell.classList.add('hit');
+                    cell.textContent = '✕';
+                } else if (shots[i] === -1) {
+                    cell.classList.add('miss');
+                    cell.textContent = '○';
+                }
+
+                if (isCurrentPlayerAttacking) {
+                    cell.addEventListener('click', () => makeShot(i));
+                }
+
+                boardElement.appendChild(cell);
+            }
+        }
+
+        function makeShot(index) {
+            const attacker = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            const defender = gameState.currentPlayer === 1 ? gameState.player2 : gameState.player1;
+
+            if (attacker.shots[index] !== 0) {
+                alert('Already shot here!');
+                return;
+            }
+
+            const isHit = defender.board[index] > 0;
+            attacker.shots[index] = isHit ? 1 : -1;
+
+            if (isHit) {
+                const shipId = defender.board[index];
+                const ship = defender.ships.find(s => s.id === shipId);
+                if (ship) {
+                    ship.health--;
+                    if (ship.health === 0) {
+                        showModal('🎯 Ship Sunk!', `Player ${gameState.currentPlayer} sank a ship!`);
+                        checkGameOver();
+                    }
+                }
+            }
+
+            updateBattleUI();
+            renderBattleBoards();
+
+            setTimeout(() => switchPlayerBattle(), 1000);
+        }
+
+        function switchPlayerBattle() {
+            gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+
+            const message = `Player ${gameState.currentPlayer}, it's your turn to attack!`;
+            showModal('🎮 Switch Players', message, () => {
+                hideModal();
+                renderBattleBoards();
+                updateBattleUI();
+            });
+        }
+
+        function updateBattleUI() {
+            const currentPlayer = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            const opponent = gameState.currentPlayer === 1 ? gameState.player2 : gameState.player1;
+
+            document.getElementById('currentPlayer').textContent = `Player ${gameState.currentPlayer}'s Turn`;
+            document.getElementById('gamePhase').textContent = `Battle Phase - Player ${gameState.currentPlayer} Attacking`;
+            document.getElementById('yourBoardTitle').textContent = `Player 1's Board`;
+
+            const hits = currentPlayer.shots.filter(s => s === 1).length;
+            const misses = currentPlayer.shots.filter(s => s === -1).length;
+            const shipsHit = opponent.ships.filter(s => s.health < SHIPS.find(ship => ship.size === s.size).size).length;
+            const shipsRemaining = opponent.ships.filter(s => s.health > 0).length;
+
+            document.getElementById('hitsCount').textContent = hits;
+            document.getElementById('missesCount').textContent = misses;
+            document.getElementById('shipsHitCount').textContent = shipsHit;
+            document.getElementById('shipsRemainingCount').textContent = shipsRemaining;
+        }
+
+        function checkGameOver() {
+            const player1HasShips = gameState.player1.ships.some(s => s.health > 0);
+            const player2HasShips = gameState.player2.ships.some(s => s.health > 0);
+
+            if (!player1HasShips) {
+                endGame(2);
+            } else if (!player2HasShips) {
+                endGame(1);
+            }
+        }
+
+        function endGame(winner) {
+            document.getElementById('gameOverTitle').textContent = '🎉 Game Over!';
+            document.getElementById('gameOverMessage').textContent = `Player ${winner} wins! All opponent ships have been sunk.`;
+            document.getElementById('gameOverModal').classList.add('active');
+        }
+
+        document.getElementById('passBtn').addEventListener('click', () => {
+            switchPlayerBattle();
+        });
+
+        function showModal(title, message, callback) {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>${title}</h2>
+                    <p>${message}</p>
+                    <button class="btn-primary" onclick="this.parentElement.parentElement.remove()">OK</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            if (callback) {
+                modal.querySelector('button').addEventListener('click', callback);
+            }
+        }
+
+        function hideModal() {
+            const modals = document.querySelectorAll('.modal.active');
+            modals.forEach(m => m.remove());
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
