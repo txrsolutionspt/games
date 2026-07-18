@@ -521,6 +521,7 @@
             </div>
 
             <div class="controls">
+                <button class="btn-secondary" id="rotateBtn">🔄 Rotate Ship</button>
                 <button class="btn-secondary" id="randomPlaceBtn">🎲 Random Placement</button>
                 <button class="btn-secondary" id="clearBtn">🗑️ Clear Board</button>
                 <button class="btn-primary" id="readyBtn" disabled>✓ Ready</button>
@@ -613,7 +614,9 @@
                 ready: false
             },
             placingShipIndex: 0,
-            draggedCell: null
+            draggedCell: null,
+            shipOrientation: true, // true = horizontal, false = vertical
+            previewCell: null
         };
 
         function initGame() {
@@ -655,12 +658,32 @@
             if (gameState.currentPlayer === 2 && gameState.player2.ready) return;
 
             const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
-            const ship = SHIPS[gameState.placingShipIndex];
             const { col, row } = getColRow(index);
 
-            // Try horizontal placement
-            if (col + ship.size <= BOARD_SIZE) {
-                if (canPlaceShip(currentPlayerData.board, col, row, ship.size, true)) {
+            // Check if clicking on existing ship to remove it
+            if (currentPlayerData.board[index] > 0) {
+                const shipId = currentPlayerData.board[index];
+                const ship = currentPlayerData.ships.find(s => s.id === shipId);
+                if (ship) {
+                    // Remove ship from board
+                    ship.cells.forEach(cellIdx => {
+                        currentPlayerData.board[cellIdx] = 0;
+                    });
+                    // Move ship back to placement queue
+                    currentPlayerData.ships = currentPlayerData.ships.filter(s => s.id !== shipId);
+                    gameState.placingShipIndex = currentPlayerData.ships.length;
+                    updatePlacementUI();
+                    renderPlacementBoard();
+                    return;
+                }
+            }
+
+            const ship = SHIPS[gameState.placingShipIndex];
+
+            // Try to place with current orientation
+            if (gameState.shipOrientation) {
+                // Try horizontal
+                if (col + ship.size <= BOARD_SIZE && canPlaceShip(currentPlayerData.board, col, row, ship.size, true)) {
                     placeShip(currentPlayerData.board, col, row, ship.size, true, gameState.placingShipIndex + 1);
                     currentPlayerData.ships.push({
                         id: gameState.placingShipIndex + 1,
@@ -669,15 +692,14 @@
                         health: ship.size
                     });
                     gameState.placingShipIndex++;
+                    gameState.shipOrientation = true;
                     updatePlacementUI();
                     renderPlacementBoard();
                     return;
                 }
-            }
-
-            // Try vertical placement
-            if (row + ship.size <= BOARD_SIZE) {
-                if (canPlaceShip(currentPlayerData.board, col, row, ship.size, false)) {
+            } else {
+                // Try vertical
+                if (row + ship.size <= BOARD_SIZE && canPlaceShip(currentPlayerData.board, col, row, ship.size, false)) {
                     placeShip(currentPlayerData.board, col, row, ship.size, false, gameState.placingShipIndex + 1);
                     currentPlayerData.ships.push({
                         id: gameState.placingShipIndex + 1,
@@ -686,6 +708,7 @@
                         health: ship.size
                     });
                     gameState.placingShipIndex++;
+                    gameState.shipOrientation = true;
                     updatePlacementUI();
                     renderPlacementBoard();
                     return;
@@ -730,8 +753,12 @@
             document.getElementById('gamePhase').textContent = `Placement Phase - Player ${gameState.currentPlayer}`;
             document.getElementById('placementBoardTitle').textContent = `Your Board - Player ${gameState.currentPlayer}`;
 
+            const currentShip = placedCount < totalCount ? SHIPS[placedCount] : null;
+            const orientation = gameState.shipOrientation ? 'Horizontal →' : 'Vertical ↓';
             document.getElementById('placementText').textContent =
-                `Place your ships! Placed: ${placedCount}/${totalCount}. Click on the board to place the next ship.`;
+                currentShip
+                    ? `Place ${currentShip.name} (${currentShip.size} cells) [${orientation}]. Click on board to place. Click on placed ships to remove and reposition.`
+                    : `All ships placed! Click on any ship to remove and reposition. ${placedCount}/${totalCount} complete.`;
 
             const shipList = document.getElementById('shipList');
             shipList.innerHTML = '';
@@ -749,6 +776,14 @@
                 readyBtn.textContent = '✓ Ready to Battle';
             }
         }
+
+        document.getElementById('rotateBtn').addEventListener('click', () => {
+            if (gameState.currentPlayer === 1 && gameState.player1.ready) return;
+            if (gameState.currentPlayer === 2 && gameState.player2.ready) return;
+
+            gameState.shipOrientation = !gameState.shipOrientation;
+            updatePlacementUI();
+        });
 
         document.getElementById('randomPlaceBtn').addEventListener('click', () => {
             const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
