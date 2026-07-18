@@ -739,8 +739,11 @@
         }
 
         function renderBattleBoards() {
-            renderBattleBoard('yourBoard', gameState.player1.board, gameState.player1.shots, true);
-            renderBattleBoard('opponentBoard', gameState.player2.board, gameState.player1.shots, false);
+            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            const opponentData = gameState.currentPlayer === 1 ? gameState.player2 : gameState.player1;
+
+            renderBattleBoard('yourBoard', currentPlayerData.board, currentPlayerData.shots, true);
+            renderBattleBoard('opponentBoard', opponentData.board, currentPlayerData.shots, false);
         }
 
         function renderBattleBoard(elementId, board, shots, isYourBoard) {
