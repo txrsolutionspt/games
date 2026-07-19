@@ -1,7 +1,7 @@
 # Apex Racer (Race Car Game) — Status Report
 
-**Date:** 2026-07-18
-**Version:** 1.12.0 (see `version.js`)
+**Date:** 2026-07-19
+**Version:** 1.13.0 (see `version.js`)
 **Status:** ✅ Playable — v1 per `design.md`, plus v1.1 (ghost replay,
 second track + track selection, minimap), v1.2 (sector timing, medals,
 post-race stats), v1.3 (Race mode with AI opponents), v1.4 (AI
@@ -16,6 +16,8 @@ v1.10 (per-checkpoint split-time confirmation in the HUD; v1.10.1
 fixed the false "checkpoint missed" warning at every lap crossing)
 and v1.11 (fullscreen on race start + F toggle + landscape lock) and
 v1.12 (tilt controls: device orientation steering with visual steering wheel)
+and v1.13 (finish line requires actual crossing; post-flag roll so the AI
+field finishes and every result row gets a real time)
 
 ---
 

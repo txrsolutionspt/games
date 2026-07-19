@@ -117,7 +117,13 @@
       // --- next-gate capture ---
       const gs = this.gateS[this.nextGate];
       const ahead = this.wrap(st.s - gs); // + = past the gate, - = before it
-      const near = Math.abs(ahead) < CAPTURE;
+      const isFinishGate = this.nextGate === this.finishGateIndex;
+      // checkpoint gates capture on either side (forgiving), but the start/
+      // finish line only counts once actually CROSSED — a lap (and the race)
+      // must never complete while the car is still short of the line
+      const near = isFinishGate
+        ? (ahead >= 0 && ahead < CAPTURE)
+        : Math.abs(ahead) < CAPTURE;
       const valid = Math.abs(st.d) < this.validWidth;
 
       // immediate miss detection: the player just went PAST the next gate
@@ -145,7 +151,7 @@
         if (this.bestSplits && this.bestSplits[globalIndex] != null) {
           delta = st.clock - this.bestSplits[globalIndex];
         }
-        const isFinish = this.nextGate === this.finishGateIndex;
+        const isFinish = isFinishGate;
         const sinceLast = st.clock - this._lastGateClock;
         this._lastGateClock = st.clock;
         events.push({

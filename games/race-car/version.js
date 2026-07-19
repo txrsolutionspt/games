@@ -8,22 +8,38 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.12.0',
+  version: '1.13.0',
 
   // Git commit hash (short form)
-  gitHash: '2a2e34b',
+  gitHash: '67c7ce1',
 
   // Full git commit hash
-  gitHashFull: '2a2e34bc90883843f271cc08f4fb6207645f3dbb',
+  gitHashFull: '67c7ce1f8a59f91e1952a6b2e29af600e50050ad',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-18',
+  releaseDate: '2026-07-19',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-18T17:02:27Z',
+  buildTime: '2026-07-19T00:08:41Z',
 
   // Changelog for this version
   changelog: `
+    v1.13.0 - Proper Finish-Line Crossing & Full Race Results
+    - The finish line now only counts when the car actually CROSSES it:
+      previously a lap (and the race) could complete up to 9 m BEFORE
+      the line thanks to the forgiving checkpoint window - the results
+      screen appeared with the car still short of the flag
+    - After you take the flag the race no longer freezes instantly:
+      the car eases off and rolls on past the line while the AI field
+      keeps racing for up to 5 more seconds, then the results appear
+      (press Space/Enter/A to skip the roll; ends early once every
+      rival has finished)
+    - Race-mode results now fill in EVERY driver's time: rivals still
+      out on track keep racing behind the results screen and their
+      "running" rows update to real times as they cross the line
+    - New regression tests: the finish must not register while short
+      of the line, and must register right after crossing
+
     v1.12.0 - Tilt Steering
     - New CONTROLS button on the menu (phones/tablets): switch between
       SLIDER (the on-screen steering slider) and TILT (steer by tilting
