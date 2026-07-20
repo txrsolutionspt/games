@@ -273,6 +273,43 @@ html, body {
 #pedal-brake { background: rgba(140, 40, 40, 0.5); width: 74px; height: 74px; align-self: flex-end; }
 #pedal-brake.active { background: rgba(220, 60, 60, 0.75); }
 
+/* scroll wheel gas/brake control */
+#scroll-pedal {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 280px;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#scroll-track {
+  width: 12px;
+  height: 100%;
+  background: rgba(20, 26, 44, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+#scroll-indicator {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 40px;
+  background: rgba(232, 236, 245, 0.75);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: top 0.05s linear;
+}
+
 /* steering wheel (tilt mode) — sits where the slider normally is */
 #steering-wheel {
   position: absolute;
