@@ -8,22 +8,33 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.13.0',
+  version: '1.13.1',
 
   // Git commit hash (short form)
-  gitHash: '67c7ce1',
+  gitHash: '2722e5a',
 
   // Full git commit hash
-  gitHashFull: '67c7ce1f8a59f91e1952a6b2e29af600e50050ad',
+  gitHashFull: '2722e5a0743815a7be41b074ec3610028cda139f',
 
   // Release date (YYYY-MM-DD)
-  releaseDate: '2026-07-19',
+  releaseDate: '2026-07-20',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-19T00:08:41Z',
+  buildTime: '2026-07-20T19:12:01Z',
 
   // Changelog for this version
   changelog: `
+    v1.13.1 - Scroll Wheel Gas & Brake Control
+    - New alternative control method: a vertical scroll bar on the right
+      side of the screen for gas and brake input
+    - Scroll up to increase gas (0 to 1), scroll down to apply brake
+      (0 to -1), middle position is stopped
+    - The indicator automatically returns to the middle after 200ms of
+      inactivity, making it easy to release throttle/brake without
+      actively scrolling back
+    - Works alongside existing keyboard, gamepad, and pedal button controls
+    - Useful for devices with scroll wheel input or touchpads
+
     v1.13.0 - Proper Finish-Line Crossing & Full Race Results
     - The finish line now only counts when the car actually CROSSES it:
       previously a lap (and the race) could complete up to 9 m BEFORE
