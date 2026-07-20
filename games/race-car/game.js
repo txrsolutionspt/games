@@ -66,6 +66,7 @@
     rivals: 3,
     fullscreen: true,   // request fullscreen when a race starts
     controlMode: 'touch-slider', // 'touch-slider' | 'tilt'
+    pedalInputMode: 'buttons', // 'buttons' | 'slider'
     // driving feel: assists default ON so the car doesn't power-slide out
     // of every slow corner under binary keyboard throttle
     driving: {
@@ -118,6 +119,12 @@
       input.setControlMode('tilt');
     }
   });
+
+  // Restore pedal input mode from settings
+  if (settings.pedalInputMode && settings.pedalInputMode !== 'buttons') {
+    input.setPedalInputMode(settings.pedalInputMode);
+  }
+  updatePedalInputModeLabel();
 
   // ------------- per-track best-time storage (+ v1.0.0 migration) -------------
   // Some tracks force a lap count (a drag strip is a single run)
@@ -584,6 +591,24 @@
     }
   }
 
+  function cyclePedalInputMode() {
+    const newMode = input.pedalInputMode === 'buttons' ? 'slider' : 'buttons';
+    input.setPedalInputMode(newMode);
+    settings.pedalInputMode = newMode;
+    store.set('settings', settings);
+    updatePedalInputModeLabel();
+    const modeText = newMode === 'slider' ? 'Slider mode' : 'Button mode';
+    hud.toast(modeText, 1500);
+  }
+
+  function updatePedalInputModeLabel() {
+    const btn = document.getElementById('btn-pedals');
+    if (btn) {
+      const mode = input.pedalInputMode === 'slider' ? 'SLIDER' : 'BUTTONS';
+      btn.textContent = 'PEDALS: ' + mode;
+    }
+  }
+
   // ---------------- wire UI ----------------
   document.getElementById('btn-start').addEventListener('click', startCountdown);
   document.getElementById('btn-restart').addEventListener('click', startCountdown);
@@ -620,6 +645,11 @@
   const btnControls = document.getElementById('btn-controls');
   if (btnControls) {
     btnControls.addEventListener('click', cycleControlMode);
+  }
+
+  const btnPedals = document.getElementById('btn-pedals');
+  if (btnPedals) {
+    btnPedals.addEventListener('click', cyclePedalInputMode);
   }
 
   input.on('confirm', () => {

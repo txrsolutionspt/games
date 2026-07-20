@@ -71,11 +71,9 @@
       <div id="pedal-gas" class="pedal">GAS</div>
     </div>
 
-    <!-- scroll wheel gas/brake control -->
-    <div id="scroll-pedal">
-      <div id="scroll-track">
-        <div id="scroll-indicator"></div>
-      </div>
+    <!-- vertical slider gas/brake control -->
+    <div id="pedal-slider" class="hidden">
+      <div id="pedal-track"><div id="pedal-knob"></div></div>
     </div>
   </div>
 
@@ -104,6 +102,7 @@
       <button id="btn-fullscreen" class="small-btn">FULLSCREEN: ON</button>
       <button id="btn-driving" class="small-btn">&#128295; DRIVING</button>
       <button id="btn-controls" class="small-btn touch-only">CONTROLS: SLIDER</button>
+      <button id="btn-pedals" class="small-btn touch-only">PEDALS: BUTTONS</button>
     </div>
     <p class="hint desktop-only">Drive: WASD / arrows or gamepad &middot; Reset: R &middot; Pause: P &middot; Fullscreen: F</p>
     <p class="hint touch-only">Steer: left slider &middot; Gas &amp; brake: right pedals</p>

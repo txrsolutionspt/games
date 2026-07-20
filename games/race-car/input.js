@@ -28,6 +28,7 @@
     let steerTouch = 0;
     let steerTilt = 0;
     let padGas = false, padBrake = false; // touch pedal buttons
+    let pedalSliderValue = 0; // -1 = full brake, 0 = stopped, 1 = full gas
     let usingTouch = false;
     let pedalMode = 'smooth'; // 'smooth' | 'instant'
     let padConnected = false;
@@ -35,8 +36,7 @@
     let controlMode = 'touch-slider'; // 'touch-slider' | 'tilt'
     let tiltSupported = false;
     let tiltPermissionGranted = false;
-    let scrollPedalValue = 0; // -1 = full brake, 0 = stopped, 1 = full gas
-    let scrollPedalTimeout = null;
+    let pedalInputMode = 'buttons'; // 'buttons' | 'slider'
 
     function on(action, fn) {
       (handlers[action] = handlers[action] || []).push(fn);
@@ -104,13 +104,15 @@
       }
 
       // pedals: ramp the binary sources, merge with analog triggers
-      // scroll pedal: positive = gas, negative = brake
+      // pedal slider: positive = gas, negative = brake
       let tTarget = (keys.up || padGas) ? 1 : 0;
       let bTarget = (keys.down || padBrake) ? 1 : 0;
-      if (scrollPedalValue > 0) {
-        tTarget = Math.max(tTarget, scrollPedalValue);
-      } else if (scrollPedalValue < 0) {
-        bTarget = Math.max(bTarget, -scrollPedalValue);
+      if (pedalInputMode === 'slider') {
+        if (pedalSliderValue > 0) {
+          tTarget = Math.max(tTarget, pedalSliderValue);
+        } else if (pedalSliderValue < 0) {
+          bTarget = Math.max(bTarget, -pedalSliderValue);
+        }
       }
       if (pedalMode === 'instant' || !(dt > 0)) {
         control._rampT = tTarget;
@@ -301,32 +303,42 @@
       zone.addEventListener('pointercancel', end);
     }
 
-    function bindScrollPedal() {
-      const scrollPedal = document.getElementById('scroll-pedal');
-      if (!scrollPedal) return;
-      const indicator = document.getElementById('scroll-indicator');
+    function bindPedalSlider() {
+      const sliderZone = document.getElementById('pedal-slider');
+      const knob = document.getElementById('pedal-knob');
+      const track = document.getElementById('pedal-track');
+      if (!sliderZone || !track) return;
 
-      scrollPedal.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1; // scroll down = brake, up = gas
-        scrollPedalValue = Math.max(-1, Math.min(1, scrollPedalValue + delta));
-
-        if (indicator) {
-          const trackHeight = scrollPedal.offsetHeight;
-          const indicatorTop = 50 + (scrollPedalValue * 25); // -1 = 25%, 0 = 50%, 1 = 75%
-          indicator.style.top = indicatorTop + '%';
+      let activeId = null;
+      function setFromY(clientY) {
+        const rect = track.getBoundingClientRect();
+        const cy = rect.top + rect.height / 2;
+        const range = rect.height * 0.42;
+        // Invert: drag up = positive (gas), drag down = negative (brake)
+        pedalSliderValue = Math.max(-1, Math.min(1, (cy - clientY) / range));
+        if (knob) {
+          const knobPosition = 50 - (pedalSliderValue * 42);
+          knob.style.top = knobPosition + '%';
         }
-
-        // Clear existing timeout
-        if (scrollPedalTimeout) clearTimeout(scrollPedalTimeout);
-
-        // Auto-return to middle after 200ms of inactivity
-        scrollPedalTimeout = setTimeout(() => {
-          scrollPedalValue = 0;
-          if (indicator) indicator.style.top = '50%';
-          scrollPedalTimeout = null;
-        }, 200);
-      }, { passive: false });
+      }
+      sliderZone.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        activeId = e.pointerId;
+        sliderZone.setPointerCapture(e.pointerId);
+        setFromY(e.clientY);
+        fire('anyPointer');
+      });
+      sliderZone.addEventListener('pointermove', (e) => {
+        if (e.pointerId === activeId) setFromY(e.clientY);
+      });
+      const end = (e) => {
+        if (e.pointerId !== activeId) return;
+        activeId = null;
+        pedalSliderValue = 0;
+        if (knob) knob.style.top = '50%';
+      };
+      sliderZone.addEventListener('pointerup', end);
+      sliderZone.addEventListener('pointercancel', end);
     }
 
     function bindTouchUI() {
@@ -337,7 +349,7 @@
         document.getElementById('steer-knob'),
         document.getElementById('steer-track')
       );
-      bindScrollPedal();
+      bindPedalSlider();
       const reset = document.getElementById('btn-reset');
       if (reset) reset.addEventListener('click', () => fire('reset'));
     }
@@ -351,14 +363,33 @@
       pedalMode = mode === 'instant' ? 'instant' : 'smooth';
     }
 
+    function setPedalInputMode(mode) {
+      if (mode !== 'buttons' && mode !== 'slider') return false;
+      pedalInputMode = mode;
+      const pedals = document.getElementById('pedals');
+      const slider = document.getElementById('pedal-slider');
+      if (pedals && slider) {
+        if (mode === 'slider') {
+          pedals.classList.add('hidden');
+          slider.classList.remove('hidden');
+        } else {
+          pedals.classList.remove('hidden');
+          slider.classList.add('hidden');
+        }
+      }
+      fire('pedalInputModeChanged');
+      return true;
+    }
+
     return {
       control, on, bindTouchUI, hasTouch, refresh, update, setPedalMode,
-      initTiltControl, requestTiltPermission, setControlMode,
+      initTiltControl, requestTiltPermission, setControlMode, setPedalInputMode,
       get pedalMode() { return pedalMode; },
       get gamepadConnected() { return padConnected; },
       get tiltSupported() { return tiltSupported; },
       get tiltPermissionGranted() { return tiltPermissionGranted; },
       get controlMode() { return controlMode; },
+      get pedalInputMode() { return pedalInputMode; },
     };
   }
 
