@@ -8,33 +8,37 @@
 
 const VERSION_INFO = {
   // Semantic version (MAJOR.MINOR.PATCH)
-  version: '1.13.1',
+  version: '1.13.2',
 
   // Git commit hash (short form)
-  gitHash: '2722e5a',
+  gitHash: '479e2e4',
 
   // Full git commit hash
-  gitHashFull: '2722e5a0743815a7be41b074ec3610028cda139f',
+  gitHashFull: '479e2e4dc3a2609cda013a7b3c54e3a369671311',
 
   // Release date (YYYY-MM-DD)
   releaseDate: '2026-07-20',
 
   // Build timestamp (ISO 8601)
-  buildTime: '2026-07-20T19:12:01Z',
+  buildTime: '2026-07-20T19:50:34Z',
 
   // Changelog for this version
   changelog: `
-    v1.13.1 - Scroll Wheel Gas & Brake Control
-    - New alternative control method: a vertical scroll bar on the right
-      side of the screen for gas and brake input
-    - Scroll up to increase gas (0 to 1), scroll down to apply brake
-      (0 to -1), middle position is stopped
-    - The indicator automatically returns to the middle after 200ms of
-      inactivity, making it easy to release throttle/brake without
-      actively scrolling back
-    - Works alongside existing keyboard, gamepad, and pedal button controls
-    - Useful for devices with scroll wheel input or touchpads
+    v1.13.2 - Draggable Vertical Gas/Brake Slider
+    - New optional control mode for gas and brake on touch devices: a
+      vertical slider on the right side of the screen (like the steering
+      slider but for throttle/brake)
+    - Drag up for gas (0 to 1), drag down for brake (0 to -1), middle is
+      neutral - the knob auto-returns to center when released
+    - New PEDALS menu button to toggle between BUTTONS (traditional pedals)
+      and SLIDER (draggable vertical slider) modes - choice is remembered
+    - Slider is 32px wide with a prominent 48px knob for easy targeting on
+      touch screens; all existing control methods (keyboard, gamepad, buttons)
+      work simultaneously with the slider
+    - Useful for touch devices where dragging gives more natural throttle
+      feel than tapping buttons
 
+    v1.13.1 - Scroll Wheel Gas & Brake Control (reverted)
     v1.13.0 - Proper Finish-Line Crossing & Full Race Results
     - The finish line now only counts when the car actually CROSSES it:
       previously a lap (and the race) could complete up to 9 m BEFORE

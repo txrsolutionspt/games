@@ -273,41 +273,41 @@ html, body {
 #pedal-brake { background: rgba(140, 40, 40, 0.5); width: 74px; height: 74px; align-self: flex-end; }
 #pedal-brake.active { background: rgba(220, 60, 60, 0.75); }
 
-/* scroll wheel gas/brake control */
-#scroll-pedal {
+/* vertical slider gas/brake control */
+#pedal-slider {
   position: absolute;
   right: max(14px, env(safe-area-inset-right));
-  top: 50%;
-  transform: translateY(-50%);
-  width: 48px;
-  height: 280px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: 52px;
+  height: 240px;
   pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-#scroll-track {
-  width: 12px;
+#pedal-track {
+  width: 32px;
   height: 100%;
   background: rgba(20, 26, 44, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
   position: relative;
   overflow: hidden;
 }
 
-#scroll-indicator {
+#pedal-knob {
   position: absolute;
-  left: 2px;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 40px;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 48px;
   background: rgba(232, 236, 245, 0.75);
-  border-radius: 4px;
+  border-radius: 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   transition: top 0.05s linear;
+  will-change: top;
 }
 
 /* steering wheel (tilt mode) — sits where the slider normally is */
