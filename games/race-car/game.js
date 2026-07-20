@@ -161,7 +161,11 @@
   }
 
   // ---------------- race state ----------------
-  const STATE = { MENU: 0, COUNTDOWN: 1, RACING: 2, PAUSED: 3, FINISHED: 4, REPLAY: 5 };
+  const STATE = { MENU: 0, COUNTDOWN: 1, RACING: 2, PAUSED: 3, FINISHED: 4, REPLAY: 5, COOLDOWN: 6 };
+  // after the player crosses the line: how long the world keeps running so
+  // the car rolls past the line and the AI field can take the flag too
+  const FINISH_COOLDOWN = 5;   // s (ends early once every rival has finished)
+  const FINISH_MIN_ROLL = 2;   // s the car always rolls before the results
   let state = STATE.MENU;
   let race = null;
   let clock = 0;            // race clock, s (runs only while RACING)
@@ -187,6 +191,10 @@
   let replayPaused = false;
   let replayHint = null;
   let replayPrev = null;     // previous pose, for speed/steer derivation
+  // finish cool-down
+  let finishEvent = null;    // the player's 'finish' event, shown after the roll
+  let finishPilot = null;    // autopilot that parades the car after the flag
+  let cooldownT = 0;
 
   function placeCarAtStart() {
     const p = world.track.startPose;
@@ -239,6 +247,22 @@
     hud.setTimes(0, 0);
     hud.hideDelta();
     hud.setWrongWay(false);
+    finishEvent = null;
+    finishPilot = null;
+    cooldownT = 0;
+  }
+
+  // The player just took the flag: don't cut straight to the results —
+  // let the car roll on past the line and give the AI field a few seconds
+  // to finish so the results table has real times instead of "running".
+  function beginFinishCooldown(ev) {
+    finishEvent = ev;
+    finishPilot = RCAutopilot.createAutopilot(world.track);
+    cooldownT = FINISH_COOLDOWN;
+    state = STATE.COOLDOWN;
+    hud.countdown('FINISH!', true);
+    setTimeout(() => { if (state !== STATE.COUNTDOWN) hud.countdown(''); }, 1400);
+    hud.setTouchVisible(false);
   }
 
   function startCountdown() {
@@ -602,6 +626,7 @@
     if (state === STATE.MENU || state === STATE.FINISHED) startCountdown();
     else if (state === STATE.PAUSED) togglePause();
     else if (state === STATE.REPLAY) toggleReplayPause();
+    else if (state === STATE.COOLDOWN) finishRace(finishEvent); // skip the roll
   });
   input.on('reset', resetToCheckpoint);
   input.on('pause', () => {
@@ -654,7 +679,7 @@
           audio.lapChime();
         }
       } else if (ev.type === 'finish') {
-        finishRace(ev);
+        beginFinishCooldown(ev);
       } else if (ev.type === 'wrongway') {
         hud.setWrongWay(ev.active);
         if (ev.active) audio.warnBuzz();
@@ -825,6 +850,77 @@
         ctrl.throttle,
         car.slipping ? car.slipMag : 0,
         true);
+    } else if (state === STATE.COOLDOWN) {
+      // post-flag roll: the race is over for the player (their time is
+      // locked in finishEvent) but the world keeps running — the car
+      // parades past the line and the AI keep racing on the same clock
+      clock += dt;
+      cooldownT -= dt;
+
+      let q = RCTrack.query(world.track, car.x, car.z, queryHint, car.theta);
+      queryHint = q.idx;
+      const onTrack = Math.abs(q.d) <= world.track.halfWidth + 0.3;
+      const pilot = finishPilot.drive(car, q);
+      const ctrl = {
+        steer: pilot.steer,
+        throttle: car.speed < 9 ? 0.2 : 0,  // ease down to parade speed
+        brake: car.speed > 22 ? 0.3 : 0,
+      };
+      car.step(dt, ctrl,
+        onTrack ? { grip: 1 } : { grip: 0.55, extraDrag: 900 });
+      q = RCTrack.query(world.track, car.x, car.z, queryHint, car.theta);
+      queryHint = q.idx;
+      lastQ = q;
+      const wall = RCTrack.wallAt(world.track, q.idx);
+      if (wall) car.hitWall(q, wall);
+
+      let allDone = true;
+      if (opponents) {
+        opponents.update(dt, clock);
+        opponents.resolveCollisions(
+          [car].concat(opponents.entries.map((e) => e.car)));
+        const order = opponents.standings(
+          { rm: race, q, finishTime: finishEvent.total });
+        const pos = order.findIndex((r) => r.you) + 1;
+        if (pos !== playerPos) {
+          playerPos = pos;
+          hud.setPosition(pos, order.length);
+        }
+        allDone = opponents.entries.every((e) => e.rm.finished);
+      }
+      ghostPose = ghostPlayer ? ghostPlayer.sampleAt(clock) : null;
+
+      hud.setTimes(
+        finishEvent.lapTimes[finishEvent.lapTimes.length - 1],
+        finishEvent.total);
+      hud.setSpeed(car.speed * 3.6);
+      audio.update(Math.min(1, Math.abs(car.vLong) / 52), ctrl.throttle,
+        car.slipping ? car.slipMag : 0, true);
+
+      // results when the roll timer runs out — or early once every rival
+      // has finished (but always roll long enough to clear the line)
+      const elapsed = FINISH_COOLDOWN - cooldownT;
+      if (cooldownT <= 0 || (allDone && elapsed >= FINISH_MIN_ROLL)) {
+        finishRace(finishEvent);
+      }
+    } else if (state === STATE.FINISHED && isRaceMode() && opponents &&
+        finishEvent && !opponents.entries.every((e) => e.rm.finished)) {
+      // results screen is up but rivals are still out on track: keep
+      // simulating them behind it and fill their rows in as they finish,
+      // so no one is left showing "running" forever
+      clock += dt;
+      const before = opponents.entries.filter((e) => e.rm.finished).length;
+      opponents.update(dt, clock);
+      opponents.resolveCollisions(
+        [car].concat(opponents.entries.map((e) => e.car)));
+      const after = opponents.entries.filter((e) => e.rm.finished).length;
+      if (after !== before) {
+        const order = opponents.standings(
+          { rm: race, q: lastQ, finishTime: finishEvent.total });
+        const pos = order.findIndex((r) => r.you) + 1;
+        hud.fillFinishRace(order, pos, finishEvent.total, stats);
+      }
+      audio.update(0, 0, 0, false);
     } else if (state === STATE.REPLAY && replayPlayer) {
       if (!replayPaused) replayT += dt * replaySpeed;
       if (replayT > replayPlayer.duration) replayT = 0; // loop the show
@@ -884,7 +980,8 @@
     syncOpponentNodes();
     syncCarNodes(false);
     if (state !== STATE.REPLAY) updateCamera(dt, false); // director owns the replay cam
-    if (state === STATE.COUNTDOWN || state === STATE.RACING || state === STATE.REPLAY) {
+    if (state === STATE.COUNTDOWN || state === STATE.RACING ||
+        state === STATE.COOLDOWN || state === STATE.REPLAY) {
       const nextGate = (state !== STATE.REPLAY && race && !race.finished)
         ? world.track.gates[race.nextGate] : null;
       hud.drawMinimap(car, ghostPose,

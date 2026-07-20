@@ -333,6 +333,41 @@ section('race logic');
   check('no missedGate at the standing start', !events.some((e) => e.type === 'missedGate'));
 }
 
+// the finish line only registers once actually CROSSED: sitting just short
+// of it (inside the forgiving capture window) must never complete the race
+{
+  const gateS = track.gates.map((g) => g.s);
+  const rm = new RaceManager({ length: track.length, gateS, laps: 1, validWidth: 8 });
+  let s = track.length - 6, clock = 0;
+  const dt = 1 / 60;
+  // drive the lap until only the finish line remains
+  for (let i = 0; i < 60 * 60 * 3 && rm.nextGate !== rm.finishGateIndex; i++) {
+    s = (s + 30 * dt) % track.length;
+    clock += dt;
+    rm.update({ s, d: 0, speed: 30, dt, clock });
+  }
+  check('all checkpoints taken, finish line is next', rm.nextGate === rm.finishGateIndex);
+  // creep to 4 m BEFORE the line (inside the old +/-9 m capture) and hold
+  rm.notifyTeleport();
+  const fin = gateS[gateS.length - 1];
+  s = (fin - 4 + track.length) % track.length;
+  for (let i = 0; i < 60 * 2; i++) {
+    clock += dt;
+    rm.update({ s, d: 0, speed: 3, dt, clock });
+  }
+  check('NOT finished while still short of the line', !rm.finished && rm.lapTimes.length === 0);
+  // now actually cross it
+  let finished = false;
+  for (let i = 0; i < 60 * 2 && !finished; i++) {
+    s = (s + 20 * dt) % track.length;
+    clock += dt;
+    for (const ev of rm.update({ s, d: 0, speed: 20, dt, clock })) {
+      if (ev.type === 'finish') finished = true;
+    }
+  }
+  check('finishes right after crossing the line', finished && rm.finished);
+}
+
 // driving backward triggers wrong-way, clears when going forward again
 {
   const gateS = track.gates.map((g) => g.s);
