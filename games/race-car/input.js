@@ -35,6 +35,8 @@
     let controlMode = 'touch-slider'; // 'touch-slider' | 'tilt'
     let tiltSupported = false;
     let tiltPermissionGranted = false;
+    let scrollPedalValue = 0; // -1 = full brake, 0 = stopped, 1 = full gas
+    let scrollPedalTimeout = null;
 
     function on(action, fn) {
       (handlers[action] = handlers[action] || []).push(fn);
@@ -102,8 +104,14 @@
       }
 
       // pedals: ramp the binary sources, merge with analog triggers
-      const tTarget = (keys.up || padGas) ? 1 : 0;
-      const bTarget = (keys.down || padBrake) ? 1 : 0;
+      // scroll pedal: positive = gas, negative = brake
+      let tTarget = (keys.up || padGas) ? 1 : 0;
+      let bTarget = (keys.down || padBrake) ? 1 : 0;
+      if (scrollPedalValue > 0) {
+        tTarget = Math.max(tTarget, scrollPedalValue);
+      } else if (scrollPedalValue < 0) {
+        bTarget = Math.max(bTarget, -scrollPedalValue);
+      }
       if (pedalMode === 'instant' || !(dt > 0)) {
         control._rampT = tTarget;
         control._rampB = bTarget;
@@ -293,6 +301,34 @@
       zone.addEventListener('pointercancel', end);
     }
 
+    function bindScrollPedal() {
+      const scrollPedal = document.getElementById('scroll-pedal');
+      if (!scrollPedal) return;
+      const indicator = document.getElementById('scroll-indicator');
+
+      scrollPedal.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1; // scroll down = brake, up = gas
+        scrollPedalValue = Math.max(-1, Math.min(1, scrollPedalValue + delta));
+
+        if (indicator) {
+          const trackHeight = scrollPedal.offsetHeight;
+          const indicatorTop = 50 + (scrollPedalValue * 25); // -1 = 25%, 0 = 50%, 1 = 75%
+          indicator.style.top = indicatorTop + '%';
+        }
+
+        // Clear existing timeout
+        if (scrollPedalTimeout) clearTimeout(scrollPedalTimeout);
+
+        // Auto-return to middle after 200ms of inactivity
+        scrollPedalTimeout = setTimeout(() => {
+          scrollPedalValue = 0;
+          if (indicator) indicator.style.top = '50%';
+          scrollPedalTimeout = null;
+        }, 200);
+      }, { passive: false });
+    }
+
     function bindTouchUI() {
       bindPedal(document.getElementById('pedal-gas'), (v) => { padGas = v; });
       bindPedal(document.getElementById('pedal-brake'), (v) => { padBrake = v; });
@@ -301,6 +337,7 @@
         document.getElementById('steer-knob'),
         document.getElementById('steer-track')
       );
+      bindScrollPedal();
       const reset = document.getElementById('btn-reset');
       if (reset) reset.addEventListener('click', () => fire('reset'));
     }
