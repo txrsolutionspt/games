@@ -638,6 +638,7 @@
 
             <div class="setup-buttons">
                 <button class="btn-primary" id="startGameBtn">Start Game</button>
+                <button class="btn-secondary" id="backToMenuBtn">← Back to Games</button>
             </div>
         </div>
 
@@ -695,6 +696,7 @@
 
             <div class="controls">
                 <button class="btn-secondary" id="passBtn">👉 Pass Phone to Opponent</button>
+                <button class="btn-secondary" id="battleMenuBtn" style="margin-left: auto;">🏠 Games Menu</button>
             </div>
 
             <div class="stats">
@@ -1019,6 +1021,10 @@
             renderPlacementBoard();
         });
 
+        document.getElementById('backToMenuBtn').addEventListener('click', () => {
+            window.location.href = '../index.html';
+        });
+
         // Set initial selection
         document.querySelector('.difficulty-card[data-difficulty="medium"]').classList.add('selected');
 
@@ -1233,6 +1239,10 @@
 
         document.getElementById('passBtn').addEventListener('click', () => {
             switchPlayerBattle();
+        });
+
+        document.getElementById('battleMenuBtn').addEventListener('click', () => {
+            window.location.href = '../index.html';
         });
 
         function showModal(title, message, callback) {
