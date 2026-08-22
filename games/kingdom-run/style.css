@@ -28,6 +28,48 @@ body {
     max-height: 100%;
 }
 
+/* ── Rotate-to-landscape prompt ──────────────────────────────────────────
+   Kingdom Run is a landscape platformer (GAME_SPEC.md § Target Platform,
+   MOBILE_CONTROLS_SPEC.md). In portrait, a 4:3 landscape canvas can only
+   ever letterbox to a small strip with most of the screen left black —
+   no amount of canvas-sizing math fixes that, because there just isn't a
+   good landscape-shaped layout to show in a tall narrow viewport. Prompt
+   for rotation instead of rendering a tiny, mostly-empty game area. */
+#rotate-prompt {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #101820;
+    color: #e8e8f0;
+    text-align: center;
+    padding: 24px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+#rotate-prompt .icon {
+    font-size: 3rem;
+    animation: rotate-hint 1.6s ease-in-out infinite;
+}
+
+@keyframes rotate-hint {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-90deg); }
+}
+
+@media (orientation: portrait) {
+    #rotate-prompt {
+        display: flex;
+    }
+    #container {
+        display: none;
+    }
+}
+
 /* ── HUD (always fixed on screen, not part of the world/camera) ─────────── */
 #hud {
     width: 100%;
