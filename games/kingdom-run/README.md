@@ -5,6 +5,7 @@ Complete technical and design specification for **Kingdom Run**, a Mario-style 2
 ## Quick Start
 
 - **Main Spec:** [`GAME_SPEC.md`](./GAME_SPEC.md) — Full specification (1200+ lines)
+- **Level Design Plan:** [`LEVELS.md`](./LEVELS.md) — level 1 is shipped; levels 2–5 planned (themes, layout, difficulty curve, what's buildable now vs. needs new engine work)
 - **Mobile Controls:** See [`MOBILE_CONTROLS_SPEC.md`](../../MOBILE_CONTROLS_SPEC.md) for touch input guidelines
 
 ## What's Included
