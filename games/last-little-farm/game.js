@@ -22,6 +22,16 @@ let viewW = window.innerWidth;
 let viewH = window.innerHeight;
 let groundY = 0;
 let dpr = 1;
+let orientationLocked = false;
+
+function isTouchDevice() {
+    return window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+}
+
+function checkOrientation() {
+    orientationLocked = FarmLogic.shouldLockLandscape(viewW, viewH, isTouchDevice());
+    document.getElementById('rotate-overlay').classList.toggle('hidden', !orientationLocked);
+}
 
 function resizeCanvas() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -33,6 +43,7 @@ function resizeCanvas() {
     canvas.style.height = viewH + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     groundY = viewH - Math.max(80, Math.min(170, viewH * 0.24));
+    checkOrientation();
 }
 window.addEventListener('resize', resizeCanvas);
 window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 120));
@@ -240,59 +251,31 @@ function doAction(target) {
     if (!target) return;
     switch (target.type) {
         case 'well':
-            if (resources.water < resources.waterMax) {
-                resources.water = resources.waterMax;
-                saveGame();
-            }
+            if (FarmLogic.fillWater(resources)) saveGame();
             break;
         case 'house':
             resources.day++;
             dayFlashTimer = 1.2;
             saveGame();
             break;
-        case 'chicken': {
-            const c = world.chicken;
-            if (resources.crops > 0 && c.eggTimer < 0) {
-                resources.crops--;
-                c.eggTimer = CHICKEN_EGG_TIME;
-                c.fedFlash = 0.6;
-            } else {
-                c.fedFlash = 0.3;
-            }
+        case 'chicken':
+            FarmLogic.feedChicken(world.chicken, resources, CHICKEN_EGG_TIME);
             break;
-        }
         case 'tree': {
             const t = world.trees[target.index];
-            if (t.hp > 0) {
-                t.hp--;
-                if (t.hp <= 0) {
-                    resources.wood += 2;
-                    t.stumpTimer = TREE_REGROW_TIME;
-                    saveGame();
-                }
-            }
+            if (FarmLogic.chopTree(t, resources, TREE_REGROW_TIME) && t.hp <= 0) saveGame();
             break;
         }
         case 'plot': {
             const p = world.plots[target.index];
             if (p.state === 'empty') {
-                p.state = 'tilled';
-            } else if (p.state === 'tilled' && resources.seeds > 0) {
-                resources.seeds--;
-                p.state = 'planted';
-                p.watered = false;
-            } else if (p.state === 'planted' && resources.water > 0) {
-                resources.water--;
-                p.watered = true;
-                p.state = 'growing';
-                p.growth = 0;
+                FarmLogic.tillPlot(p);
+            } else if (p.state === 'tilled') {
+                FarmLogic.plantSeed(p, resources);
+            } else if (p.state === 'planted') {
+                FarmLogic.waterPlot(p, resources);
             } else if (p.state === 'ready') {
-                resources.crops++;
-                if (Math.random() < 0.6) resources.seeds++;
-                p.state = 'empty';
-                p.growth = 0;
-                p.watered = false;
-                saveGame();
+                if (FarmLogic.harvestPlot(p, resources)) saveGame();
             }
             break;
         }
@@ -341,20 +324,10 @@ function update(dt) {
     updatePrompt(target);
 
     // --- crop growth ---
-    world.plots.forEach(p => {
-        if (p.state === 'growing') {
-            p.growth += dt / GROW_TIME;
-            if (p.growth >= 1) { p.growth = 1; p.state = 'ready'; }
-        }
-    });
+    world.plots.forEach(p => FarmLogic.growPlot(p, dt, GROW_TIME));
 
     // --- trees regrow ---
-    world.trees.forEach(t => {
-        if (t.hp <= 0) {
-            t.stumpTimer -= dt;
-            if (t.stumpTimer <= 0) t.hp = 3;
-        }
-    });
+    world.trees.forEach(t => FarmLogic.regrowTree(t, dt));
 
     // --- chicken AI ---
     updateChicken(dt);
@@ -375,15 +348,7 @@ function updateChicken(dt) {
     if (c.fedFlash > 0) c.fedFlash -= dt;
     if (c.hopTimer > 0) c.hopTimer -= dt;
 
-    if (c.eggTimer >= 0) {
-        c.eggTimer -= dt;
-        if (c.eggTimer <= 0) {
-            c.eggTimer = -1;
-            resources.eggs++;
-            c.hopTimer = 0.5;
-            saveGame();
-        }
-    }
+    if (FarmLogic.updateChickenEgg(c, resources, dt)) saveGame();
 
     c.idleTimer -= dt;
     if (c.idleTimer <= 0) {
@@ -797,7 +762,7 @@ function drawPlayer() {
 function frame(now) {
     const dt = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
-    if (started && !paused) {
+    if (started && !paused && !orientationLocked) {
         update(dt);
         draw();
     }
@@ -833,9 +798,6 @@ document.getElementById('btn-start').addEventListener('click', () => {
     started = true;
     lastTime = performance.now();
     showToast(currentQuest().text);
-    const hint = document.getElementById('rotate-hint');
-    hint.style.opacity = '1';
-    setTimeout(() => { hint.style.opacity = '0'; }, 3500);
 });
 
 // ============================================================

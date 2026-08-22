@@ -37,7 +37,13 @@
     </div>
   </div>
 
-  <div id="rotate-hint">Tip: this game plays great in either orientation 🌾</div>
+  <div id="rotate-overlay" class="overlay hidden">
+    <div class="panel">
+      <div id="rotate-icon">📱</div>
+      <h1>Rotate your device</h1>
+      <p class="sub">The Last Little Farm plays in landscape mode.<br>Turn your phone sideways to continue.</p>
+    </div>
+  </div>
 
   <div id="pause-overlay" class="overlay hidden">
     <div class="panel">
@@ -60,6 +66,7 @@
   </div>
 </div>
 
+<script src="farm-logic.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

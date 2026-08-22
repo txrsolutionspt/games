@@ -209,21 +209,26 @@ html, body {
     #quest-toast { top: calc(env(safe-area-inset-top, 0px) + 34px); padding: 5px 12px; }
 }
 
-@media (orientation: portrait) {
-    #controls { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 26px); }
+/* ---------- Rotate-to-landscape prompt ---------- */
+/* This is a side-scrolling action game (see MOBILE_CONTROLS_SPEC.md), so on
+   touch devices we require landscape orientation and block play in portrait. */
+
+#rotate-overlay {
+    z-index: 30;
+    background: #14201a;
 }
 
-#rotate-hint {
-    position: absolute;
-    left: 50%;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
-    transform: translateX(-50%);
-    color: rgba(255,255,255,0.7);
-    font-size: 10px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.5s;
-    z-index: 4;
+#rotate-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+    animation: rotate-hint-spin 1.8s ease-in-out infinite;
+    display: inline-block;
+}
+
+@keyframes rotate-hint-spin {
+    0%, 20% { transform: rotate(0deg); }
+    50%, 70% { transform: rotate(-90deg); }
+    100% { transform: rotate(-90deg); }
 }
 
 /* ---------- Overlays ---------- */
