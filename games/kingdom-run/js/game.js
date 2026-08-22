@@ -23,6 +23,18 @@ let gameState = GameState.TITLE;
 let currentLevel = null;
 let player = null;
 let camera = { x: 0, y: 0 };
+let scale = 1; // world-px -> screen-px, recomputed each frame in updateCamera()
+
+// MIN_SCALE is a sanity floor only (guards against a near-zero clientHeight
+// mid-layout), not a UX target — the whole point of scaling is that the
+// level's full height (ground included) is ALWAYS visible, so the low end
+// must not clamp in any realistic viewport. A short landscape phone with a
+// visible HUD + controls can leave under 150px for the canvas, well below
+// what a fixed "don't zoom out past this" floor would have allowed.
+// MAX_SCALE only stops an extremely tall/narrow window from zooming in to
+// an unplayably small horizontal view.
+const MIN_SCALE = 0.15;
+const MAX_SCALE = 2.5;
 
 let score = 0;
 let coinsCollected = 0;
@@ -34,28 +46,20 @@ function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
 }
 
-// ── Canvas sizing (CSS pixels double as world pixels, matching this repo's
-// other canvas games — see games/pixel-dash/game.js for the same pattern) ──
+// ── Canvas sizing ────────────────────────────────────────────────────────────
 //
-// The canvas must fit WITHIN whatever space #canvas-wrap has (its width on a
-// wide/landscape screen, its height on a narrow/portrait one) while keeping
-// a 4:3 aspect ratio. Letting CSS alone resolve this via `aspect-ratio` with
-// both width/height set to `auto` doesn't work reliably for a <canvas> — a
-// canvas has its own intrinsic size (its width/height attributes) that CSS
-// auto-sizing falls back to instead of growing to fill the flex box, which
-// left the game rendering tiny and off-center on real phones. Computing the
-// size explicitly here and setting it via inline style sidesteps that.
+// The canvas fills #canvas-wrap edge to edge in BOTH dimensions — no fixed
+// aspect ratio. A fixed 4:3 box either got starved down to a small letterboxed
+// square (portrait) or left large black bars on either side (a real phone's
+// landscape aspect ratio is much wider than 4:3). Instead the world is
+// rendered at a computed `scale` (see updateCamera) so the level's full
+// height always fits the available height exactly, and however much width
+// that leaves simply shows more or less of the level side-to-side — wider
+// screens see further ahead, not more black bar.
 function syncSize() {
     const wrap = canvas.parentElement;
-    const availW = wrap.clientWidth;
-    const availH = wrap.clientHeight;
-
-    let cw = availW;
-    let ch = Math.round(cw * 3 / 4);
-    if (ch > availH) {
-        ch = availH;
-        cw = Math.round(ch * 4 / 3);
-    }
+    const cw = wrap.clientWidth;
+    const ch = wrap.clientHeight;
 
     canvas.style.width = cw + 'px';
     canvas.style.height = ch + 'px';
@@ -308,12 +312,20 @@ function updateWorld(now) {
 const TILE_COLORS = { 1: '#8b5a2b', 2: '#3d7a37', 3: '#a0522d', 6: '#8b5a2b' };
 
 function updateCamera() {
-    const targetX = player.x + player.width / 2 - W / 2 + CAMERA_LOOK_AHEAD * player.facing;
-    camera.x += (targetX - camera.x) * CAMERA_SMOOTHING;
-    camera.x = clamp(camera.x, 0, Math.max(0, currentLevel.width - W));
+    // Scale so the level's full height always fits the available screen
+    // height exactly — the ground and the top of a jump are always in view
+    // regardless of how tall or short the device's viewport is.
+    scale = clamp(H / currentLevel.height, MIN_SCALE, MAX_SCALE);
 
-    const idealY = (currentLevel.height - H) / 2;
-    camera.y = clamp(idealY, Math.min(0, currentLevel.height - H), Math.max(0, currentLevel.height - H));
+    const visibleWorldW = W / scale;
+    const visibleWorldH = H / scale;
+
+    const targetX = player.x + player.width / 2 - visibleWorldW / 2 + CAMERA_LOOK_AHEAD * player.facing;
+    camera.x += (targetX - camera.x) * CAMERA_SMOOTHING;
+    camera.x = clamp(camera.x, 0, Math.max(0, currentLevel.width - visibleWorldW));
+
+    const idealY = (currentLevel.height - visibleWorldH) / 2;
+    camera.y = clamp(idealY, Math.min(0, currentLevel.height - visibleWorldH), Math.max(0, currentLevel.height - visibleWorldH));
 }
 
 function drawTile(id, sx, sy, size) {
@@ -362,15 +374,18 @@ function drawWorld(now) {
     ctx.fillStyle = currentLevel.backgroundColor;
     ctx.fillRect(0, 0, W, H);
 
-    updateCamera();
+    updateCamera(); // sets `scale` and `camera` for this frame
     ctx.save();
-    ctx.translate(-Math.round(camera.x), -Math.round(camera.y));
+    ctx.scale(scale, scale);
+    ctx.translate(-camera.x, -camera.y);
 
+    const visibleWorldW = W / scale;
+    const visibleWorldH = H / scale;
     const tileSize = currentLevel.tileSize;
     const c0 = Math.max(0, Math.floor(camera.x / tileSize));
-    const c1 = Math.min(currentLevel.tilemap[0].length - 1, Math.floor((camera.x + W) / tileSize));
+    const c1 = Math.min(currentLevel.tilemap[0].length - 1, Math.floor((camera.x + visibleWorldW) / tileSize));
     const r0 = Math.max(0, Math.floor(camera.y / tileSize));
-    const r1 = Math.min(currentLevel.tilemap.length - 1, Math.floor((camera.y + H) / tileSize));
+    const r1 = Math.min(currentLevel.tilemap.length - 1, Math.floor((camera.y + visibleWorldH) / tileSize));
     for (let row = r0; row <= r1; row++) {
         for (let col = c0; col <= c1; col++) {
             drawTile(currentLevel.tilemap[row][col], col * tileSize, row * tileSize, tileSize);
