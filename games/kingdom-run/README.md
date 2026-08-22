@@ -1,10 +1,10 @@
-# Platformer Game Specification
+# Kingdom Run
 
-Complete technical and design specification for a Mario-style 2D side-scrolling platformer game.
+Complete technical and design specification for **Kingdom Run**, a Mario-style 2D side-scrolling platformer game.
 
 ## Quick Start
 
-- **Main Spec:** [`PLATFORMER_SPEC.md`](./PLATFORMER_SPEC.md) — Full specification (3000+ lines)
+- **Main Spec:** [`GAME_SPEC.md`](./GAME_SPEC.md) — Full specification (1200+ lines)
 - **Mobile Controls:** See [`MOBILE_CONTROLS_SPEC.md`](../../MOBILE_CONTROLS_SPEC.md) for touch input guidelines
 
 ## What's Included
@@ -178,7 +178,7 @@ Each level should take 3–5 minutes to complete.
 ## Next Steps
 
 1. **Clone/fork** this repository
-2. **Review** `PLATFORMER_SPEC.md` in detail
+2. **Review** `GAME_SPEC.md` in detail
 3. **Create** basic project structure (HTML, CSS, JS)
 4. **Implement** MVP features in order
 5. **Test** on desktop and mobile

@@ -1,6 +1,6 @@
-# 2D Platformer Game Specification
+# Kingdom Run — Game Specification
 
-A complete technical and design specification for a Mario-style 2D side-scrolling platformer game.
+A complete technical and design specification for **Kingdom Run**, a Mario-style 2D side-scrolling platformer game.
 
 ---
 
@@ -1231,7 +1231,7 @@ Once MVP is complete, add (in priority order):
 ### File Structure
 
 ```
-games/platformer-demo/
+games/kingdom-run/
 ├── index.html           # Main entry point
 ├── style.css            # Styling
 ├── js/
