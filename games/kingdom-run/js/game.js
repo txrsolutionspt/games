@@ -84,6 +84,14 @@ function showScreen(id) {
 function refreshTitleScreen() {
     document.getElementById('title-highscore').textContent = saveData.highScore;
     document.getElementById('btn-mute-title').textContent = saveData.settings.audioMuted ? '🔇' : '🔊';
+
+    const hasSave = !!saveData.inProgress;
+    const continueBtn = document.getElementById('btn-continue');
+    const startBtn = document.getElementById('btn-start');
+    continueBtn.classList.toggle('hidden', !hasSave);
+    continueBtn.classList.toggle('primary', hasSave);
+    startBtn.classList.toggle('primary', !hasSave);
+    startBtn.textContent = hasSave ? 'New Game' : 'Start Game';
 }
 
 function showTitleScreen() {
@@ -103,9 +111,15 @@ function toggleMute() {
     refreshTitleScreen();
 }
 
-// ── Starting / restarting a run ──────────────────────────────────────────────
+// ── Starting / restarting / saving a run ──────────────────────────────────────
+//
+// See GAME_SPEC.md § Data Persistence & Local Storage. Mid-level state is
+// never autosaved — only an explicit "Save & Quit" writes it, into
+// saveData.inProgress. It's cleared on restart, level-complete, and game
+// over so the title screen never offers "Continue" into a run that no
+// longer exists.
 
-async function startLevel(id) {
+async function startLevel(id, progress = null) {
     hideAllScreens();
     currentLevel = await loadLevel(id);
     player = createPlayer(currentLevel.spawnPoint);
@@ -115,12 +129,86 @@ async function startLevel(id) {
     tookDamage = false;
     lastCheckpoint = null;
     levelStartTime = performance.now();
+
+    if (progress) applyProgress(progress);
+
     document.getElementById('hud').classList.remove('hidden');
     document.getElementById('hud-level').textContent = currentLevel.id;
     gameState = GameState.PLAYING;
 }
 
+// Restores runtime state (score, collected items, checkpoints, position)
+// from a previously saved in-progress snapshot onto the freshly loaded level.
+function applyProgress(progress) {
+    score = progress.score;
+    coinsCollected = progress.coinsCollected;
+    tookDamage = progress.tookDamage;
+    lastCheckpoint = progress.lastCheckpoint;
+    levelStartTime = performance.now() - progress.elapsedMs;
+
+    for (const coin of currentLevel.coins) {
+        if (progress.collectedCoinIds.includes(coin.id)) coin.collected = true;
+    }
+    for (const enemy of currentLevel.enemies) {
+        if (progress.defeatedEnemyIds.includes(enemy.id)) enemy.alive = false;
+    }
+    for (const key of progress.consumedQuestionBlocks) {
+        const qb = currentLevel.questionBlocks.get(key);
+        if (qb && !qb.consumed) {
+            qb.consumed = true;
+            const [col, row] = key.split(',').map(Number);
+            currentLevel.tilemap[row][col] = 0;
+        }
+    }
+    for (const cp of currentLevel.checkpoints) {
+        if (progress.checkpointsReached.includes(cp.id)) cp.reached = true;
+    }
+
+    // Reuses the respawn path (position + brief invincibility) rather than
+    // dropping the player back in cold, in case they resume right next to
+    // an enemy or hazard.
+    playerRespawn(player, progress.player, performance.now());
+    player.lives = progress.player.lives;
+}
+
+// Snapshots enough runtime state to fully reconstruct the current attempt.
+function serializeProgress(now) {
+    return {
+        levelId: currentLevel.id,
+        player: { x: player.x, y: player.y, lives: player.lives },
+        score,
+        coinsCollected,
+        tookDamage,
+        elapsedMs: now - levelStartTime,
+        collectedCoinIds: currentLevel.coins.filter((c) => c.collected).map((c) => c.id),
+        defeatedEnemyIds: currentLevel.enemies.filter((e) => !e.alive).map((e) => e.id),
+        consumedQuestionBlocks: [...currentLevel.questionBlocks.entries()]
+            .filter(([, qb]) => qb.consumed)
+            .map(([key]) => key),
+        checkpointsReached: currentLevel.checkpoints.filter((cp) => cp.reached).map((cp) => cp.id),
+        lastCheckpoint
+    };
+}
+
+function startNewGame() {
+    saveData = KingdomRunStorage.clearInProgress(saveData);
+    startLevel(1);
+}
+
+function continueGame() {
+    if (!saveData.inProgress) return;
+    startLevel(saveData.inProgress.levelId, saveData.inProgress);
+}
+
+function saveAndQuit() {
+    if (gameState !== GameState.PAUSED || !currentLevel) return;
+    const progress = serializeProgress(performance.now());
+    saveData = KingdomRunStorage.saveInProgress(saveData, progress);
+    showTitleScreen();
+}
+
 function restartLevel() {
+    saveData = KingdomRunStorage.clearInProgress(saveData);
     startLevel(currentLevel ? currentLevel.id : 1);
 }
 
@@ -153,6 +241,7 @@ function onPlayerDeathComplete(now) {
 
 function enterGameOver() {
     gameState = GameState.GAME_OVER;
+    saveData = KingdomRunStorage.clearInProgress(saveData);
     saveData = KingdomRunStorage.reportHighScore(saveData, score);
     document.getElementById('gameover-score').textContent = score;
     document.getElementById('gameover-highscore').textContent = saveData.highScore;
@@ -175,6 +264,7 @@ function grantQuestionBlockContents(contains) {
 
 function completeLevel(now) {
     gameState = GameState.LEVEL_COMPLETE;
+    saveData = KingdomRunStorage.clearInProgress(saveData);
 
     const elapsedMs = now - levelStartTime;
     const elapsedSeconds = Math.floor(elapsedMs / 1000);
@@ -507,11 +597,12 @@ function init() {
 
     initTouchControls();
 
-    document.getElementById('btn-start').addEventListener('click', () => startLevel(1));
+    document.getElementById('btn-start').addEventListener('click', startNewGame);
+    document.getElementById('btn-continue').addEventListener('click', continueGame);
     document.getElementById('btn-mute-title').addEventListener('click', toggleMute);
     document.getElementById('btn-resume').addEventListener('click', resumeGame);
     document.getElementById('btn-restart-pause').addEventListener('click', restartLevel);
-    document.getElementById('btn-quit-pause').addEventListener('click', showTitleScreen);
+    document.getElementById('btn-save-quit').addEventListener('click', saveAndQuit);
     document.getElementById('btn-retry-gameover').addEventListener('click', restartLevel);
     document.getElementById('btn-quit-gameover').addEventListener('click', showTitleScreen);
     document.getElementById('btn-retry-complete').addEventListener('click', restartLevel);

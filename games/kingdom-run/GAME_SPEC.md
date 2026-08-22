@@ -1128,10 +1128,11 @@ Kingdom Run has no server component. The only persistence mechanism is the brows
 - **Settings** — audio volume/mute, mobile control opacity/size/position (see `MOBILE_CONTROLS_SPEC.md`).
 - **High score** — best score across all sessions.
 - **Level progress** — per level: unlocked/locked, completed/not, best score, best time.
+- **In-progress run (explicit save only)** — an optional single-slot snapshot of the current attempt (position, score, lives, collected coins, defeated enemies, consumed question blocks, checkpoints reached, elapsed time), written **only** when the player chooses "Save & Quit" from the pause menu. The title screen offers "Continue" whenever this slot is populated. It is cleared on Restart Level, on reaching the goal, and on Game Over, so "Continue" never points at a run that no longer applies.
 
 ### What Is NOT Saved Across Sessions
 
-- **Mid-level checkpoint state.** Checkpoints (see [Checkpoints & Respawning](#checkpoints--respawning)) only govern respawn-after-death *within* a single play session. Closing the tab or reloading the page restarts the current level from its `spawnPoint`, not from the last checkpoint reached. Persisting mid-level state is explicitly out of scope — it adds meaningful complexity (autosave timing, save corruption mid-level, resuming enemy/item state) for a benefit that matters only if a player is interrupted mid-level.
+- **Mid-level state without an explicit save.** Checkpoints (see [Checkpoints & Respawning](#checkpoints--respawning)) still only govern respawn-after-death *within* a session on their own — simply closing the tab without using "Save & Quit" restarts the level from its `spawnPoint`, the same as before. There is deliberately no autosave: the complexity that matters (save corruption mid-write, resuming stale enemy/item state) is contained by making persistence a single explicit, player-initiated action instead of something running continuously in the background.
 - **Any data behind a login/account.** There is no login — see [Architecture: No Backend](#architecture-no-backend).
 
 ### Storage Key & Schema
@@ -1152,7 +1153,10 @@ const defaultSaveData = {
     levels: {
         // keyed by level id, one entry per level shipped with the game
         "1": { unlocked: true, completed: false, bestScore: 0, bestTimeMs: null }
-    }
+    },
+    // Single-slot "Save & Quit" snapshot; null when there's nothing to
+    // resume. See "What Is Saved Locally" above.
+    inProgress: null
 };
 ```
 

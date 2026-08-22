@@ -21,7 +21,11 @@ async function loadLevel(id) {
         questionBlocks.set(questionBlockKey(qb.col, qb.row), { ...qb, consumed: false });
     }
 
-    const coins = (raw.entities.coins || []).map((c) => ({
+    // `id` is each entity's index in the level JSON's array — stable across
+    // loads of the same static level file, so save-in-progress data can
+    // reference "coin 7" / "enemy 1" without needing real persistent IDs.
+    const coins = (raw.entities.coins || []).map((c, id) => ({
+        id,
         x: c.x - COIN_SIZE / 2,
         y: c.y - COIN_SIZE / 2,
         width: COIN_SIZE,
@@ -31,7 +35,7 @@ async function loadLevel(id) {
 
     const enemies = (raw.entities.enemies || [])
         .filter((e) => e.type === 'walker')
-        .map(createWalkerEnemy);
+        .map((e, id) => ({ ...createWalkerEnemy(e), id }));
 
     const checkpoints = (raw.checkpoints || []).map((cp) => ({ ...cp, reached: false }));
 
