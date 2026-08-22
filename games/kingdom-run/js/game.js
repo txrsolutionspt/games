@@ -502,6 +502,19 @@ function init() {
     document.getElementById('btn-retry-complete').addEventListener('click', restartLevel);
     document.getElementById('btn-quit-complete').addEventListener('click', showTitleScreen);
 
+    // Auto-pause when the rotate-to-landscape prompt covers the game, or the
+    // tab/app loses focus (GAME_SPEC.md § Important mobile requirements) —
+    // otherwise enemies and the level timer keep advancing somewhere the
+    // player can't see or react to.
+    const portraitQuery = window.matchMedia('(orientation: portrait)');
+    portraitQuery.addEventListener('change', (e) => {
+        syncSize();
+        if (e.matches && gameState === GameState.PLAYING) pauseGame();
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && gameState === GameState.PLAYING) pauseGame();
+    });
+
     showTitleScreen();
     requestAnimationFrame(loop);
 }
