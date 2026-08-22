@@ -36,9 +36,30 @@ function clamp(v, min, max) {
 
 // ── Canvas sizing (CSS pixels double as world pixels, matching this repo's
 // other canvas games — see games/pixel-dash/game.js for the same pattern) ──
+//
+// The canvas must fit WITHIN whatever space #canvas-wrap has (its width on a
+// wide/landscape screen, its height on a narrow/portrait one) while keeping
+// a 4:3 aspect ratio. Letting CSS alone resolve this via `aspect-ratio` with
+// both width/height set to `auto` doesn't work reliably for a <canvas> — a
+// canvas has its own intrinsic size (its width/height attributes) that CSS
+// auto-sizing falls back to instead of growing to fill the flex box, which
+// left the game rendering tiny and off-center on real phones. Computing the
+// size explicitly here and setting it via inline style sidesteps that.
 function syncSize() {
-    const cw = canvas.clientWidth;
-    const ch = Math.round(cw * 3 / 4);
+    const wrap = canvas.parentElement;
+    const availW = wrap.clientWidth;
+    const availH = wrap.clientHeight;
+
+    let cw = availW;
+    let ch = Math.round(cw * 3 / 4);
+    if (ch > availH) {
+        ch = availH;
+        cw = Math.round(ch * 4 / 3);
+    }
+
+    canvas.style.width = cw + 'px';
+    canvas.style.height = ch + 'px';
+
     if (canvas.width !== cw || canvas.height !== ch) {
         canvas.width = cw;
         canvas.height = ch;
