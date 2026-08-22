@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kingdom Run</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <div id="hud" class="hidden">
+            <span>SCORE: <span id="hud-score">0</span></span>
+            <span>LEVEL <span id="hud-level">1</span></span>
+            <span>COINS: <span id="hud-coins">0/0</span></span>
+            <span>❤ <span id="hud-lives">3</span></span>
+            <button id="btn-pause" aria-label="Pause">❚❚</button>
+        </div>
+
+        <div id="canvas-wrap">
+            <canvas id="gameCanvas"></canvas>
+
+            <div id="screen-title" class="screen">
+                <h1>Kingdom Run</h1>
+                <p class="subtitle">A hand-crafted 2D platformer adventure</p>
+                <p class="highscore">High Score: <span id="title-highscore">0</span></p>
+                <button class="menu-btn primary" id="btn-start">Start Game</button>
+                <button class="icon-btn" id="btn-mute-title" aria-label="Toggle sound">🔊</button>
+            </div>
+
+            <div id="screen-pause" class="screen hidden">
+                <h2>Paused</h2>
+                <button class="menu-btn primary" id="btn-resume">Resume</button>
+                <button class="menu-btn" id="btn-restart-pause">Restart Level</button>
+                <button class="menu-btn" id="btn-quit-pause">Quit to Menu</button>
+            </div>
+
+            <div id="screen-gameover" class="screen hidden">
+                <h2>Game Over</h2>
+                <p>Final Score: <span id="gameover-score">0</span></p>
+                <p>High Score: <span id="gameover-highscore">0</span></p>
+                <button class="menu-btn primary" id="btn-retry-gameover">Retry Level</button>
+                <button class="menu-btn" id="btn-quit-gameover">Quit to Menu</button>
+            </div>
+
+            <div id="screen-levelcomplete" class="screen hidden">
+                <h2>Level Complete!</h2>
+                <p>Score: <span id="complete-score">0</span></p>
+                <p>Time: <span id="complete-time">0:00</span></p>
+                <p>Coins: <span id="complete-coins">0/0</span></p>
+                <p>No-Damage Bonus: <span id="complete-nodamage">No</span></p>
+                <button class="menu-btn primary" id="btn-retry-complete">Play Again</button>
+                <button class="menu-btn" id="btn-quit-complete">Quit to Menu</button>
+            </div>
+        </div>
+
+        <div id="controls">
+            <div id="move-btns">
+                <button class="ctrl-btn" id="btn-left" aria-label="Move left">◀</button>
+                <button class="ctrl-btn" id="btn-right" aria-label="Move right">▶</button>
+            </div>
+            <button class="ctrl-btn" id="btn-jump" aria-label="Jump">▲</button>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/collision.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
