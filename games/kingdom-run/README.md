@@ -30,10 +30,17 @@ Complete technical and design specification for **Kingdom Run**, a Mario-style 2
 17. **Audio Design** — Music tracks, sound effects, Web Audio API implementation
 18. **HUD & UI** — In-game HUD, UI screens (title, pause, level complete, game over)
 19. **Level Data Format** — JSON schema for level definition
-20. **Mobile Controls Integration** — Touch controls, button layout, input abstraction
-21. **Minimum Viable Product** — MVP scope, acceptance criteria, post-MVP enhancements
+20. **Data Persistence & Local Storage** — No-backend architecture, `localStorage` schema, versioning/migration, failure handling
+21. **Mobile Controls Integration** — Touch controls, button layout, input abstraction
+22. **Minimum Viable Product** — MVP scope, acceptance criteria, post-MVP enhancements
 
 ## Key Design Decisions
+
+### Architecture
+- **No backend, ever** — no server, no API, no accounts, fully client-side
+- **Static level data** shipped as read-only JSON, separate from player save data
+- **Player save data** (settings, high score, level progress) lives in `localStorage` only
+- **Versioned save schema** — a `version` field enables migration and guards against corrupted or newer-than-supported data
 
 ### Physics
 - **Acceleration-based movement** — Not instant velocity changes
@@ -54,7 +61,7 @@ Complete technical and design specification for **Kingdom Run**, a Mario-style 2
 ### Scoring
 - **Points for actions** — Coins (+100), enemies (+200), power-ups (+500)
 - **Bonuses** — Time bonus, all-coins bonus, no-damage bonus
-- **Persistent** — High score saved to localStorage
+- **Persistent** — High score saved locally via the versioned `localStorage` schema (no server)
 
 ## MVP Scope
 
@@ -73,6 +80,7 @@ Complete technical and design specification for **Kingdom Run**, a Mario-style 2
 - Score & lives tracking
 - Basic HUD, pause menu, title/game-over screens
 - Mobile controls (left, right, jump buttons)
+- Local save data (settings, high score, level progress) via versioned `localStorage` schema — no backend
 
 ### Post-MVP Enhancements 🚀
 - Additional enemy types (flying, patrol)
@@ -84,7 +92,7 @@ Complete technical and design specification for **Kingdom Run**, a Mario-style 2
 - Boss encounters
 - Audio (music & SFX)
 - Polish (animations, visual effects, art)
-- Leaderboard/high score tracking
+- Local leaderboard/high-score history (still no backend — sourced from the same `localStorage` save data)
 
 ## Implementation Checklist
 
@@ -141,6 +149,7 @@ Complete technical and design specification for **Kingdom Run**, a Mario-style 2
 - Implement **Collision System** with AABB detection and 4-direction resolution.
 - Follow the **Game States** FSM for architecture.
 - See **Mobile Controls Integration** for input abstraction pattern.
+- See **Data Persistence & Local Storage** for the save-data schema, version field, and migration rules before writing anything to `localStorage`.
 
 ## Related Documents
 

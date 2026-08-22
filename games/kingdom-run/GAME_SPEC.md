@@ -25,8 +25,9 @@ A complete technical and design specification for **Kingdom Run**, a Mario-style
 17. [Audio Design](#audio-design)
 18. [HUD & UI](#hud--ui)
 19. [Level Data Format](#level-data-format)
-20. [Mobile Controls Integration](#mobile-controls-integration)
-21. [Minimum Viable Product (MVP)](#minimum-viable-product-mvp)
+20. [Data Persistence & Local Storage](#data-persistence--local-storage)
+21. [Mobile Controls Integration](#mobile-controls-integration)
+22. [Minimum Viable Product (MVP)](#minimum-viable-product-mvp)
 
 ---
 
@@ -47,6 +48,16 @@ A 2D side-scrolling platform game where the player controls a character who runs
 - Desktop & Mobile (responsive)
 - Landscape orientation preferred
 - 60 FPS gameplay
+
+### Architecture: No Backend
+
+This game is **entirely client-side** — there is no server, no API, no database, and no user accounts.
+
+- All gameplay logic runs in the browser.
+- Level definitions ship as static JSON files bundled with the game (see [Level Data Format](#level-data-format)).
+- Settings, high scores, and level-completion progress are saved locally in the browser via `localStorage` — see [Data Persistence & Local Storage](#data-persistence--local-storage) for the schema, versioning, and compatibility rules.
+- There is no online leaderboard, no cross-device sync, and no cloud save. Progress is tied to one browser on one device; clearing site data or switching browsers loses it.
+- Nothing here requires network access after the initial page load — the game should be fully playable offline once loaded.
 
 ### Core Loop
 
@@ -684,7 +695,7 @@ Player touches goal object:
 
 - **HUD:** Current score, coin counter, lives.
 - **Level complete screen:** Breakdown of points earned.
-- **High score:** Persist in `localStorage`; display on menu.
+- **High score:** Persisted locally (see [Data Persistence & Local Storage](#data-persistence--local-storage)); displayed on the title/menu screen.
 
 ---
 
@@ -1099,6 +1110,86 @@ Levels should be stored as JSON for easy creation and iteration:
 
 ---
 
+## Data Persistence & Local Storage
+
+### No Backend — Browser Storage Only
+
+Kingdom Run has no server component. The only persistence mechanism is the browser's `localStorage` API. This is separate from the static level JSON files described above:
+
+| | Static level data | Player save data |
+|---|---|---|
+| **Source** | Shipped with the game (`levels/*.json`) | Written at runtime by the browser |
+| **Storage** | Files on disk / server, loaded via `fetch` | `localStorage` |
+| **Mutable?** | Read-only, never written to by the game | Read and written every session |
+| **Scope** | Same for every player | Local to one browser on one device |
+
+### What Is Saved Locally
+
+- **Settings** — audio volume/mute, mobile control opacity/size/position (see `MOBILE_CONTROLS_SPEC.md`).
+- **High score** — best score across all sessions.
+- **Level progress** — per level: unlocked/locked, completed/not, best score, best time.
+
+### What Is NOT Saved Across Sessions
+
+- **Mid-level checkpoint state.** Checkpoints (see [Checkpoints & Respawning](#checkpoints--respawning)) only govern respawn-after-death *within* a single play session. Closing the tab or reloading the page restarts the current level from its `spawnPoint`, not from the last checkpoint reached. Persisting mid-level state is explicitly out of scope — it adds meaningful complexity (autosave timing, save corruption mid-level, resuming enemy/item state) for a benefit that matters only if a player is interrupted mid-level.
+- **Any data behind a login/account.** There is no login — see [Architecture: No Backend](#architecture-no-backend).
+
+### Storage Key & Schema
+
+```javascript
+const STORAGE_KEY = 'kingdomRun.saveData';
+const SAVE_DATA_VERSION = 1; // bump on any schema shape change
+
+const defaultSaveData = {
+    version: SAVE_DATA_VERSION,
+    settings: {
+        audioVolume: 0.8,
+        audioMuted: false,
+        controlOpacity: 0.85,
+        controlSize: 'normal'   // 'small' | 'normal' | 'large'
+    },
+    highScore: 0,
+    levels: {
+        // keyed by level id, one entry per level shipped with the game
+        "1": { unlocked: true, completed: false, bestScore: 0, bestTimeMs: null }
+    }
+};
+```
+
+### Versioning & Compatibility
+
+The root object always carries a `version` integer. This is what lets a later release of the game detect and handle save data written by an older (or, after a rollback, newer) version instead of guessing.
+
+**On load:**
+
+1. Read the raw string from `localStorage.getItem(STORAGE_KEY)`.
+2. `JSON.parse` it. If parsing throws (corrupted data) — treat it as absent and fall back to `defaultSaveData`.
+3. Compare `data.version` to the current `SAVE_DATA_VERSION`:
+   - **Equal** → use as-is (after the defensive merge in step 4).
+   - **Lower** → run the migration chain in order (e.g. `migrateV1toV2(data)`, then `migrateV2toV3(data)`, ...) until it reaches `SAVE_DATA_VERSION`, then re-save the upgraded data.
+   - **Higher** (save was written by a newer build, e.g. after the player rolled back an update) → do not attempt to interpret fields this build doesn't know about. Fall back to `defaultSaveData` rather than risk misreading the shape, and never let this crash the game.
+4. Defensively merge the result over `defaultSaveData` (shallow per top-level key) so a missing field — from a partial write, a hand-edited value, or a migration that didn't set every key — gets backfilled with its default instead of leaving `undefined` in the game state.
+
+**Writing:** every save always writes the *current* `SAVE_DATA_VERSION`, never the version that was read.
+
+**When to bump `SAVE_DATA_VERSION`:** only on an actual shape change (new field, renamed/removed field, restructured object) — not on every code change. Each migration should be additive and non-destructive: prefer defaulting a new field over discarding existing player progress like `highScore`.
+
+### Storage Failure Handling
+
+`localStorage` access can throw — quota exceeded, private/incognito restrictions in some browsers, or storage disabled entirely. Persistence is a convenience, not a requirement for play:
+
+- Wrap every `localStorage` read and write in `try/catch`.
+- If a write fails, keep playing normally; the current session's state stays correct in memory even though it won't survive a reload.
+- If `localStorage` is unavailable from the start (throws on first access), fall back to an in-memory-only save object for that session so the game remains fully playable, just without persistence.
+
+### Explicitly Out of Scope
+
+- No server-side storage, accounts, or authentication.
+- No online/global leaderboard — the "Leaderboard" item in [Post-MVP Enhancements](#post-mvp-enhancements) means a **local high-score list** sourced from this same `localStorage` data, not a networked feature.
+- No cross-device sync or cloud save.
+
+---
+
 ## Mobile Controls Integration
 
 ### Mobile-Specific Requirements
@@ -1183,6 +1274,7 @@ The first playable version should be **minimal but complete**.
 - [x] Pause menu
 - [x] Game Over screen
 - [x] Mobile controls (left, right, jump buttons)
+- [x] Local save data (settings + high score + level unlock progress) persisted via `localStorage` with the versioned schema in [Data Persistence & Local Storage](#data-persistence--local-storage)
 
 #### MVP Acceptance Criteria
 
@@ -1195,6 +1287,7 @@ The first playable version should be **minimal but complete**.
 - Complete the entire level by reaching the goal
 - See a level complete screen with final score
 - Restart the level or return to menu after completing it
+- Close the tab, reopen the game later, and find their high score and unlocked levels still there
 
 ❌ Player should NOT have to:
 - Restart the browser
@@ -1214,7 +1307,7 @@ Once MVP is complete, add (in priority order):
 7. **Boss encounters**
 8. **Audio** (music, sound effects)
 9. **Polish** (animations, visual effects, better art)
-10. **Leaderboard** (high score tracking)
+10. **Leaderboard** — a *local* high-score list/history (still no backend; sourced entirely from the `localStorage` save data described in [Data Persistence & Local Storage](#data-persistence--local-storage))
 
 ---
 
@@ -1226,7 +1319,7 @@ Once MVP is complete, add (in priority order):
 - **Physics:** Custom implementation (or Rapier.js if needed)
 - **Audio:** Web Audio API
 - **Input:** Keyboard events + Touch events (unify via Input object)
-- **Storage:** localStorage for high scores and level progress
+- **Storage:** `localStorage` only — no backend. See [Data Persistence & Local Storage](#data-persistence--local-storage) for the versioned schema.
 
 ### File Structure
 
@@ -1242,7 +1335,8 @@ games/kingdom-run/
 │   ├── collision.js     # Collision detection
 │   ├── input.js         # Input handling
 │   ├── audio.js         # Sound effects
-│   └── levels.js        # Level data
+│   ├── levels.js        # Level loading (static JSON, read-only)
+│   └── storage.js       # localStorage save/load, versioning & migration
 ├── levels/
 │   ├── level-1.json
 │   ├── level-2.json
@@ -1263,10 +1357,9 @@ games/kingdom-run/
 
 ## References
 
-- **Platformer Mechanics:** [GDC — A History of Platformers](https://www.youtube.com/watch?v=...)
-- **Physics Tuning:** [Game Feel by Steve Swink](https://www.crcpress.com/Game-Feel/)
-- **Level Design:** [TIGSource — Platformer Lessons](https://www.tigsource.com/...)
-- **Mobile Input:** See `MOBILE_CONTROLS_SPEC.md`
+- **Physics Tuning:** *Game Feel* by Steve Swink — a standard reference on tuning acceleration, jump arcs, and input responsiveness for platformers.
+- **Platformer Mechanics & Level Design:** GDC talks on platformer game feel and level design (search GDC Vault/YouTube for talks on Mario-style movement tuning and level pacing).
+- **Mobile Input:** See `MOBILE_CONTROLS_SPEC.md` (repo root).
 
 ---
 
