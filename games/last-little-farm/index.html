@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#7ec8e3">
+<title>The Last Little Farm</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game-root">
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="hud">
+    <div id="hud-resources">
+      <span class="res" title="Wood">🪵<span id="res-wood">0</span></span>
+      <span class="res" title="Water">💧<span id="res-water">0/0</span></span>
+      <span class="res" title="Seeds">🌱<span id="res-seeds">0</span></span>
+      <span class="res" title="Crops">🌾<span id="res-crops">0</span></span>
+      <span class="res" title="Eggs">🥚<span id="res-eggs">0</span></span>
+    </div>
+    <div id="hud-day">Day <span id="res-day">1</span></div>
+    <button id="btn-pause" aria-label="Pause">⏸</button>
+  </div>
+
+  <div id="quest-toast"></div>
+  <div id="prompt-bubble"></div>
+
+  <div id="controls">
+    <div id="move-btns">
+      <button class="ctrl-btn" id="btn-left" aria-label="Move left">◀</button>
+      <button class="ctrl-btn" id="btn-right" aria-label="Move right">▶</button>
+    </div>
+    <div id="action-btns">
+      <button class="ctrl-btn ctrl-btn-action" id="btn-action" aria-label="Interact">✋</button>
+      <button class="ctrl-btn ctrl-btn-jump" id="btn-jump" aria-label="Jump">⤴</button>
+    </div>
+  </div>
+
+  <div id="rotate-overlay" class="overlay hidden">
+    <div class="panel">
+      <div id="rotate-icon">📱</div>
+      <h1>Rotate your device</h1>
+      <p class="sub">The Last Little Farm plays in landscape mode.<br>Turn your phone sideways to continue.</p>
+    </div>
+  </div>
+
+  <div id="pause-overlay" class="overlay hidden">
+    <div class="panel">
+      <h1>🌾 The Last Little Farm</h1>
+      <p class="sub">Paused</p>
+      <button id="btn-resume" class="menu-btn">Resume</button>
+      <button id="btn-mute" class="menu-btn">Mute: Off</button>
+      <button id="btn-restart" class="menu-btn">Restart Farm</button>
+      <p class="hint">Move: Arrows / A-D &nbsp;·&nbsp; Jump: Space &nbsp;·&nbsp; Interact: E &nbsp;·&nbsp; Pause: Esc</p>
+    </div>
+  </div>
+
+  <div id="start-overlay" class="overlay">
+    <div class="panel">
+      <h1>🌾 The Last Little Farm</h1>
+      <p class="sub">Keep the little farm alive.</p>
+      <button id="btn-start" class="menu-btn">Play</button>
+      <p class="hint">Walk to the field, till the soil, plant a seed, water it and watch it grow.</p>
+    </div>
+  </div>
+</div>
+
+<script src="farm-logic.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
