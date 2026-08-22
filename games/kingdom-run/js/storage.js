@@ -5,7 +5,7 @@
 // error, private-browsing restriction, or disabled storage never blocks play.
 
 const STORAGE_KEY = 'kingdomRun.saveData';
-const SAVE_DATA_VERSION = 1; // bump only when the saved shape actually changes
+const SAVE_DATA_VERSION = 2; // bump only when the saved shape actually changes
 
 function getDefaultSaveData() {
     return {
@@ -19,7 +19,13 @@ function getDefaultSaveData() {
         highScore: 0,
         levels: {
             '1': { unlocked: true, completed: false, bestScore: 0, bestTimeMs: null }
-        }
+        },
+        // Explicit mid-level "Save & Quit" slot (see GAME_SPEC.md § Data
+        // Persistence & Local Storage) — null when there's nothing to
+        // resume. Populated only by an explicit player action, never
+        // autosaved, and cleared on restart/level-complete/game-over so a
+        // stale run is never offered as "Continue".
+        inProgress: null
     };
 }
 
@@ -28,8 +34,13 @@ function getDefaultSaveData() {
 // drop a player's existing progress (highScore, level completion) when
 // backfilling a new field.
 const migrations = {
+    1: (data) => {
+        data.inProgress = null;
+        data.version = 2;
+        return data;
+    }
     // Example for the next schema change:
-    // 1: (data) => { data.settings.someNewField = true; data.version = 2; return data; }
+    // 2: (data) => { data.settings.someNewField = true; data.version = 3; return data; }
 };
 
 function migrate(data) {
@@ -82,12 +93,21 @@ function loadSaveData() {
         return defaults;
     }
 
+    let migrated = false;
     if (data.version < SAVE_DATA_VERSION) {
         data = migrate(data);
         data.version = SAVE_DATA_VERSION;
+        migrated = true;
     }
 
     data = mergeWithDefaults(data, defaults);
+
+    // Persist the upgraded shape immediately rather than leaving the older
+    // shape on disk until some unrelated action happens to trigger a save —
+    // otherwise every load until then re-runs the same migration on stale
+    // data, and anything reading localStorage directly sees a stale version.
+    if (migrated) saveSaveData(data);
+
     return data;
 }
 
@@ -131,6 +151,20 @@ const KingdomRunStorage = {
         existing.unlocked = true;
         saveData.levels[key] = existing;
         saveSaveData(saveData);
+        return saveData;
+    },
+
+    saveInProgress(saveData, progress) {
+        saveData.inProgress = { ...progress, savedAt: Date.now() };
+        saveSaveData(saveData);
+        return saveData;
+    },
+
+    clearInProgress(saveData) {
+        if (saveData.inProgress !== null) {
+            saveData.inProgress = null;
+            saveSaveData(saveData);
+        }
         return saveData;
     }
 };
