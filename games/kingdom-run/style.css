@@ -108,12 +108,14 @@ body {
 
 /* ── Canvas + overlay screens ─────────────────────────────────────────────
    #canvas-wrap fills whatever space is left after the HUD and controls
-   (flex:1 + min-height:0). The canvas's actual pixel size is computed in
-   js/game.js's syncSize() — against this element's clientWidth/clientHeight,
-   picking whichever axis is the tighter fit — and set via inline style,
-   because a <canvas> has its own intrinsic size that CSS's `width:auto` +
-   `aspect-ratio` doesn't reliably override, which otherwise left the canvas
-   tiny and off-center on portrait phones instead of filling the space. ── */
+   (flex:1 + min-height:0), and the canvas fills #canvas-wrap edge to edge
+   in both dimensions — no fixed aspect ratio, set explicitly in JS
+   (js/game.js's syncSize()) rather than left to CSS, because a <canvas>
+   has its own intrinsic size that `width:auto`+`aspect-ratio` doesn't
+   reliably override. There's no letterboxing from CSS sizing at all; the
+   world itself is rendered at a computed zoom (see updateCamera() in
+   game.js) so the level's full height always fits whatever height this
+   ends up being, and the full width is always used for gameplay. ── */
 #canvas-wrap {
     position: relative;
     width: 100%;
