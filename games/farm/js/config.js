@@ -4,7 +4,17 @@
 
 const CONFIG = {
   saveKey: 'farm-school-save-v1',
-  schemaVersion: 1,
+  // Bump this whenever the save shape changes in a way old saves can't
+  // just be loaded as-is — including changing gridCols/gridRows, since
+  // state.plots.length silently stops matching what render.js assumes
+  // about the grid otherwise (an old, shorter plots array read against
+  // the new column count renders as a squashed few-row strip instead of
+  // the full grid — exactly the bug that shipped without this bump).
+  // persistence.js has no migration chain yet, so bumping this discards
+  // old saves outright rather than upgrading them in place; write a
+  // migration there instead once real players have progress worth
+  // preserving.
+  schemaVersion: 2,
 
   // A world bigger than any one screen: the field is rendered at a
   // natural, readable tile size (see render.js computeGeometry) rather
