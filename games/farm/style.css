@@ -87,18 +87,44 @@ html, body {
 
 .hud-icon-btn + .hud-icon-btn { margin-top: 4px; }
 
-/* ---- Mission chip: banner across the top of the stage ---- */
+/* ---- Top info: day/season/weather bar + mission chip, stacked ---- */
+/* Both are grouped under one positioned container (rather than each
+   independently `position: absolute`) so they stack in flow and never
+   need to know each other's height. The container itself is positioned
+   relative to #app (the full-width flex row), not #stage alone, so its
+   left/right must clear the HUD rail (78px) and tool-belt rail (88px)
+   widths + a 6px gap — otherwise it would overlap and hide the coin chip
+   or the tool belt buttons. */
 
-#mission-chip {
+#top-info {
   position: absolute;
   top: 6px;
-  /* #mission-chip is positioned relative to #app (the full-width flex
-     row), not #stage alone, so these must clear the HUD rail (78px) and
-     tool-belt rail (88px) widths + a 6px gap — otherwise the banner
-     overlaps and hides the coin/day chips or the tool belt buttons. */
   left: 84px;
   right: 94px;
   z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#day-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  row-gap: 2px;
+  column-gap: 14px;
+  padding: 6px 14px;
+  background: var(--bg-panel);
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#day-bar span { white-space: nowrap; }
+
+#mission-chip {
   padding: 7px 12px;
   background: #fff3d6;
   border: 2px solid #f0d78c;

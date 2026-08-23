@@ -12,6 +12,13 @@ const LOCALE_PT = {
   'ui.tool.build': 'Construir',
 
   'ui.hud.day': 'Dia',
+  'ui.season.spring': 'Primavera',
+  'ui.season.summer': 'Verão',
+  'ui.season.fall': 'Outono',
+  'ui.season.winter': 'Inverno',
+  'ui.weather.sunny': 'Ensolarado',
+  'ui.weather.rainy': 'Chuvoso',
+  'ui.weather.cloudy': 'Nublado',
 
   'ui.shop.crops.title': 'Escolha uma Semente',
   'ui.shop.animals.title': 'Escolha um Animal',
