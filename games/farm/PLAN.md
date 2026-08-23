@@ -28,7 +28,11 @@ easy to change in `config.js`).
   offline after the initial load" (per the brief) is actually true rather
   than accidentally broken by one `<link href="https://fonts...">` tag.
 - Ship a plain-language privacy notice appropriate for a children's,
-  no-data-collection game (see `PRIVACY.md` and §10).
+  no-data-collection game (see `PRIVACY.md` and §11).
+- Must support translation into multiple languages, not just be written in
+  English: ship **English and Portuguese** at launch, with every
+  player-facing string routed through a translation lookup so a new
+  language is addable without touching rendering/UI code (see §6).
 
 ## 2. Tech stack & why
 
@@ -43,7 +47,7 @@ easy to change in `config.js`).
 - No sprite/art assets are available. MVP visuals use simple canvas-drawn
   shapes plus a layer of large emoji/glyphs (🌱🌾🥕🐔🐄🐑) as crop/animal/
   building icons — original, colorful, zero licensing risk, and trivially
-  swappable for commissioned art later (see §15). This matches the brief's
+  swappable for commissioned art later (see §16). This matches the brief's
   "prioritize fun, clarity, educational value... over graphical complexity."
 - Game-logic modules follow the `farm-logic.js` pattern already used by
   `last-little-farm`: plain functions with no DOM access, exported via
@@ -132,6 +136,9 @@ games/farm/
     hud.js                     DOM HUD: currency, clock, season/weather, tools
     modals.js                  shop, processing building, mission, settings/reset
     tutorial.js                first-run guided steps
+    i18n.js                    translation lookup: i18n.t(key, fallback), locale switching
+    locale-en.js                English UI-chrome strings (English content strings live in data-*.js itself)
+    locale-pt.js                Portuguese string overrides
     game.js                    bootstrap, requestAnimationFrame loop, wiring
   test-farm-rules.js         Node-runnable unit tests for farm-rules.js
 ```
@@ -226,7 +233,7 @@ MVP ships four, satisfying the "at least 3" requirement with headroom:
 
 Each recipe carries an `educational` string. It's shown as a popup only the
 *first* time that product completes, and is otherwise available on demand —
-see §11 for why every completion doesn't launch a modal.
+see §12 for why every completion doesn't launch a modal.
 
 **Season/weather** (`data-seasons.js`): 4 seasons cycling on a fixed in-game
 day counter; each day rolls a simple weather state (`sunny | rainy | cloudy`)
@@ -246,7 +253,44 @@ and a short `learned` explainer, e.g.:
   learned:'You ground wheat grain into flour — processing turns a raw crop into a cooking ingredient.' }
 ```
 
-## 6. State & persistence
+## 6. Localization (English & Portuguese, extensible)
+
+The brief calls for a game any child can pick up with minimal reading —
+that now extends to *which* language they read it in. All player-facing
+text must go through a translation lookup rather than being written
+directly into rendering/UI code, the same "data, not hard-coded" principle
+already applied to crops/animals/recipes/missions (§1).
+
+- `js/locale-en.js` and `js/locale-pt.js` each export a flat
+  `key → string` dictionary (English and Portuguese at launch). `js/i18n.js`
+  exposes `i18n.t(key, fallback)`: look up `key` in the active locale's
+  dictionary, fall back to `fallback` (or plain English) if the key is
+  missing, so a partially-translated locale never shows a blank string.
+- **UI chrome strings** (tool belt labels, modal titles/buttons, HUD
+  labels, the Privacy panel text) live only in the locale files, addressed
+  by keys like `ui.toolbelt.water` or `ui.settings.resetGame`.
+- **Content strings** (crop/animal/recipe names, educational facts, mission
+  titles/descriptions/`learned` text) keep the plain English text already
+  shown in the `data-*.js` examples in §5 — that text doubles as the
+  built-in English fallback, so `locale-en.js` never needs to duplicate it.
+  Every lookup instead goes through a key derived from the entry's `id`,
+  e.g. `i18n.t('crop.wheat.name', crop.name)` /
+  `i18n.t('crop.wheat.fact', crop.educational)`. `locale-pt.js` only needs
+  to supply the keys it wants to translate (`'crop.wheat.name': 'Trigo'`,
+  `'crop.wheat.fact': 'O trigo é uma gramínea...'`), so adding a locale is
+  additive and never touches `data-*.js`.
+- **Locale selection**: `state.settings.locale` (`'en'` or `'pt'`),
+  persisted like any other setting. First run guesses from
+  `navigator.language` (`pt*` → Portuguese, anything else → English);
+  after that, a language toggle in the Settings modal (§11) lets the
+  player override it — a simple "EN | PT" pair of large icon-first
+  buttons, not a dropdown menu, matching the rest of the UI. Switching
+  locale re-renders in place; no page reload needed.
+- Adding a third language later is purely additive: drop in
+  `js/locale-<code>.js`, add one `<script>` tag, add one button to the
+  language toggle — nothing else in the codebase changes.
+
+## 7. State & persistence
 
 - `state.js` builds the canonical shape once (`createInitialState()`):
   `{ version, coins, day, season, weather, farmPlots[], buildings[],
@@ -262,14 +306,14 @@ and a short `learned` explainer, e.g.:
 - A **Reset Game** action lives in the settings modal (confirm dialog before
   clearing), satisfying the brief's "mechanism to reset local data for
   dev/testing" requirement. This is also the action the in-game Privacy
-  panel points to (§10) when it tells a parent how to clear saved data.
+  panel points to (§11) when it tells a parent how to clear saved data.
 - On load, persistence computes elapsed real time since
   `lastTickTimestamp` and hands it to `simulation.js` as one bounded
   catch-up step (capped, e.g., at 24 in-game hours of progress) so crops/
   animals keep progressing while the tab is closed, without an unbounded
   loop if the player returns after a week.
 
-## 7. Simulation & time model
+## 8. Simulation & time model
 
 - `config.js` defines `timeScale` (real seconds per in-game "tick") so the
   whole game can be sped up/slowed for tuning without touching content data.
@@ -295,7 +339,7 @@ and a short `learned` explainer, e.g.:
   `canStartRecipe`), so they can be unit-tested exactly like
   `last-little-farm/farm-logic.js` is today.
 
-## 8. Rendering (pseudo-isometric grid)
+## 9. Rendering (pseudo-isometric grid)
 
 - `render.js` owns a single `<canvas>` sized to the viewport. The farm is a
   simple 2D grid (e.g. 6×6 MVP plots) projected to diamond ("2:1
@@ -312,7 +356,7 @@ and a short `learned` explainer, e.g.:
   ready-to-harvest crops and animals, done with a time-based sine offset —
   cheap and reads as "friendly and alive" without needing sprite sheets.
 
-## 9. Input & controls
+## 10. Input & controls
 
 - Bottom tool belt (large DOM buttons, thumb-reachable in portrait): Seeds
   (opens shop drawer to pick a crop), Water can, Harvest hand, Feed bucket,
@@ -331,7 +375,7 @@ and a short `learned` explainer, e.g.:
   code path serves touch and mouse; no drag-required gestures in the MVP
   (tap-only), keeping controls simple for children.
 - Two hit-testing methods, layered: ground-tile selection uses the exact
-  `screenToGrid` math from §8 (tiles tile the plane exactly, so this is
+  `screenToGrid` math from §9 (tiles tile the plane exactly, so this is
   precise and cheap); animals, buildings, and ready-to-harvest crops —
   which render taller/wider than their own tile and are the things kids
   will actually be reaching for — instead use a distance check from the
@@ -341,7 +385,7 @@ and a short `learned` explainer, e.g.:
   box. Both methods key off the same canvas-to-grid transform, so they're
   recomputed together on resize/orientation change and never drift apart.
 
-## 10. UI structure
+## 11. UI structure
 
 - `index.html`: canvas + a thin DOM chrome — top bar (coins, day/season,
   weather icon, settings gear), bottom tool belt, a collapsible mission
@@ -361,7 +405,7 @@ and a short `learned` explainer, e.g.:
   than the child player, so it's allowed plainer, longer text than the
   rest of the UI.
 
-## 11. Missions & "what you learned" loop
+## 12. Missions & "what you learned" loop
 
 - `missions.js` subscribes to the event bus; each `data-missions.js` entry
   declares a trigger event + match/count condition. On completion: award
@@ -382,18 +426,18 @@ and a short `learned` explainer, e.g.:
   against the brief's own "avoid complex menus/long text" and
   minimal-friction goals. To keep the facts available beyond that one
   popup, every crop/animal/recipe tile has a small "i" info tap (via the
-  same object hit-testing as §9) that re-shows its `educational` string
+  same object hit-testing as §10) that re-shows its `educational` string
   in a lightweight, non-modal tooltip any time a curious kid wants it.
 
-## 12. MVP content checklist (mapped to the brief's MVP list)
+## 13. MVP content checklist (mapped to the brief's MVP list)
 
 | Brief requirement | Plan |
 |---|---|
 | One farm | Single 6×6 (or similar) plot grid, expandable via `economy.js` unlock cost |
 | 4–6 crops | 6 crops in `data-crops.js` (§5) |
 | 2–3 animal types | Chicken, cow, sheep in `data-animals.js` |
-| Planting/watering/growing/harvesting | `farm-rules.js` + `simulation.js` (§7) |
-| Animal care | Feed/water/shelter needs, happiness-based yield (§7) |
+| Planting/watering/growing/harvesting | `farm-rules.js` + `simulation.js` (§8) |
+| Animal care | Feed/water/shelter needs, happiness-based yield (§8) |
 | Inventory | `state.inventory` map, shown in shop/processing modals |
 | ≥3 processing chains | 4 recipes shipped (§5) |
 | Simple currency | `state.coins`, mutated only via `economy.js` |
@@ -401,9 +445,10 @@ and a short `learned` explainer, e.g.:
 | 5–10 educational missions | `data-missions.js` seeded with ~8 entries from the brief's examples |
 | Basic tutorial | `tutorial.js` first-run sequence |
 | Local save/load | `persistence.js`, autosave + reset |
-| Responsive smartphone UI | CSS breakpoints, portrait-first (§10) |
+| English + Portuguese UI | `i18n.js` + `locale-en.js`/`locale-pt.js` (§6) |
+| Responsive smartphone UI | CSS breakpoints, portrait-first (§11) |
 
-## 13. Testing
+## 14. Testing
 
 - `test-farm-rules.js` at the repo root of `games/farm/`, run with `node
   test-farm-rules.js` exactly like `last-little-farm`'s existing test file:
@@ -413,12 +458,18 @@ and a short `learned` explainer, e.g.:
 - Manual QA pass in a real mobile browser (touch target sizes, portrait +
   landscape) before calling a phase done, since layout/touch feel can't be
   unit tested.
+- A small Node script (or an addition to `test-farm-rules.js`) asserts
+  every key `locale-pt.js` defines also has an English fallback (in
+  `locale-en.js` or a `data-*.js` entry) — catches typos in translation
+  keys before they silently fall back to the wrong text.
 
-## 14. Phased build order
+## 15. Phased build order
 
 1. **Skeleton** — `index.html`/`style.css` shell, canvas boots, empty grid
    renders, save/load round-trips an empty state, reset button works,
-   Settings modal includes the Privacy panel from `PRIVACY.md`.
+   Settings modal includes the Privacy panel from `PRIVACY.md` and an
+   EN/PT language toggle wired through `i18n.js` from day one (so nothing
+   built afterward has English strings hard-coded into it).
 2. **Core loop, one crop** — wheat only: plant → water → grow → harvest →
    sell, with the tool belt and tile-tap input fully wired end-to-end.
 3. **Full crop set + inventory UI** — remaining 5 crops, shop drawer,
@@ -434,13 +485,15 @@ and a short `learned` explainer, e.g.:
    expansion purchase, remaining educational polish text.
 8. **Juice + responsive pass** — idle animations, positive-feedback toasts,
    portrait/landscape/desktop layout pass, `test-farm-rules.js` filled out,
+   full `locale-pt.js` translation pass reviewed by a Portuguese speaker,
    add the game card to root `index.html`.
 
-## 15. Future extensibility (explicitly not MVP)
+## 16. Future extensibility (explicitly not MVP)
 
 Because content is data-driven, later additions are additive, not rewrites:
 more crops/animals (goat, pig, apple orchard as a longer-cycle "tree"
 type), longer production chains (wool → yarn → clothing), a second farm
-plot/biome, harder seasonal challenges, and (optionally, later) swapping
-the emoji/shape placeholder art for a commissioned isometric sprite sheet
-behind the same `render.js` drawing calls.
+plot/biome, harder seasonal challenges, additional languages beyond
+English/Portuguese (§6), and (optionally, later) swapping the emoji/shape
+placeholder art for a commissioned isometric sprite sheet behind the same
+`render.js` drawing calls.
