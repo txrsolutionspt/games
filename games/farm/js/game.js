@@ -3,6 +3,60 @@
 // receives them as parameters rather than reaching for globals of its own.
 
 (function () {
+  // ---- Landscape lock + full screen -----------------------------------------
+  // This game is laid out for landscape only (side-rail HUD/tool belt).
+  // Desktop/mouse windows are never locked or auto-fullscreened — there's
+  // nothing to "rotate" there, and forcing fullscreen on a desktop click
+  // would be a surprising, unwanted interruption. See FarmRules.
+  // shouldLockLandscape and games/last-little-farm's identical pattern.
+
+  function isTouchDevice() {
+    return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  }
+
+  function refreshRotateText() {
+    document.getElementById('rotate-title').textContent = I18N.t('ui.rotate.title', 'Rotate your device');
+    document.getElementById('rotate-body').innerHTML = I18N.t('ui.rotate.body',
+      'Little Farm School plays in landscape mode.<br>Turn your phone sideways to continue.');
+  }
+
+  function checkOrientation() {
+    const locked = FarmRules.shouldLockLandscape(window.innerWidth, window.innerHeight, isTouchDevice());
+    document.getElementById('rotate-overlay').classList.toggle('hidden', !locked);
+  }
+
+  function requestFullscreen() {
+    try {
+      const el = document.documentElement;
+      const req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!req) return;
+      const p = req.call(el);
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) { /* fullscreen is a best-effort enhancement, never required */ }
+  }
+
+  function exitFullscreen() {
+    try {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (!exit) return;
+      const p = exit.call(document);
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) { /* ignore */ }
+  }
+
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  function lockOrientationIfPossible() {
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(function () {});
+      }
+    } catch (e) { /* not all browsers support/allow this; the rotate
+      overlay is what actually enforces landscape play */ }
+  }
+
   function boot() {
     const canvas = document.getElementById('farm-canvas');
     const state = Persistence.load() || createInitialState();
@@ -57,6 +111,7 @@
           state.settings.locale = code;
           I18N.setLocale(code);
           Hud.refresh(state, ui);
+          refreshRotateText();
           Persistence.scheduleSave(state);
         },
         reset: function () {
@@ -65,6 +120,33 @@
         }
       });
     });
+
+    document.getElementById('btn-fullscreen').addEventListener('click', function () {
+      if (isFullscreen()) {
+        exitFullscreen();
+      } else {
+        requestFullscreen();
+        lockOrientationIfPossible();
+      }
+    });
+
+    refreshRotateText();
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', function () { setTimeout(checkOrientation, 120); });
+
+    // Best-effort: try to enter fullscreen (and lock landscape) on the
+    // player's very first tap, since browsers require a user gesture and
+    // won't allow either on page load. Silently no-ops where unsupported
+    // (e.g. iPhone Safari has no Fullscreen API for non-video elements) —
+    // the rotate overlay above is what actually enforces landscape play,
+    // this is only a nice-to-have on top of it.
+    if (isTouchDevice()) {
+      document.addEventListener('pointerdown', function () {
+        requestFullscreen();
+        lockOrientationIfPossible();
+      }, { once: true, capture: true });
+    }
 
     Render.resize(canvas);
     // Re-sync geometry on any actual box change, not just window resize:

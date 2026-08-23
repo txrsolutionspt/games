@@ -37,55 +37,73 @@ html, body {
   height: 100vh;
   height: 100dvh;
   display: flex;
-  flex-direction: column;
+  /* This is a landscape-only game (see #rotate-overlay below): the HUD and
+     tool belt are permanent side rails rather than a portrait top bar/
+     bottom bar, so the play area stays wide regardless of device. */
+  flex-direction: row;
   background: linear-gradient(#bfe3f0, #e8f6e3);
 }
 
-/* ---- Top HUD ---- */
+/* ---- Left rail: HUD ---- */
 
 #hud-top {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: 78px;
+  flex: none;
+  padding: 8px 6px;
   padding-top: max(8px, env(safe-area-inset-top));
+  padding-left: max(6px, env(safe-area-inset-left));
   background: rgba(255, 250, 240, 0.9);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
   z-index: 5;
+  overflow-y: auto;
 }
 
 .hud-chip {
   background: var(--bg-panel);
   border: 2px solid rgba(0, 0, 0, 0.08);
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 5px 6px;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 12px;
+  text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hud-icon-btn {
-  margin-left: auto;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  width: 100%;
+  height: 38px;
+  border-radius: 10px;
   border: none;
   background: var(--bg-panel);
-  font-size: 20px;
+  font-size: 18px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.hud-icon-btn + .hud-icon-btn { margin-left: 6px; }
+.hud-icon-btn + .hud-icon-btn { margin-top: 4px; }
 
-/* ---- Mission chip ---- */
+/* ---- Mission chip: banner across the top of the stage ---- */
 
 #mission-chip {
-  margin: 6px 10px 0;
-  padding: 8px 12px;
+  position: absolute;
+  top: 6px;
+  /* #mission-chip is positioned relative to #app (the full-width flex
+     row), not #stage alone, so these must clear the HUD rail (78px) and
+     tool-belt rail (88px) widths + a 6px gap — otherwise the banner
+     overlaps and hides the coin/day chips or the tool belt buttons. */
+  left: 84px;
+  right: 94px;
+  z-index: 6;
+  padding: 7px 12px;
   background: #fff3d6;
   border: 2px solid #f0d78c;
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -104,20 +122,24 @@ html, body {
   touch-action: none;
 }
 
-/* ---- Tool belt ---- */
+/* ---- Right rail: tool belt ---- */
 
 #tool-belt {
   display: flex;
-  gap: 8px;
-  padding: 10px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  flex-direction: column;
+  gap: 6px;
+  width: 88px;
+  flex: none;
+  padding: 8px 6px;
+  padding-right: max(6px, env(safe-area-inset-right));
   background: rgba(255, 250, 240, 0.95);
-  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.08);
   z-index: 5;
+  overflow-y: auto;
 }
 
 .tool-btn {
-  flex: 1;
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -298,33 +320,53 @@ button.btn-danger { background: var(--danger); color: #fff; }
 
 .hidden { display: none !important; }
 
-/* ---- Landscape: move tool belt to a side rail so the play area stays large ---- */
+/* ---- Rotate-to-landscape prompt ---- */
+/* This game is laid out for landscape only (side-rail HUD/tool belt need
+   width, not height). On touch devices we require landscape orientation
+   and block play in portrait — same pattern as
+   games/last-little-farm/style.css's #rotate-overlay. Desktop/mouse
+   windows are never locked (see FarmRules.shouldLockLandscape), since
+   there's nothing to "rotate" there. */
 
-@media (orientation: landscape) and (max-height: 480px) {
-  #app { flex-direction: row; }
-  #hud-top {
-    flex-direction: column;
-    width: 64px;
-    padding-top: max(8px, env(safe-area-inset-left));
-  }
-  .hud-chip { writing-mode: horizontal-tb; font-size: 12px; padding: 4px 6px; }
-  #stage { order: 2; }
-  #tool-belt {
-    order: 3;
-    flex-direction: column;
-    width: 84px;
-  }
-  #mission-chip { position: absolute; top: 4px; left: 70px; right: 4px; z-index: 6; }
+#rotate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  background: #14201a;
+  color: #fff;
 }
 
-/* ---- Desktop: centered frame ---- */
+#rotate-overlay .rotate-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+  display: inline-block;
+  animation: rotate-hint-spin 1.8s ease-in-out infinite;
+}
 
-@media (min-width: 900px) and (min-height: 640px) {
+@keyframes rotate-hint-spin {
+  0%, 20% { transform: rotate(0deg); }
+  50%, 70% { transform: rotate(-90deg); }
+  100% { transform: rotate(-90deg); }
+}
+
+#rotate-overlay h1 { font-size: 20px; margin: 0 0 8px; }
+#rotate-overlay p { font-size: 14px; opacity: 0.85; margin: 0; line-height: 1.5; }
+
+/* ---- Desktop: centered landscape-shaped frame ---- */
+
+@media (min-width: 900px) and (min-height: 500px) {
   body { display: flex; align-items: center; justify-content: center; }
   #app {
-    max-width: 480px;
-    height: 90vh;
-    max-height: 900px;
+    width: 96vw;
+    max-width: 960px;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    max-height: 90vh;
     border-radius: 24px;
     overflow: hidden;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);

@@ -14,7 +14,10 @@ easy to change in `config.js`).
 
 - Client-side only: no server, accounts, login, cloud save, chat, ads, or
   paid currency.
-- Touch-first, mobile-portrait-first, also usable with mouse on desktop.
+- Touch-first, landscape-only on phones/tablets (side-rail HUD and tool
+  belt need width, not height); also usable with mouse on desktop. Touch
+  devices held in portrait see a "rotate your device" prompt that blocks
+  play until they turn sideways — see §11.
 - Data-driven: crops, animals, recipes and missions are defined as data, not
   hard-coded into UI/rendering code, so new content is additive.
 - Every mechanic maps to a real (simplified but not *wrong*) farming concept.
@@ -358,7 +361,8 @@ already applied to crops/animals/recipes/missions (§1).
 
 ## 10. Input & controls
 
-- Bottom tool belt (large DOM buttons, thumb-reachable in portrait): Seeds
+- Tool belt is a right-hand side rail (large DOM buttons, thumb-reachable
+  in landscape, per §11): Seeds
   (opens shop drawer to pick a crop), Water can, Harvest hand, Feed bucket,
   Build/Process. Selecting a tool highlights valid tiles on the canvas
   (computed via `farm-rules.js`, e.g. only empty plots glow when Seeds is
@@ -387,16 +391,33 @@ already applied to crops/animals/recipes/missions (§1).
 
 ## 11. UI structure
 
-- `index.html`: canvas + a thin DOM chrome — top bar (coins, day/season,
-  weather icon, settings gear), bottom tool belt, a collapsible mission
-  tracker chip, and modal layer (shop, processing, mission-complete/
-  "what you learned", settings).
+- `index.html`: canvas + a thin DOM chrome — a left-hand rail (coins,
+  day/season/weather, market, full screen, settings), a right-hand tool
+  belt rail, a mission tracker banner across the top of the stage, and a
+  modal layer (shop, processing, mission-complete/"what you learned",
+  settings). The side-rail layout is the only layout — see below for why
+  this is landscape-only rather than portrait-first.
 - Modals are simple centered DOM cards with icon-first content and at most
   1–2 short sentences of text, per the brief's "minimal text" requirement.
-- Responsive via CSS: portrait is the primary layout (tool belt full-width
-  along the bottom); a landscape media query moves the tool belt to a side
-  rail so the play area stays large; desktop just gets a max-width centered
-  frame with mouse cursor affordances.
+- **Landscape-only, not responsive portrait/landscape switching.** A
+  side-rail HUD and tool belt need width, not height, to stay
+  thumb-reachable and readable — cramming them into a portrait phone
+  (either as a bottom bar or squeezed rails) fights the brief's "large,
+  easy-to-use controls" goal rather than serving it. So instead of a
+  portrait-primary layout with a landscape media query, the row-rail
+  layout is the only layout, and a `#rotate-overlay` (same pattern as
+  `games/last-little-farm`'s `shouldLockLandscape`/rotate prompt) blocks
+  play with a "rotate your device" message whenever a touch device is
+  held in portrait. Desktop/mouse windows are never locked — there's
+  nothing to rotate there — and get a centered, landscape-aspect-ratio
+  frame via CSS `aspect-ratio` instead of a portrait-shaped one.
+- A full-screen toggle (`Fullscreen`/Screen Orientation APIs, best-effort
+  and wrapped defensively since neither is universally supported — e.g.
+  iOS Safari has no Fullscreen API for non-video elements) is offered both
+  as an explicit HUD button and attempted automatically on a touch
+  player's first tap. It's a nice-to-have layered on top of the rotate
+  overlay, never a substitute for it: the overlay is what actually
+  enforces landscape play on every device, fullscreen or not.
 - Settings modal includes a **Privacy** entry alongside Reset Game. It
   renders the "Parent Info" short notice from `PRIVACY.md` directly inline
   (with an expandable "Full notice" toggle for the complete text) — never
@@ -446,7 +467,7 @@ already applied to crops/animals/recipes/missions (§1).
 | Basic tutorial | `tutorial.js` first-run sequence |
 | Local save/load | `persistence.js`, autosave + reset |
 | English + Portuguese UI | `i18n.js` + `locale-en.js`/`locale-pt.js` (§6) |
-| Responsive smartphone UI | CSS breakpoints, portrait-first (§11) |
+| Responsive smartphone UI | Landscape-only side rails + rotate overlay (§11) |
 
 ## 14. Testing
 
@@ -455,9 +476,10 @@ already applied to crops/animals/recipes/missions (§1).
   covers growth-stage math, water/feed timing edge cases, yield/quality
   degradation on neglect (never negative/deletion), recipe input
   consumption, and mission trigger matching — all pure, DOM-free logic.
-- Manual QA pass in a real mobile browser (touch target sizes, portrait +
-  landscape) before calling a phase done, since layout/touch feel can't be
-  unit tested.
+- Manual QA pass in a real mobile browser (touch target sizes, the rotate
+  overlay actually blocking portrait, landscape play on phone and tablet)
+  before calling a phase done, since layout/touch feel can't be unit
+  tested.
 - A small Node script (or an addition to `test-farm-rules.js`) asserts
   every key `locale-pt.js` defines also has an English fallback (in
   `locale-en.js` or a `data-*.js` entry) — catches typos in translation
@@ -484,9 +506,9 @@ already applied to crops/animals/recipes/missions (§1).
 7. **Seasons/weather + expansion** — day/season/weather cycle, farm
    expansion purchase, remaining educational polish text.
 8. **Juice + responsive pass** — idle animations, positive-feedback toasts,
-   portrait/landscape/desktop layout pass, `test-farm-rules.js` filled out,
-   full `locale-pt.js` translation pass reviewed by a Portuguese speaker,
-   add the game card to root `index.html`.
+   landscape/desktop layout pass and rotate-overlay check, `test-farm-rules.js`
+   filled out, full `locale-pt.js` translation pass reviewed by a
+   Portuguese speaker, add the game card to root `index.html`.
 
 ## 16. Future extensibility (explicitly not MVP)
 
