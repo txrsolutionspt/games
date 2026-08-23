@@ -1,10 +1,14 @@
 # Kingdom Run — Level Design Plan
 
+## Status: Shipped
+
+All 5 levels described below (`level-1.json` through `level-5.json`) are built and playable, reachable through the Level Select screen — see § Companion Feature below, which is also now implemented. This document is kept as the design rationale for each level's layout and difficulty choices, not just a pre-build plan.
+
 ## Current State
 
-**One level exists:** `levels/level-1.json` ("Green Forest") — 80×12 tiles (2560×384px), 2 enemies, 21 coins, 4 question blocks, 2 checkpoints. It's the intro level referenced throughout `GAME_SPEC.md` and `README.md`.
+**Five levels exist:** `levels/level-1.json` through `level-5.json`, the arc `README.md` named as an example (Green Forest → Lava Canyon → Sky Temple → Dark Castle → Boss Arena). Sizes and content per level are documented below; each was generated the same way (a small Node generator script, per `GAME_SPEC.md § Level Data Format`) and playtested against the jump-distance envelope noted in § Shared Constraints.
 
-This document plans levels 2–5 to complete the arc `README.md` already named as an example (Green Forest → Lava Canyon → Sky Temple → Dark Castle → Boss Arena), with enough concrete detail to generate each level's JSON the same way level 1 was built (a small Node generator script, per `GAME_SPEC.md § Level Data Format`).
+The sections below are kept as originally written (the design plan made before building), with actual-shipped notes added inline where something changed during implementation.
 
 ## Engine Constraint: Design Within What's Actually Built
 
@@ -33,6 +37,8 @@ The **Level Select screen** is a required companion piece once a second level ex
 - **Tile size stays 32px**, same tile ID meanings as `GAME_SPEC.md § Level Data Format`.
 - **Difficulty progression is expressed through**: level length, gap width/frequency, enemy count and placement, spike density, and platform precision required — not new mechanics, since none exist yet beyond the walker.
 - Each level still follows the 9-zone flow from `GAME_SPEC.md § Level Structure` (start → basic movement → first enemy → platforming challenge → collectibles → difficulty ramp → penultimate challenge → goal), scaled to that level's difficulty tier.
+
+**Verified jump envelope (found during implementation):** building levels 2-4's platforming surfaced a real bug in `js/player.js` — the early-release jump-height cut (`vy *= jumpCutMultiplier`) was reapplying every frame the jump key stayed up instead of once, collapsing the jump almost immediately after release instead of trimming it predictably. Fixed by guarding it to fire once per jump (`player.jumpCutApplied`). Measured empirically against the fix: a quick tap covers ~100px horizontally at max run speed; a ~150-250ms hold covers ~64-100px of height and ~126-146px horizontally; full hold apex is ~114px. Every gap and platform-to-platform spacing in levels 2-4 stays at or under 96px (3 tiles) horizontally per single jump, with margin — anything wider uses a stepping-stone platform instead of a single unaided jump. A descending step (jumping down, not up) is more reliable taken by walking off the edge than by pressing jump, same as most platformers — that's normal player behavior, not a level issue.
 
 ---
 
@@ -146,22 +152,21 @@ Enemy count and gap difficulty both climb steadily; coin/question-block count st
 
 ---
 
-## Companion Feature: Level Select & Unlock Chain
+## Companion Feature: Level Select & Unlock Chain — Built
 
-Not level *content*, but required once level 2 exists — noting the scope here so it isn't discovered as a surprise mid-implementation:
+Implemented as planned:
 
-- **`js/storage.js`** already stores per-level `{unlocked, completed, bestScore, bestTimeMs}` keyed by ID — no schema change needed, it was built forward-compatible.
-- **`js/game.js`** needs a `LEVEL_SELECT` game state (already named in `GAME_SPEC.md § Game States` but never implemented, since MVP had nothing to select) and a screen matching the mockup in `GAME_SPEC.md § HUD & UI § Level Select Screen`.
-- **Unlock rule:** completing level N sets `levels[N+1].unlocked = true` (extending `KingdomRunStorage.reportLevelResult`, which currently only marks the *completed* level, not the next one).
-- **Save & Quit / Continue** (already implemented) needs no change — `inProgress.levelId` already generalizes to any level, not just 1.
-- The title screen's "Start Game" → level 1 directly should become "Start Game" → Level Select once level 2 exists, so returning players aren't stuck replaying level 1 to reach a level select screen that doesn't exist yet.
+- **`js/storage.js`** stores per-level `{unlocked, completed, bestScore, bestTimeMs}` keyed by ID, now with default (locked) entries for levels 2-5 (`SAVE_DATA_VERSION` bumped 2→3, with a migration backfilling those entries for existing saves).
+- **`js/game.js`** has a `LEVEL_SELECT` game state and screen (`showLevelSelectScreen()` / `renderLevelSelectList()`), fetching each level's `{name, description}` from its own JSON rather than duplicating that metadata in game.js — a card is resilient to a single level failing to load (shows "unavailable" instead of breaking the whole list).
+- **Unlock rule:** `KingdomRunStorage.reportLevelResult()` now unlocks `levelId + 1` whenever `completed` is true.
+- **Save & Quit / Continue** needed no change, as predicted — `inProgress.levelId` already generalized.
+- Title screen's "Start Game" (relabeled "New Game" once a save exists) now routes to Level Select; a "Next Level" button on the Level Complete screen offers the next level directly without a trip back through Select.
 
 ---
 
-## Suggested Order of Work
+## Build Order (as actually followed)
 
-1. Confirm this plan (level themes, sizing, difficulty curve, the Version A boss decision) before generating any JSON — content decisions are cheap to change on paper, expensive after hand-tuned platforming is built around them.
-2. Build the Level Select screen + unlock chain first, since every subsequent level is unreachable without it.
-3. Generate levels 2–4 (same Node-generator-script approach as level 1), each independently playtestable against the existing engine with zero new code.
-4. Level 5 Version A last, since it's the simplest content-wise but benefits most from the engine having already been proven across 2–4.
-5. Revisit Level 5 Version B (true boss) as a separate, later feature if wanted.
+1. Level Select screen + unlock chain first, since every level past 1 was unreachable without it.
+2. Generated levels 2-4, discovering and fixing the jump-cut bug (see § Shared Constraints) while verifying level 2's platforming — then re-verified levels 3-4 against the corrected physics before finalizing their layouts.
+3. Level 5 Version A last.
+4. Level 5 Version B (a true boss enemy) remains unbuilt — a separate, later feature if wanted.

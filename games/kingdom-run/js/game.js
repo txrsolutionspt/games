@@ -2,6 +2,7 @@
 
 const GameState = {
     TITLE: 'TITLE',
+    LEVEL_SELECT: 'LEVEL_SELECT',
     PLAYING: 'PLAYING',
     PAUSED: 'PAUSED',
     LEVEL_COMPLETE: 'LEVEL_COMPLETE',
@@ -41,6 +42,12 @@ let coinsCollected = 0;
 let tookDamage = false;
 let lastCheckpoint = null;
 let levelStartTime = 0;
+let nextLevelId = null; // set by completeLevel(); read by the "Next Level" button
+
+// Level Select fetches each level's {id,name,description} once (see
+// js/levels.js's fetchLevelMeta) and caches it — static data that never
+// changes during a session, no reason to re-fetch every time the screen opens.
+let levelMetaCache = null;
 
 function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
@@ -100,6 +107,88 @@ function showTitleScreen() {
     refreshTitleScreen();
     showScreen('screen-title');
     document.getElementById('hud').classList.add('hidden');
+}
+
+function formatTime(ms) {
+    if (ms == null) return '--:--';
+    const totalSeconds = Math.floor(ms / 1000);
+    const mm = Math.floor(totalSeconds / 60);
+    const ss = String(totalSeconds % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+}
+
+async function showLevelSelectScreen() {
+    gameState = GameState.LEVEL_SELECT;
+    hideAllScreens();
+    document.getElementById('hud').classList.add('hidden');
+    showScreen('screen-level-select');
+    await renderLevelSelectList();
+}
+
+async function renderLevelSelectList() {
+    // Keyed by id rather than a flat array, and only re-fetches ids that
+    // haven't successfully loaded yet — one missing/broken level.json
+    // (a real scenario during development, and possible in production
+    // if a file fails to deploy) shows as an "unavailable" card instead
+    // of breaking every other card on the screen.
+    if (!levelMetaCache) levelMetaCache = {};
+    const ids = Array.from({ length: KingdomRunStorage.TOTAL_LEVELS }, (_, i) => i + 1);
+    const missing = ids.filter((id) => !levelMetaCache[id]);
+    if (missing.length) {
+        const results = await Promise.allSettled(missing.map(fetchLevelMeta));
+        results.forEach((result, i) => {
+            if (result.status === 'fulfilled') {
+                levelMetaCache[missing[i]] = result.value;
+            } else {
+                console.error(`Failed to load level ${missing[i]} metadata:`, result.reason);
+            }
+        });
+    }
+
+    const list = document.getElementById('level-select-list');
+    list.innerHTML = '';
+
+    for (const id of ids) {
+        const meta = levelMetaCache[id];
+        const entry = saveData.levels[String(id)] || { unlocked: false, completed: false, bestScore: 0, bestTimeMs: null };
+
+        const card = document.createElement('button');
+        const unavailable = !meta;
+        card.className = 'level-card' + (entry.unlocked && !unavailable ? '' : ' locked');
+        card.disabled = !entry.unlocked || unavailable;
+
+        const info = document.createElement('div');
+        info.className = 'level-card-info';
+
+        const name = document.createElement('div');
+        name.className = 'level-card-name';
+        name.textContent = unavailable ? `${id}. (unavailable)` : `${id}. ${meta.name}`;
+        info.appendChild(name);
+
+        const metaLine = document.createElement('div');
+        metaLine.className = 'level-card-meta';
+        metaLine.textContent = unavailable
+            ? 'Could not load this level'
+            : !entry.unlocked
+                ? 'Locked'
+                : entry.completed
+                    ? `Best: ${entry.bestScore} · ${formatTime(entry.bestTimeMs)}`
+                    : 'Not completed yet';
+        info.appendChild(metaLine);
+
+        card.appendChild(info);
+        card.setAttribute('aria-label', unavailable ? `Level ${id} unavailable` : `${meta.name}${entry.unlocked ? '' : ' (locked)'}`);
+
+        const status = document.createElement('span');
+        status.className = 'level-card-status';
+        status.textContent = unavailable ? '⚠️' : !entry.unlocked ? '🔒' : entry.completed ? '⭐' : '▶';
+        card.appendChild(status);
+
+        if (entry.unlocked && !unavailable) {
+            card.addEventListener('click', () => startLevel(id));
+        }
+        list.appendChild(card);
+    }
 }
 
 // ── Save data / settings ─────────────────────────────────────────────────────
@@ -192,7 +281,7 @@ function serializeProgress(now) {
 
 function startNewGame() {
     saveData = KingdomRunStorage.clearInProgress(saveData);
-    startLevel(1);
+    showLevelSelectScreen();
 }
 
 function continueGame() {
@@ -285,12 +374,17 @@ function completeLevel(now) {
 
     Sfx.levelComplete();
 
-    const mm = Math.floor(elapsedSeconds / 60);
-    const ss = String(elapsedSeconds % 60).padStart(2, '0');
     document.getElementById('complete-score').textContent = score;
-    document.getElementById('complete-time').textContent = `${mm}:${ss}`;
+    document.getElementById('complete-time').textContent = formatTime(elapsedMs);
     document.getElementById('complete-coins').textContent = `${coinsCollected}/${currentLevel.totalCoins}`;
     document.getElementById('complete-nodamage').textContent = noDamageBonus > 0 ? 'Yes (+3000)' : 'No';
+
+    // reportLevelResult() above already unlocked the next level (if any) —
+    // this just decides whether to offer it as a one-tap "Next Level".
+    const hasNext = currentLevel.id < KingdomRunStorage.TOTAL_LEVELS;
+    nextLevelId = hasNext ? currentLevel.id + 1 : null;
+    document.getElementById('btn-next-level').classList.toggle('hidden', !hasNext);
+
     document.getElementById('hud').classList.add('hidden');
     showScreen('screen-levelcomplete');
 }
@@ -600,13 +694,17 @@ function init() {
     document.getElementById('btn-start').addEventListener('click', startNewGame);
     document.getElementById('btn-continue').addEventListener('click', continueGame);
     document.getElementById('btn-mute-title').addEventListener('click', toggleMute);
+    document.getElementById('btn-back-level-select').addEventListener('click', showTitleScreen);
     document.getElementById('btn-resume').addEventListener('click', resumeGame);
     document.getElementById('btn-restart-pause').addEventListener('click', restartLevel);
     document.getElementById('btn-save-quit').addEventListener('click', saveAndQuit);
     document.getElementById('btn-retry-gameover').addEventListener('click', restartLevel);
-    document.getElementById('btn-quit-gameover').addEventListener('click', showTitleScreen);
+    document.getElementById('btn-levelselect-gameover').addEventListener('click', showLevelSelectScreen);
+    document.getElementById('btn-next-level').addEventListener('click', () => {
+        if (nextLevelId) startLevel(nextLevelId);
+    });
     document.getElementById('btn-retry-complete').addEventListener('click', restartLevel);
-    document.getElementById('btn-quit-complete').addEventListener('click', showTitleScreen);
+    document.getElementById('btn-levelselect-complete').addEventListener('click', showLevelSelectScreen);
 
     // Auto-pause when the rotate-to-landscape prompt covers the game, or the
     // tab/app loses focus (GAME_SPEC.md § Important mobile requirements) —

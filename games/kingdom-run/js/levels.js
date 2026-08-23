@@ -68,6 +68,19 @@ function consumeQuestionBlock(level, col, row) {
     return qb.contains;
 }
 
+// Lightweight fetch for the Level Select screen — just enough to render a
+// card (name/description), not the full tilemap/entities loadLevel() builds.
+// The level JSON is the single source of truth for this metadata rather
+// than duplicating level names in game.js, so renaming a level in its JSON
+// can't silently drift out of sync with what the menu shows.
+async function fetchLevelMeta(id) {
+    const response = await fetch(`levels/level-${id}.json`);
+    if (!response.ok) throw new Error(`Failed to load level ${id} metadata: HTTP ${response.status}`);
+    const data = await response.json();
+    return { id: data.level.id, name: data.level.name, description: data.level.description };
+}
+
 window.loadLevel = loadLevel;
 window.consumeQuestionBlock = consumeQuestionBlock;
 window.questionBlockKey = questionBlockKey;
+window.fetchLevelMeta = fetchLevelMeta;

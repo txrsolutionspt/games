@@ -194,6 +194,74 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
+/* ── Level Select ──────────────────────────────────────────────────────────
+   Unlike the other screens, this one can have more content (5+ level
+   cards) than a short landscape viewport can show at once, so it scrolls
+   internally instead of centering everything and overflowing the screen. */
+#screen-level-select {
+    justify-content: flex-start;
+    padding-top: 16px;
+}
+
+#level-select-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 420px;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 4px 2px;
+}
+
+.level-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: rgba(46, 46, 78, 0.9);
+    border: 2px solid #4a4a7a;
+    border-radius: 8px;
+    padding: 10px 16px;
+    min-height: 48px;
+    cursor: pointer;
+    text-align: left;
+    color: #e8e8f0;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.level-card:active {
+    transform: scale(0.98);
+}
+
+.level-card.locked {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.level-card .level-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.level-card .level-card-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.level-card .level-card-meta {
+    font-size: 0.7rem;
+    color: #a8b4c8;
+}
+
+.level-card .level-card-status {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
 .menu-btn.primary {
     background: #2f7fd6;
     border-color: #5aa0ec;
