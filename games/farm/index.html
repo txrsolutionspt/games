@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Little Farm School</title>
+<meta name="description" content="A kid-friendly farming education game — plant, care for animals, and turn your harvest into real food.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header id="hud-top">
+    <div class="hud-chip" id="hud-coins">🪙 <span id="coins-val">0</span></div>
+    <div class="hud-chip" id="hud-season"><span id="day-val"></span> <span id="season-icon"></span></div>
+    <button class="hud-icon-btn" id="btn-market" aria-label="Market">🛒</button>
+    <button class="hud-icon-btn" id="btn-settings" aria-label="Settings">⚙️</button>
+  </header>
+
+  <div id="mission-chip" class="hidden"></div>
+
+  <main id="stage">
+    <canvas id="farm-canvas"></canvas>
+  </main>
+
+  <footer id="tool-belt"></footer>
+
+  <div id="tooltip" class="hidden"></div>
+  <div id="modal-root" class="hidden"></div>
+  <div id="toast-root"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/data-crops.js"></script>
+<script src="js/data-animals.js"></script>
+<script src="js/data-recipes.js"></script>
+<script src="js/data-seasons.js"></script>
+<script src="js/data-missions.js"></script>
+<script src="js/events.js"></script>
+<script src="js/farm-rules.js"></script>
+<script src="js/locale-en.js"></script>
+<script src="js/locale-pt.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/state.js"></script>
+<script src="js/persistence.js"></script>
+<script src="js/economy.js"></script>
+<script src="js/simulation.js"></script>
+<script src="js/missions.js"></script>
+<script src="js/tutorial.js"></script>
+<script src="js/render.js"></script>
+<script src="js/input.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/modals.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

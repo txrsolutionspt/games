@@ -1,0 +1,149 @@
+// Tick loop — PLAN.md §8: crop growth, animal needs, machine processing,
+// day/season/weather. Growth/produce/job progress are pure functions of
+// elapsed ticks (see farm-rules.js), so advancing the clock is *itself*
+// the offline catch-up — no per-tick replay loop is needed for those. Only
+// day-boundary side effects (rainy-day auto-watering) need to walk each
+// day that passed, which the bounded catch-up keeps cheap.
+
+const Simulation = (function () {
+  // A stable hash of the day index in [0, 1) — deterministic, so the same
+  // day always rolls the same weather without needing to store it in the
+  // save file.
+  function hashDay(day) {
+    const x = Math.sin((day + 1) * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function dayForTick(tick) {
+    return Math.floor(tick / CONFIG.dayLengthSec);
+  }
+
+  function seasonForDay(day) {
+    const idx = Math.floor(day / CONFIG.daysPerSeason) % SEASONS.length;
+    return SEASONS[idx];
+  }
+
+  function weatherForDay(day) {
+    const table = WEATHER_TABLE[seasonForDay(day)];
+    const r = hashDay(day);
+    let acc = 0;
+    const keys = Object.keys(table);
+    for (let i = 0; i < keys.length; i++) {
+      acc += table[keys[i]];
+      if (r <= acc) return keys[i];
+    }
+    return keys[keys.length - 1];
+  }
+
+  function currentDay(state) { return dayForTick(state.clock.tick); }
+  function currentSeason(state) { return seasonForDay(currentDay(state)); }
+  function currentWeather(state) { return weatherForDay(currentDay(state)); }
+
+  // Rain waters every still-growing crop once for the day — free, and
+  // never more than a crop's own waterRequired count.
+  function applyRainAutoWater(state) {
+    state.plots.forEach(function (plot) {
+      if (!plot.occupant || plot.occupant.kind !== 'crop') return;
+      if (plot.occupant.state === 'ready') return;
+      const def = CROPS_BY_ID[plot.occupant.id];
+      if (plot.occupant.waterGiven < def.waterRequired) plot.occupant.waterGiven += 1;
+    });
+  }
+
+  // Walks every in-game day boundary crossed between oldDay (exclusive) and
+  // newDay (inclusive), applying rain and emitting season-change events.
+  // Bounded by CONFIG.maxOfflineCatchUpSec upstream, so this never loops
+  // more than a small, predictable number of times.
+  function processDayBoundaries(state, oldDay, newDay) {
+    for (let day = oldDay + 1; day <= newDay; day++) {
+      const prevSeason = seasonForDay(day - 1);
+      const season = seasonForDay(day);
+      if (weatherForDay(day) === 'rainy') applyRainAutoWater(state);
+      if (season !== prevSeason) Events.emit('seasonChanged', { season: season });
+      Events.emit('dayChanged', { day: day, season: season, weather: weatherForDay(day) });
+    }
+    state.clock.lastProcessedDay = newDay;
+  }
+
+  // One simulation tick: advance the clock, flip any plot whose growth/
+  // produce/job just completed, and let the UI/missions react via events.
+  function tick(state) {
+    const oldDay = currentDay(state);
+    state.clock.tick += 1;
+    const newDay = currentDay(state);
+    if (newDay > oldDay) processDayBoundaries(state, oldDay, newDay);
+
+    state.plots.forEach(function (plot) {
+      if (!plot.occupant) return;
+      const occ = plot.occupant;
+
+      if (occ.kind === 'crop') {
+        const def = CROPS_BY_ID[occ.id];
+        const progress = FarmRules.cropProgress(occ, def, state.clock.tick);
+        if (progress.matured && occ.state !== 'ready') {
+          occ.state = 'ready';
+          Events.emit('cropReady', { plot: plot, cropId: occ.id });
+        }
+      } else if (occ.kind === 'animal') {
+        const def = ANIMALS_BY_ID[occ.id];
+        const progress = FarmRules.animalProgress(occ, def, state.clock.tick);
+        if (progress.ready && occ.state !== 'ready') {
+          occ.state = 'ready';
+          Events.emit('produceReady', { plot: plot, animalId: occ.id });
+        }
+      } else if (occ.kind === 'building' && occ.job) {
+        const def = RECIPES_BY_ID[occ.job.recipeId];
+        const progress = FarmRules.recipeProgress(occ.job, def, state.clock.tick);
+        if (progress.ready && !occ.job.readyNotified) {
+          occ.job.readyNotified = true;
+          Events.emit('productReady', { plot: plot, recipeId: occ.job.recipeId });
+        }
+      }
+    });
+
+    Events.emit('tick', { tick: state.clock.tick, day: newDay, season: currentSeason(state), weather: currentWeather(state) });
+    Persistence.scheduleSave(state);
+  }
+
+  // Called once at boot: fast-forwards the clock (and any day boundaries
+  // crossed) to account for real time that passed while the tab was closed,
+  // capped so a long-neglected save can't trigger an unbounded replay.
+  function catchUpOffline(state) {
+    const elapsedRealSec = Math.max(0, Math.floor((Date.now() - (state.clock.lastRealTimestamp || Date.now())) / 1000));
+    const catchUpSec = Math.min(elapsedRealSec, CONFIG.maxOfflineCatchUpSec);
+    if (catchUpSec <= 0) return;
+    const oldDay = currentDay(state);
+    state.clock.tick += Math.floor(catchUpSec * CONFIG.timeScale);
+    const newDay = currentDay(state);
+    if (newDay > oldDay) processDayBoundaries(state, oldDay, newDay);
+  }
+
+  let intervalId = null;
+
+  function start(state) {
+    stop();
+    intervalId = setInterval(function () { tick(state); }, CONFIG.tickIntervalMs / CONFIG.timeScale);
+  }
+
+  function stop() {
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+  }
+
+  return {
+    dayForTick: dayForTick,
+    seasonForDay: seasonForDay,
+    weatherForDay: weatherForDay,
+    currentDay: currentDay,
+    currentSeason: currentSeason,
+    currentWeather: currentWeather,
+    catchUpOffline: catchUpOffline,
+    tick: tick,
+    start: start,
+    stop: stop
+  };
+})();
+
+if (typeof module === 'object' && module.exports) {
+  module.exports = Simulation;
+}
