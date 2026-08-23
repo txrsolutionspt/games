@@ -27,6 +27,8 @@ easy to change in `config.js`).
   (font stack, glyphs, code) ships in `games/farm/` itself, so "playable
   offline after the initial load" (per the brief) is actually true rather
   than accidentally broken by one `<link href="https://fonts...">` tag.
+- Ship a plain-language privacy notice appropriate for a children's,
+  no-data-collection game (see `PRIVACY.md` and §10).
 
 ## 2. Tech stack & why
 
@@ -110,6 +112,7 @@ games/farm/
   style.css
   Initial-prompt.md        (existing brief)
   PLAN.md                  (this file)
+  PRIVACY.md               plain-language privacy notice (source text for the in-game Settings > Privacy panel)
   js/
     config.js               constants: save key, tick rate, time scale, tool ids
     data-crops.js            crop definitions (data-driven)
@@ -258,7 +261,8 @@ and a short `learned` explainer, e.g.:
   additions don't wipe existing saves.
 - A **Reset Game** action lives in the settings modal (confirm dialog before
   clearing), satisfying the brief's "mechanism to reset local data for
-  dev/testing" requirement.
+  dev/testing" requirement. This is also the action the in-game Privacy
+  panel points to (§10) when it tells a parent how to clear saved data.
 - On load, persistence computes elapsed real time since
   `lastTickTimestamp` and hands it to `simulation.js` as one bounded
   catch-up step (capped, e.g., at 24 in-game hours of progress) so crops/
@@ -349,6 +353,13 @@ and a short `learned` explainer, e.g.:
   along the bottom); a landscape media query moves the tool belt to a side
   rail so the play area stays large; desktop just gets a max-width centered
   frame with mouse cursor affordances.
+- Settings modal includes a **Privacy** entry alongside Reset Game. It
+  renders the "Parent Info" short notice from `PRIVACY.md` directly inline
+  (with an expandable "Full notice" toggle for the complete text) — never
+  a link out to an external page, per the brief's "no external links from
+  gameplay" rule. It's the one screen in the game aimed at a parent rather
+  than the child player, so it's allowed plainer, longer text than the
+  rest of the UI.
 
 ## 11. Missions & "what you learned" loop
 
@@ -406,7 +417,8 @@ and a short `learned` explainer, e.g.:
 ## 14. Phased build order
 
 1. **Skeleton** — `index.html`/`style.css` shell, canvas boots, empty grid
-   renders, save/load round-trips an empty state, reset button works.
+   renders, save/load round-trips an empty state, reset button works,
+   Settings modal includes the Privacy panel from `PRIVACY.md`.
 2. **Core loop, one crop** — wheat only: plant → water → grow → harvest →
    sell, with the tool belt and tile-tap input fully wired end-to-end.
 3. **Full crop set + inventory UI** — remaining 5 crops, shop drawer,
