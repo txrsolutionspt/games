@@ -5,7 +5,12 @@
 // devicePixelRatio scale once via setTransform so nothing else needs to
 // think about it.
 
-const MIN_ZOOM = 0.6;
+// MIN_ZOOM is deliberately low: the field is 60x60, so even a generous
+// zoom-out only shows a fraction of it (roughly cssW / (baseTileW * zoom)
+// columns) — being able to pull back further gives a genuinely useful
+// overview of a bigger chunk of the field, not just a slightly wider
+// sliver of it.
+const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2.5;
 
 // How many tile-columns fit across the canvas width at zoom 1. The field
