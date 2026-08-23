@@ -345,8 +345,8 @@ already applied to crops/animals/recipes/missions (§1).
 ## 9. Rendering (pseudo-isometric grid)
 
 - `render.js` owns a single `<canvas>` sized to the viewport. The farm is a
-  2D grid (`CONFIG.gridCols` × `gridRows`, 12×12 = 144 plots) projected to
-  diamond ("2:1 pseudo-isometric") screen coordinates with a small,
+  2D grid (`CONFIG.gridCols` × `gridRows`, 60×60 = 3,600 plots) projected
+  to diamond ("2:1 pseudo-isometric") screen coordinates with a small,
   well-documented `gridToScreen(x, y)` / `screenToGrid(px, py)` pair of
   pure functions — the same math both draws tiles and interprets taps, so
   hit-testing can't drift from rendering.
@@ -363,12 +363,13 @@ already applied to crops/animals/recipes/missions (§1).
 
 ### Camera & world size
 
-The field is deliberately bigger than any one screen — 144 plots is more
-than a phone (or even a desktop frame) can show at a readable size at
-once — so most of it is only reachable by panning/scrolling, the same as
-a map. `computeGeometry()` no longer shrinks the whole grid to fit the
-canvas; it picks a natural, readable tile size (bounded so it can't shrink
-below legible on a narrow phone or balloon huge on a wide desktop frame)
+The field is deliberately bigger than any one screen — 3,600 plots is far
+more than a phone (or even a desktop frame) can show at a readable size at
+once, spanning many screens' worth of scrolling in every direction — so
+most of it is only reachable by panning/scrolling, the same as a map.
+`computeGeometry()` no longer shrinks the whole grid to fit the canvas; it
+picks a natural, readable tile size (bounded so it can't shrink below
+legible on a narrow phone or balloon huge on a wide desktop frame)
 independent of how big the field is, and centers the initial camera on
 the starting unlocked cluster (`FOCUS_COL`/`FOCUS_ROW`) rather than the
 grid's overall geometric center — a new player should land looking at
@@ -389,6 +390,20 @@ in further wouldn't show meaningfully more detail), and pan is bounded to
 the field's own extent — past a point there's simply no more world left
 in that direction — which scales with both zoom and `CONFIG.gridCols`/
 `gridRows`, so a bigger field automatically means more room to pan.
+
+**Why 3,600 plots and not more.** `CONFIG.gridCols`/`gridRows` is a
+deliberate ceiling for the current architecture, not an arbitrary number:
+`state.plots` holds one object per plot and gets `JSON.stringify`'d into
+`localStorage` on every autosave, and `draw()` sorts/iterates every plot
+each frame. At 3,600 plots a save is well under 1MB (`localStorage`
+quotas are typically ~5–10MB) and the per-frame sort is imperceptible at
+60fps — both comfortably safe without changing how state or rendering
+work. Going much past that — say, the six-figure-plot-count a literal
+1000×1000 field would mean — stops being safe: most of that array would
+be default "locked, empty" filler nobody will ever reach, serialized into
+every save regardless. That would need a genuinely different, sparser
+world model (only store plots that have actually been touched; only draw
+what's on screen) rather than just raising this number further.
 
 ## 10. Input & controls
 
@@ -509,7 +524,7 @@ in that direction — which scales with both zoom and `CONFIG.gridCols`/
 
 | Brief requirement | Plan |
 |---|---|
-| One farm | Single 12×12 plot grid (bigger than one screen, panned/scrolled — §9), expandable via `economy.js` unlock cost |
+| One farm | Single 60×60 plot grid (spans many screens, panned/scrolled — §9), expandable via `economy.js` unlock cost |
 | 4–6 crops | 6 crops in `data-crops.js` (§5) |
 | 2–3 animal types | Chicken, cow, sheep in `data-animals.js` |
 | Planting/watering/growing/harvesting | `farm-rules.js` + `simulation.js` (§8) |
