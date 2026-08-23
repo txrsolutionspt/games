@@ -76,5 +76,9 @@ const LOCALE_EN = {
   'ui.tutorial.plant': 'Tap Plant, choose Wheat, then tap an empty plot!',
   'ui.tutorial.water': 'Now tap Water, then tap your wheat plot!',
   'ui.tutorial.harvest': "Great! Wait for it to grow, then tap Harvest and tap it again!",
-  'ui.tutorial.done': "You're a farmer now! Explore and grow your farm."
+  'ui.tutorial.done': "You're a farmer now! Explore and grow your farm.",
+
+  'ui.rotate.title': 'Rotate your device',
+  'ui.rotate.body': 'Little Farm School plays in landscape mode.<br>Turn your phone sideways to continue.',
+  'ui.hud.fullscreen': 'Full screen'
 };

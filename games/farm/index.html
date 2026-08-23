@@ -13,6 +13,7 @@
     <div class="hud-chip" id="hud-coins">🪙 <span id="coins-val">0</span></div>
     <div class="hud-chip" id="hud-season"><span id="day-val"></span> <span id="season-icon"></span></div>
     <button class="hud-icon-btn" id="btn-market" aria-label="Market">🛒</button>
+    <button class="hud-icon-btn" id="btn-fullscreen" aria-label="Full screen">⛶</button>
     <button class="hud-icon-btn" id="btn-settings" aria-label="Settings">⚙️</button>
   </header>
 
@@ -27,6 +28,14 @@
   <div id="tooltip" class="hidden"></div>
   <div id="modal-root" class="hidden"></div>
   <div id="toast-root"></div>
+
+  <div id="rotate-overlay" class="hidden">
+    <div>
+      <div class="rotate-icon">📱</div>
+      <h1 id="rotate-title">Rotate your device</h1>
+      <p id="rotate-body">Little Farm School plays in landscape mode.<br>Turn your phone sideways to continue.</p>
+    </div>
+  </div>
 </div>
 
 <script src="js/config.js"></script>

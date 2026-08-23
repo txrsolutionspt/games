@@ -143,5 +143,9 @@ const LOCALE_PT = {
 
   'mission.right-season.title': 'Cultura Certa, Estação Certa',
   'mission.right-season.description': 'Plante uma cultura que cresça bem na estação atual.',
-  'mission.right-season.learned': 'Plantar uma cultura na sua estação certa dá-lhe o clima em que ela cresce melhor.'
+  'mission.right-season.learned': 'Plantar uma cultura na sua estação certa dá-lhe o clima em que ela cresce melhor.',
+
+  'ui.rotate.title': 'Rode o seu dispositivo',
+  'ui.rotate.body': 'O Little Farm School joga-se na horizontal.<br>Rode o telemóvel de lado para continuar.',
+  'ui.hud.fullscreen': 'Ecrã inteiro'
 };

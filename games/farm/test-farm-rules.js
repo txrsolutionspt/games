@@ -193,6 +193,24 @@ test('canCollectRecipe: false with no job, true once the job is ready', function
   assert.strictEqual(FarmRules.canCollectRecipe(workingPlot, flourRecipe, flourRecipe.timeSec), true);
 });
 
+// ---- Device orientation -------------------------------------------------------------
+
+test('shouldLockLandscape: touch device in portrait is locked to landscape', function () {
+  assert.strictEqual(FarmRules.shouldLockLandscape(390, 844, true), true);
+});
+
+test('shouldLockLandscape: touch device already in landscape is not locked', function () {
+  assert.strictEqual(FarmRules.shouldLockLandscape(844, 390, true), false);
+});
+
+test('shouldLockLandscape: a square touch viewport is not locked (no strict portrait)', function () {
+  assert.strictEqual(FarmRules.shouldLockLandscape(500, 500, true), false);
+});
+
+test('shouldLockLandscape: non-touch (mouse) windows are never locked', function () {
+  assert.strictEqual(FarmRules.shouldLockLandscape(400, 900, false), false);
+});
+
 // ---- Summary ----------------------------------------------------------------------
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

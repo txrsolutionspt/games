@@ -128,6 +128,16 @@
     return recipeProgress(plot.occupant.job, recipeDef, currentTick).ready;
   }
 
+  // ---- Device orientation ----------------------------------------------------
+
+  // The farm grid and tool belt are laid out for landscape (see PLAN.md
+  // §11); on touch devices we require it and show a rotate prompt. Desktop/
+  // mouse windows are left alone since there's nothing to "rotate" — the
+  // same rule games/last-little-farm/farm-logic.js uses.
+  function shouldLockLandscape(width, height, isTouch) {
+    return !!(isTouch && height > width);
+  }
+
   return {
     canPlaceOnPlot: canPlaceOnPlot,
     canUnlockPlot: canUnlockPlot,
@@ -144,6 +154,7 @@
     canCollectAnimal: canCollectAnimal,
     canStartRecipe: canStartRecipe,
     recipeProgress: recipeProgress,
-    canCollectRecipe: canCollectRecipe
+    canCollectRecipe: canCollectRecipe,
+    shouldLockLandscape: shouldLockLandscape
   };
 });
