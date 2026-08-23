@@ -112,20 +112,54 @@ const Render = (function () {
     return active ? Math.sin(t / 220) * 3 : 0;
   }
 
+  // Growth reads as a clear seed → sprout → recognizable-crop → mature
+  // progression, not just the same icon slowly scaling up: a seed stage
+  // shows a small soil mound (nothing plant-like yet), middle stage(s)
+  // show a generic sprout (growing, but not yet recognizable as *this*
+  // crop), and the crop's own icon only appears once it's in its final
+  // growing stage — smaller than its full mature size, so "ready" (full
+  // size + sparkle) still reads as a distinct, unmistakable step up.
   function drawCrop(ctx, plot, geom, cx, cy, t, tick) {
     const occ = plot.occupant;
     const def = CROPS_BY_ID[occ.id];
     const progress = FarmRules.cropProgress(occ, def, tick);
     const ready = occ.state === 'ready';
     const bounce = bounceOffset(t, ready);
-    const size = geom.tileH * (0.55 + 0.85 * progress.frac);
 
-    ctx.font = size + 'px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(def.icon, cx, cy - size * 0.35 + bounce);
 
-    if (!ready) {
+    if (ready) {
+      const size = geom.tileH * 1.05;
+      ctx.font = size + 'px sans-serif';
+      ctx.fillText(def.icon, cx, cy - size * 0.35 + bounce);
+      ctx.font = (geom.tileH * 0.3) + 'px sans-serif';
+      ctx.fillText('✨', cx + size * 0.35, cy - size * 0.55 + bounce);
+    } else {
+      const stageCount = def.growthStages;
+      const stage = progress.stage;
+      // How far through *this* stage growth is, so size still climbs
+      // smoothly within a stage rather than jumping only at boundaries.
+      const stageFrac = Math.min(1, Math.max(0, progress.frac * stageCount - stage));
+
+      if (stage === 0) {
+        const r = geom.tileH * (0.05 + 0.05 * stageFrac);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + geom.tileH * 0.15, r * 1.6, r, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#6b4a2a';
+        ctx.fill();
+      } else if (stage === stageCount - 1) {
+        const size = geom.tileH * (0.6 + 0.3 * stageFrac);
+        ctx.font = size + 'px sans-serif';
+        ctx.globalAlpha = 0.85;
+        ctx.fillText(def.icon, cx, cy - size * 0.3);
+        ctx.globalAlpha = 1;
+      } else {
+        const size = geom.tileH * (0.28 + 0.3 * stageFrac);
+        ctx.font = size + 'px sans-serif';
+        ctx.fillText('🌱', cx, cy - size * 0.25);
+      }
+
       const dropSize = geom.tileH * 0.22;
       ctx.font = dropSize + 'px sans-serif';
       const total = def.waterRequired;
@@ -136,9 +170,6 @@ const Render = (function () {
         ctx.fillText('💧', startX + i * dropSize * 0.7, cy + geom.tileH * 0.45);
       }
       ctx.globalAlpha = 1;
-    } else {
-      ctx.font = (geom.tileH * 0.3) + 'px sans-serif';
-      ctx.fillText('✨', cx + size * 0.35, cy - size * 0.55 + bounce);
     }
   }
 
