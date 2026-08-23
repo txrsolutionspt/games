@@ -6,8 +6,12 @@ const CONFIG = {
   saveKey: 'farm-school-save-v1',
   schemaVersion: 1,
 
-  gridCols: 6,
-  gridRows: 6,
+  // A world bigger than any one screen: the field is rendered at a
+  // natural, readable tile size (see render.js computeGeometry) rather
+  // than shrunk to fit, so most of it is only reachable by panning/
+  // scrolling — see PLAN.md §9 "Camera & world size".
+  gridCols: 12,
+  gridRows: 12,
   initialUnlockedPlots: 8, // first N plots (row-major) are unlocked at game start
 
   // 1 tick = 1 real second at timeScale 1. Raising timeScale speeds up the
@@ -28,9 +32,12 @@ const CONFIG = {
 
   startingCoins: 60,
 
-  // Cost, in coins, to unlock the Nth plot (0-indexed) beyond the starting set.
+  // Cost, in coins, to unlock the Nth plot (0-indexed) beyond the
+  // starting set. Slower growth than a 36-plot field would need, since
+  // the 144-plot field means there is much more of it to eventually grow
+  // into.
   plotUnlockCost(index) {
-    return 20 + index * 15;
+    return 20 + index * 6;
   }
 };
 
