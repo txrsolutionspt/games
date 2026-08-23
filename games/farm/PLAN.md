@@ -36,14 +36,65 @@ easy to change in `config.js`).
 - No sprite/art assets are available. MVP visuals use simple canvas-drawn
   shapes plus a layer of large emoji/glyphs (🌱🌾🥕🐔🐄🐑) as crop/animal/
   building icons — original, colorful, zero licensing risk, and trivially
-  swappable for commissioned art later (see §11). This matches the brief's
+  swappable for commissioned art later (see §15). This matches the brief's
   "prioritize fun, clarity, educational value... over graphical complexity."
 - Game-logic modules follow the `farm-logic.js` pattern already used by
   `last-little-farm`: plain functions with no DOM access, exported via
   `module.exports` when running under Node so they stay unit-testable, and
   attached to a global namespace in the browser.
 
-## 3. File layout
+## 3. Core systems & gameplay architecture
+
+A player's tap flows down through four layers before it's reflected in the
+save file; each layer only calls into the one directly below it:
+
+```
++-----------------------------------------------------------------+
+|                       UI & Input Layer                          |
+|   Canvas farm grid + DOM chrome — touch/mouse tool belt,        |
+|   modal dialogs (render.js, hud.js, modals.js, input.js)        |
++-------------------------------+-----------------------------------+
+                                |  tool selection, tile taps
+                                v
++-----------------------------------------------------------------+
+|                          Game Engine                             |
+|   Action handlers, mission tracker, UI event notifications       |
+|   (game.js, missions.js, tutorial.js)                            |
++-------------------------------+-----------------------------------+
+                                |  validated actions
+                                v
++-----------------------------------------------------------------+
+|                       Simulation Logic                           |
+|   Tick loop — crop growth, animal needs, machine processing      |
+|   (simulation.js, economy.js)                                    |
++-------------------------------+-----------------------------------+
+                                |  consults
+                                v
++-----------------------------------------------------------------+
+|                    Data & Rules Registry                         |
+|   Crops, animals, recipes, missions, educational text            |
+|   (data-*.js, farm-rules.js)                                     |
++-----------------------------------------------------------------+
+```
+
+This is a simplified *read path*, not a strict one-way pipeline. `state.js`
+is the actual source of truth every layer shares, and both `render.js`
+(drawing the current frame) and `persistence.js` (autosave/load) read and
+write it directly rather than passing through the Game Engine/Simulation
+layers above. The Data & Rules Registry is static reference data consulted
+*by* Simulation Logic — it doesn't get written to — while `state.js` and
+`persistence.js` handle everything that actually changes and gets saved:
+
+```
+              +-----------+          +------------------+
+   read/write |  state.js | <------> |  persistence.js   |
+   (every     | (canonical|          |  (localStorage     |
+   layer      |   game    |          |   autosave/load/   |
+   above)     |   state)  |          |   reset)           |
+              +-----------+          +------------------+
+```
+
+## 4. File layout
 
 ```
 games/farm/
@@ -78,14 +129,21 @@ Flat `js/` folder (no nested subfolders) to match `games/kingdom-run`'s
 convention of one `<script>` tag per module, loaded in dependency order in
 `index.html`.
 
-## 4. Data model (content is data, not code)
+## 5. Data model (content is data, not code)
 
-Each content type lives in its own `data-*.js` file as a plain array/object,
-so adding a crop or recipe never touches rendering, input or simulation code.
+Each content type lives in its own `data-*.js` file as a plain array/object
+(a `const` assigned in a script-tag-loaded file, not a `.json` fetched over
+the network — see the note after the examples), so adding a crop or recipe
+never touches rendering, input or simulation code.
 
 **Crop** (`data-crops.js`), MVP set of 6 — wheat, carrot, tomato, corn,
 strawberry, potato — chosen to span different growth times, water needs and
-seasons:
+seasons. `waterRequired` is a *count*, not a timer: the player can give the
+crop that many waterings whenever they like during growth, on their own
+schedule, rather than hitting a strict real-time window. That keeps care
+forgiving for kids while still teaching that crops need repeated attention,
+and leaves room for a "use less water" mission later (reward harvests that
+hit the minimum required waterings without over-watering):
 
 ```js
 {
@@ -95,16 +153,32 @@ seasons:
   seedCost: 5,
   growthStages: 4,            // seed → sprout → growing → mature
   growTimeSec: 180,           // real-time seconds to fully mature (scaled by config.timeScale)
-  waterIntervalSec: 60,       // needs water at least this often to grow at full rate
+  waterRequired: 2,           // times the player must water during growth, at their own pace
   season: ['spring', 'summer', 'fall'],
   harvestYield: { item: 'wheat_grain', qty: 3 },
   sellPrice: 4,
   educational: 'Wheat is a grass. Its grain is ground into flour to make bread.'
+},
+{
+  id: 'tomato',
+  name: 'Tomato',
+  icon: '🍅',
+  seedCost: 8,
+  growthStages: 4,
+  growTimeSec: 260,
+  waterRequired: 3,           // thirstier crop — needs more waterings for full-quality fruit
+  season: ['summer'],
+  harvestYield: { item: 'tomato', qty: 3 },
+  sellPrice: 6,
+  educational: 'Tomatoes need plenty of sunlight and water before they are ready for sauce.'
 }
 ```
 
 **Animal** (`data-animals.js`), MVP set of 3 — chicken (eggs), cow (milk),
-sheep (wool):
+sheep (wool). `needs.feedItemId` points at a real harvested crop item (here,
+the `wheat_grain` the player's own wheat produces) rather than an abstract
+"feed" resource, so feeding animals is visibly tied to crops the player
+actually grows:
 
 ```js
 {
@@ -112,10 +186,20 @@ sheep (wool):
   name: 'Chicken',
   icon: '🐔',
   cost: 30,
-  needs: { feedPerCycleSec: 120, waterPerCycleSec: 120, shelter: 'coop' },
+  needs: { feedItemId: 'wheat_grain', feedPerCycleSec: 120, waterPerCycleSec: 120, shelter: 'coop' },
   produces: { item: 'egg', qty: 1, cycleSec: 90 },
   happinessDecayIfNeglected: true, // lowers yield, never removes the animal
-  educational: 'Chickens need food, water and a safe coop. Happy hens lay more eggs.'
+  educational: 'Chickens turn the wheat you grow into eggs — real farms feed animals what they grow.'
+},
+{
+  id: 'cow',
+  name: 'Cow',
+  icon: '🐄',
+  cost: 120,
+  needs: { feedItemId: 'wheat_grain', feedPerCycleSec: 180, waterPerCycleSec: 150, shelter: 'barn' },
+  produces: { item: 'milk', qty: 1, cycleSec: 200 },
+  happinessDecayIfNeglected: true,
+  educational: 'Cows eat grain and grass and turn it into milk, which can become butter or cheese.'
 }
 ```
 
@@ -145,10 +229,13 @@ and a short `learned` explainer, e.g.:
 ```js
 { id:'first-wheat', trigger:'harvest', match:{crop:'wheat'}, count:1,
   title:'Grow your first wheat', reward:{coins:10},
-  learned:'Wheat takes time to grow — that time is part of why food takes work to produce.' }
+  learned:'Wheat takes time to grow — that time is part of why food takes work to produce.' },
+{ id:'grain-to-flour', trigger:'process', match:{recipe:'flour'}, count:1,
+  title:'From grain to flour', reward:{coins:15},
+  learned:'You ground wheat grain into flour — processing turns a raw crop into a cooking ingredient.' }
 ```
 
-## 5. State & persistence
+## 6. State & persistence
 
 - `state.js` builds the canonical shape once (`createInitialState()`):
   `{ version, coins, day, season, weather, farmPlots[], buildings[],
@@ -170,16 +257,18 @@ and a short `learned` explainer, e.g.:
   animals keep progressing while the tab is closed, without an unbounded
   loop if the player returns after a week.
 
-## 6. Simulation & time model
+## 7. Simulation & time model
 
 - `config.js` defines `timeScale` (real seconds per in-game "tick") so the
   whole game can be sped up/slowed for tuning without touching content data.
 - `simulation.js` runs on a coarse interval (e.g. every real second) rather
   than every animation frame:
   1. Advance the day/season/weather clock.
-  2. For each planted plot: accumulate grow time if watered recently enough
-     (or it rained); advance `growthStage`; if neglected, keep growing but
-     cap `quality` lower instead of killing the plant.
+  2. For each planted plot: accumulate grow time on its own clock, advancing
+     `growthStage`; each player watering (or a rainy day, which counts as
+     one free watering for every plot) ticks off one of the crop's
+     `waterRequired` count; if the crop matures without enough waterings,
+     keep growing but cap `quality` lower instead of killing the plant.
   3. For each animal: accumulate need timers; if fed/watered in time,
      accrue produce; if neglected, happiness (and thus yield) drops, animal
      is never removed or "dies".
@@ -194,7 +283,7 @@ and a short `learned` explainer, e.g.:
   `canStartRecipe`), so they can be unit-tested exactly like
   `last-little-farm/farm-logic.js` is today.
 
-## 7. Rendering (pseudo-isometric grid)
+## 8. Rendering (pseudo-isometric grid)
 
 - `render.js` owns a single `<canvas>` sized to the viewport. The farm is a
   simple 2D grid (e.g. 6×6 MVP plots) projected to diamond ("2:1
@@ -211,7 +300,7 @@ and a short `learned` explainer, e.g.:
   ready-to-harvest crops and animals, done with a time-based sine offset —
   cheap and reads as "friendly and alive" without needing sprite sheets.
 
-## 8. Input & controls
+## 9. Input & controls
 
 - Bottom tool belt (large DOM buttons, thumb-reachable in portrait): Seeds
   (opens shop drawer to pick a crop), Water can, Harvest hand, Feed bucket,
@@ -230,7 +319,7 @@ and a short `learned` explainer, e.g.:
   code path serves touch and mouse; no drag-required gestures in the MVP
   (tap-only), keeping controls simple for children.
 
-## 9. UI structure
+## 10. UI structure
 
 - `index.html`: canvas + a thin DOM chrome — top bar (coins, day/season,
   weather icon, settings gear), bottom tool belt, a collapsible mission
@@ -243,7 +332,7 @@ and a short `learned` explainer, e.g.:
   rail so the play area stays large; desktop just gets a max-width centered
   frame with mouse cursor affordances.
 
-## 10. Missions & "what you learned" loop
+## 11. Missions & "what you learned" loop
 
 - `missions.js` subscribes to the event bus; each `data-missions.js` entry
   declares a trigger event + match/count condition. On completion: award
@@ -256,25 +345,25 @@ and a short `learned` explainer, e.g.:
   → wait → harvest → sell) that gate which tool-belt buttons are visible so
   a first-time player can't get lost in menus before understanding the loop.
 
-## 11. MVP content checklist (mapped to the brief's MVP list)
+## 12. MVP content checklist (mapped to the brief's MVP list)
 
 | Brief requirement | Plan |
 |---|---|
 | One farm | Single 6×6 (or similar) plot grid, expandable via `economy.js` unlock cost |
-| 4–6 crops | 6 crops in `data-crops.js` (§4) |
+| 4–6 crops | 6 crops in `data-crops.js` (§5) |
 | 2–3 animal types | Chicken, cow, sheep in `data-animals.js` |
-| Planting/watering/growing/harvesting | `farm-rules.js` + `simulation.js` (§6) |
-| Animal care | Feed/water/shelter needs, happiness-based yield (§6) |
+| Planting/watering/growing/harvesting | `farm-rules.js` + `simulation.js` (§7) |
+| Animal care | Feed/water/shelter needs, happiness-based yield (§7) |
 | Inventory | `state.inventory` map, shown in shop/processing modals |
-| ≥3 processing chains | 4 recipes shipped (§4) |
+| ≥3 processing chains | 4 recipes shipped (§5) |
 | Simple currency | `state.coins`, mutated only via `economy.js` |
 | Farm expansion | Buy-more-plots / unlock-building actions in `economy.js` |
 | 5–10 educational missions | `data-missions.js` seeded with ~8 entries from the brief's examples |
 | Basic tutorial | `tutorial.js` first-run sequence |
 | Local save/load | `persistence.js`, autosave + reset |
-| Responsive smartphone UI | CSS breakpoints, portrait-first (§9) |
+| Responsive smartphone UI | CSS breakpoints, portrait-first (§10) |
 
-## 12. Testing
+## 13. Testing
 
 - `test-farm-rules.js` at the repo root of `games/farm/`, run with `node
   test-farm-rules.js` exactly like `last-little-farm`'s existing test file:
@@ -285,7 +374,7 @@ and a short `learned` explainer, e.g.:
   landscape) before calling a phase done, since layout/touch feel can't be
   unit tested.
 
-## 13. Phased build order
+## 14. Phased build order
 
 1. **Skeleton** — `index.html`/`style.css` shell, canvas boots, empty grid
    renders, save/load round-trips an empty state, reset button works.
@@ -306,7 +395,7 @@ and a short `learned` explainer, e.g.:
    portrait/landscape/desktop layout pass, `test-farm-rules.js` filled out,
    add the game card to root `index.html`.
 
-## 14. Future extensibility (explicitly not MVP)
+## 15. Future extensibility (explicitly not MVP)
 
 Because content is data-driven, later additions are additive, not rewrites:
 more crops/animals (goat, pig, apple orchard as a longer-cycle "tree"
