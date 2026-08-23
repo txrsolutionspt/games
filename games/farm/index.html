@@ -11,13 +11,19 @@
 <div id="app">
   <header id="hud-top">
     <div class="hud-chip" id="hud-coins">🪙 <span id="coins-val">0</span></div>
-    <div class="hud-chip" id="hud-season"><span id="day-val"></span> <span id="season-icon"></span></div>
     <button class="hud-icon-btn" id="btn-market" aria-label="Market">🛒</button>
     <button class="hud-icon-btn" id="btn-fullscreen" aria-label="Full screen">⛶</button>
     <button class="hud-icon-btn" id="btn-settings" aria-label="Settings">⚙️</button>
   </header>
 
-  <div id="mission-chip" class="hidden"></div>
+  <div id="top-info">
+    <div id="day-bar">
+      <span id="day-val"></span>
+      <span id="season-val"></span>
+      <span id="weather-val"></span>
+    </div>
+    <div id="mission-chip" class="hidden"></div>
+  </div>
 
   <main id="stage">
     <canvas id="farm-canvas"></canvas>

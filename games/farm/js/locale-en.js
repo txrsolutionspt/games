@@ -11,6 +11,13 @@ const LOCALE_EN = {
   'ui.tool.build': 'Build',
 
   'ui.hud.day': 'Day',
+  'ui.season.spring': 'Spring',
+  'ui.season.summer': 'Summer',
+  'ui.season.fall': 'Fall',
+  'ui.season.winter': 'Winter',
+  'ui.weather.sunny': 'Sunny',
+  'ui.weather.rainy': 'Rainy',
+  'ui.weather.cloudy': 'Cloudy',
 
   'ui.shop.crops.title': 'Choose a Seed',
   'ui.shop.animals.title': 'Choose an Animal',

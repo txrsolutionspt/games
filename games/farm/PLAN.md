@@ -442,11 +442,16 @@ in that direction — which scales with both zoom and `CONFIG.gridCols`/
 ## 11. UI structure
 
 - `index.html`: canvas + a thin DOM chrome — a left-hand rail (coins,
-  day/season/weather, market, full screen, settings), a right-hand tool
-  belt rail, a mission tracker banner across the top of the stage, and a
-  modal layer (shop, processing, mission-complete/"what you learned",
-  settings). The side-rail layout is the only layout — see below for why
-  this is landscape-only rather than portrait-first.
+  market, full screen, settings), a right-hand tool belt rail, and a
+  `#top-info` stack across the top of the stage: a day/season/weather bar
+  above the mission tracker banner, and a modal layer (shop, processing,
+  mission-complete/"what you learned", settings). The side-rail layout is
+  the only layout — see below for why this is landscape-only rather than
+  portrait-first. Day/season/weather live in their own full-width bar
+  rather than a chip squeezed into the narrow (78px) HUD rail alongside
+  the coin count — a chip that width can't fit "Day 12 · Summer · Rainy"
+  without truncating it illegibly, which is exactly what a narrower rail
+  used to do.
 - Modals are simple centered DOM cards with icon-first content and at most
   1–2 short sentences of text, per the brief's "minimal text" requirement.
 - **Landscape-only, not responsive portrait/landscape switching.** A

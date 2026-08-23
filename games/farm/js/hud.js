@@ -1,6 +1,7 @@
-// DOM HUD — PLAN.md §11: top bar (coins, day/season/weather, settings),
-// mission tracker chip, tool belt, and toast feedback. Pure DOM
-// manipulation; game state is only ever read here, never mutated.
+// DOM HUD — PLAN.md §11: left rail (coins, market/fullscreen/settings),
+// a day/season/weather bar and mission tracker chip stacked across the
+// top of the stage, tool belt, and toast feedback. Pure DOM manipulation;
+// game state is only ever read here, never mutated.
 
 const Hud = (function () {
   let toastTimer = null;
@@ -48,13 +49,26 @@ const Hud = (function () {
     return false;
   }
 
+  const SEASON_LABEL = {
+    spring: { key: 'ui.season.spring', fallback: 'Spring' },
+    summer: { key: 'ui.season.summer', fallback: 'Summer' },
+    fall: { key: 'ui.season.fall', fallback: 'Fall' },
+    winter: { key: 'ui.season.winter', fallback: 'Winter' }
+  };
+  const WEATHER_LABEL = {
+    sunny: { key: 'ui.weather.sunny', fallback: 'Sunny' },
+    rainy: { key: 'ui.weather.rainy', fallback: 'Rainy' },
+    cloudy: { key: 'ui.weather.cloudy', fallback: 'Cloudy' }
+  };
+
   function refreshTop(state) {
     el('coins-val').textContent = state.coins;
     const day = Simulation.currentDay(state);
     const season = Simulation.currentSeason(state);
     const weather = Simulation.currentWeather(state);
     el('day-val').textContent = I18N.t('ui.hud.day', 'Day') + ' ' + (day + 1);
-    el('season-icon').textContent = SEASON_ICON[season] + ' ' + WEATHER_ICON[weather];
+    el('season-val').textContent = SEASON_ICON[season] + ' ' + I18N.t(SEASON_LABEL[season].key, SEASON_LABEL[season].fallback);
+    el('weather-val').textContent = WEATHER_ICON[weather] + ' ' + I18N.t(WEATHER_LABEL[weather].key, WEATHER_LABEL[weather].fallback);
   }
 
   function refreshMissionChip(state) {
