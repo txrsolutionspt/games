@@ -26,8 +26,16 @@ html, body {
 
 #app {
   position: relative;
-  height: 100dvh;
+  /* 100vh first as a fallback for browsers without dvh support; 100dvh
+     second so it wins everywhere it's supported. Mobile Chrome's 100vh is
+     the viewport height with the address bar hidden — taller than what's
+     actually visible while it's showing — so with these reversed, and
+     overflow:hidden on html/body blocking any scroll to compensate, the
+     bottom of the page (the tool belt) was pushed off-screen with no way
+     to reach it. 100dvh tracks the real visible viewport as the address
+     bar shows/hides, so this must be the one that wins. */
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: linear-gradient(#bfe3f0, #e8f6e3);
