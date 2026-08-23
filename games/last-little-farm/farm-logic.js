@@ -127,6 +127,39 @@
         return false;
     }
 
+    function createBush(x) {
+        return { x: x, hasSeed: true, respawnTimer: 0 };
+    }
+
+    // gathers the wild seed(s) off a bush, if it currently has one
+    function gatherBush(bush, resources, respawnTime, yieldAmount) {
+        yieldAmount = yieldAmount || 1;
+        if (!bush.hasSeed) return false;
+        resources.seeds += yieldAmount;
+        bush.hasSeed = false;
+        bush.respawnTimer = respawnTime;
+        return true;
+    }
+
+    // respawn timer counts down while bare; returns true the tick it regrows
+    function regrowBush(bush, dt) {
+        if (bush.hasSeed) return false;
+        bush.respawnTimer -= dt;
+        if (bush.respawnTimer <= 0) {
+            bush.hasSeed = true;
+            return true;
+        }
+        return false;
+    }
+
+    // trades wood for a seed at the seed stand
+    function buySeed(resources, woodCost) {
+        if (resources.wood < woodCost) return false;
+        resources.wood -= woodCost;
+        resources.seeds += 1;
+        return true;
+    }
+
     // The game is a landscape-oriented side-scroller (per MOBILE_CONTROLS_SPEC.md).
     // On touch devices we require landscape and show a rotate prompt; desktop/mouse
     // windows are left alone since there's nothing to "rotate".
@@ -145,6 +178,10 @@
         createTree: createTree,
         chopTree: chopTree,
         regrowTree: regrowTree,
+        createBush: createBush,
+        gatherBush: gatherBush,
+        regrowBush: regrowBush,
+        buySeed: buySeed,
         feedChicken: feedChicken,
         updateChickenEgg: updateChickenEgg,
         shouldLockLandscape: shouldLockLandscape,
