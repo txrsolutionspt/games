@@ -22,6 +22,11 @@ easy to change in `config.js`).
   silently destroy the player's progress or force a restart.
 - Ship a small, complete MVP loop first: **Prepare → Plant → Care → Harvest →
   Process → Sell → Improve → Learn**.
+- Zero external network calls once the page has loaded: no CDN-hosted
+  fonts, icon libraries, images, or scripts. Everything the game needs
+  (font stack, glyphs, code) ships in `games/farm/` itself, so "playable
+  offline after the initial load" (per the brief) is actually true rather
+  than accidentally broken by one `<link href="https://fonts...">` tag.
 
 ## 2. Tech stack & why
 
@@ -42,6 +47,9 @@ easy to change in `config.js`).
   `last-little-farm`: plain functions with no DOM access, exported via
   `module.exports` when running under Node so they stay unit-testable, and
   attached to a global namespace in the browser.
+- Text uses the OS/browser system font stack (`-apple-system, "Segoe UI",
+  Roboto, sans-serif`) in `style.css` — no `@font-face`/Google Fonts/CDN
+  request, keeping with the zero-external-network-call constraint above.
 
 ## 3. Core systems & gameplay architecture
 
@@ -213,9 +221,9 @@ MVP ships four, satisfying the "at least 3" requirement with headroom:
 { id: 'sauce',  building: 'kitchen',inputs: [{item:'tomato', qty:3}],      timeSec: 45,  output: {item:'tomato_sauce', qty:1} }
 ```
 
-Each recipe carries an `educational` string shown when the product first
-completes ("Wheat becomes flour when it's ground. Flour becomes bread when
-it's baked.").
+Each recipe carries an `educational` string. It's shown as a popup only the
+*first* time that product completes, and is otherwise available on demand —
+see §11 for why every completion doesn't launch a modal.
 
 **Season/weather** (`data-seasons.js`): 4 seasons cycling on a fixed in-game
 day counter; each day rolls a simple weather state (`sunny | rainy | cloudy`)
@@ -318,6 +326,16 @@ and a short `learned` explainer, e.g.:
 - Pointer events are used (not separate touch/mouse handlers) so the same
   code path serves touch and mouse; no drag-required gestures in the MVP
   (tap-only), keeping controls simple for children.
+- Two hit-testing methods, layered: ground-tile selection uses the exact
+  `screenToGrid` math from §8 (tiles tile the plane exactly, so this is
+  precise and cheap); animals, buildings, and ready-to-harvest crops —
+  which render taller/wider than their own tile and are the things kids
+  will actually be reaching for — instead use a distance check from the
+  tap point to each object's screen-space center, picking the nearest one
+  under a generous radius (larger than its drawn size). That gives those
+  taps forgiving, fat-finger-friendly targets instead of a strict bounding
+  box. Both methods key off the same canvas-to-grid transform, so they're
+  recomputed together on resize/orientation change and never drift apart.
 
 ## 10. UI structure
 
@@ -344,6 +362,17 @@ and a short `learned` explainer, e.g.:
   ordered sequence of "first-run" missions (prepare a plot → plant → water
   → wait → harvest → sell) that gate which tool-belt buttons are visible so
   a first-time player can't get lost in menus before understanding the loop.
+- Popups are deliberately throttled, not fired on every action: a modal
+  only launches on a *first-time* event (first harvest of a given crop,
+  first time a recipe completes) or a mission milestone — never on the
+  Nth repeat of something the player already knows. Harvesting is the most
+  repeated action in the whole game, so a modal on every single harvest
+  would turn the core loop into a wall of interruptions, working directly
+  against the brief's own "avoid complex menus/long text" and
+  minimal-friction goals. To keep the facts available beyond that one
+  popup, every crop/animal/recipe tile has a small "i" info tap (via the
+  same object hit-testing as §9) that re-shows its `educational` string
+  in a lightweight, non-modal tooltip any time a curious kid wants it.
 
 ## 12. MVP content checklist (mapped to the brief's MVP list)
 
