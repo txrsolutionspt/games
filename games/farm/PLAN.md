@@ -358,6 +358,21 @@ already applied to crops/animals/recipes/missions (§1).
 - Idle-but-alive feel: small per-frame bob/sway animation on
   ready-to-harvest crops and animals, done with a time-based sine offset —
   cheap and reads as "friendly and alive" without needing sprite sheets.
+- Pinch/scroll-to-zoom and drag-to-pan on the field itself (§10), not a
+  tool-belt button. `computeGeometry()` fits the whole grid to the canvas
+  at zoom 1 (the "base" geometry, recomputed on resize); a separate
+  `applyView(baseGeom, {zoom, panX, panY})` scales that baseline around
+  the canvas center and shifts it by the pan offset every frame, producing
+  the same `{tileW, tileH, originX, originY, ...}` shape `gridToScreen`/
+  `screenToGrid` already expect — so neither of those, nor the object
+  hit-testing above, needs to know zoom/pan exist at all.
+- `{zoom, panX, panY}` (the "view") lives on the ephemeral `ui` object
+  like `tool`, not saved game state — it resets to "fit the whole farm on
+  screen" on reload, the same as reopening a map app. `Render.clampView`
+  keeps it sane: zoom is bounded to `[1, 2.5]` (1 = fit-to-screen, nothing
+  to zoom out further to), and pan is bounded proportionally to how far
+  zoomed in the view is (zero slack at zoom 1, since there's nothing to
+  pan around yet) so the grid can never be dragged entirely off-screen.
 
 ## 10. Input & controls
 
@@ -376,8 +391,24 @@ already applied to crops/animals/recipes/missions (§1).
   tapping a building with a completed job collects the output; tapping an
   empty building slot opens the recipe picker modal.
 - Pointer events are used (not separate touch/mouse handlers) so the same
-  code path serves touch and mouse; no drag-required gestures in the MVP
-  (tap-only), keeping controls simple for children.
+  code path serves touch and mouse. Every game *action* (plant, water,
+  harvest, feed, ...) is still tap-only, keeping controls simple for
+  children; the only drag/multi-touch gestures are the field's own
+  zoom/pan (below), which never trigger a tile action by themselves.
+- Pinch (two pointers) zooms the field; scroll/trackpad zooms it on
+  desktop; a single pointer that moves past a small threshold pans it
+  instead of tapping. A double-tap resets the view to "see the whole
+  farm". Because a tap and the *start* of a pan look identical until the
+  pointer actually moves, a single pointer is provisionally treated as
+  `mode: 'drag'` and only fires its tile action on release if it never
+  passed that movement threshold — so an accidental tiny wobble mid-tap
+  still counts as a tap, but a real drag never fires one. While the view
+  is zoomed in, a tap on a tile is held for ~280ms before it fires,
+  specifically so a following second tap can cancel it and reset the view
+  instead of *also* acting on whatever tile happens to be underneath
+  (e.g. opening an unlock-cost modal on a locked plot mid-double-tap).
+  At zoom 1 (the common case) taps fire with no delay at all, same as
+  before this feature existed.
 - Two hit-testing methods, layered: ground-tile selection uses the exact
   `screenToGrid` math from §9 (tiles tile the plane exactly, so this is
   precise and cheap); animals, buildings, and ready-to-harvest crops —

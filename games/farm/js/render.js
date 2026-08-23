@@ -5,6 +5,9 @@
 // devicePixelRatio scale once via setTransform so nothing else needs to
 // think about it.
 
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 2.5;
+
 const Render = (function () {
   function computeGeometry(canvas) {
     const cssW = canvas.clientWidth || 300;
@@ -21,6 +24,43 @@ const Render = (function () {
     return { cssW: cssW, cssH: cssH, tileW: tileW, tileH: tileH, originX: originX, originY: originY, cols: cols, rows: rows };
   }
 
+  // The farm grid supports pinch/scroll zoom + drag pan (see input.js).
+  // `view` ({zoom, panX, panY}) is ephemeral UI state owned by game.js, not
+  // saved game state. computeGeometry() above is the "fit to canvas at
+  // zoom 1" baseline; applyView() zooms that baseline around the canvas
+  // center and then shifts it by the pan offset, producing the same
+  // {tileW, tileH, originX, originY, ...} shape gridToScreen/screenToGrid
+  // already expect — so neither of those needs to know zoom/pan exist.
+  function applyView(baseGeom, view) {
+    const cx = baseGeom.cssW / 2;
+    const cy = baseGeom.cssH / 2;
+    const zoom = view.zoom;
+    return {
+      cssW: baseGeom.cssW,
+      cssH: baseGeom.cssH,
+      cols: baseGeom.cols,
+      rows: baseGeom.rows,
+      tileW: baseGeom.tileW * zoom,
+      tileH: baseGeom.tileH * zoom,
+      originX: cx + (baseGeom.originX - cx) * zoom + view.panX,
+      originY: cy + (baseGeom.originY - cy) * zoom + view.panY
+    };
+  }
+
+  // Keeps the zoomed grid from being panned entirely off-screen: the
+  // further zoomed in, the more slack there is to pan around within, but
+  // at zoom 1 (nothing to explore) no panning is allowed at all.
+  function clampView(baseGeom, view) {
+    const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, view.zoom));
+    const maxPanX = (zoom - 1) * baseGeom.cssW * 0.5;
+    const maxPanY = (zoom - 1) * baseGeom.cssH * 0.5;
+    return {
+      zoom: zoom,
+      panX: Math.max(-maxPanX, Math.min(maxPanX, view.panX)),
+      panY: Math.max(-maxPanY, Math.min(maxPanY, view.panY))
+    };
+  }
+
   function resize(canvas) {
     const dpr = window.devicePixelRatio || 1;
     const cssW = canvas.clientWidth || 300;
@@ -29,8 +69,9 @@ const Render = (function () {
     canvas.height = Math.round(cssH * dpr);
     const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    canvas._geom = computeGeometry(canvas);
-    return canvas._geom;
+    canvas._baseGeom = computeGeometry(canvas);
+    canvas._geom = canvas._baseGeom;
+    return canvas._baseGeom;
   }
 
   function gridToScreen(geom, col, row) {
@@ -171,7 +212,9 @@ const Render = (function () {
 
   function draw(canvas, state, ui) {
     const ctx = canvas.getContext('2d');
-    const geom = canvas._geom || resize(canvas);
+    const baseGeom = canvas._baseGeom || resize(canvas);
+    const geom = applyView(baseGeom, ui.view);
+    canvas._geom = geom;
     ctx.clearRect(0, 0, geom.cssW, geom.cssH);
 
     const order = state.plots.slice().sort(function (a, b) {
@@ -212,5 +255,13 @@ const Render = (function () {
     });
   }
 
-  return { resize: resize, gridToScreen: gridToScreen, screenToGrid: screenToGrid, draw: draw };
+  return {
+    resize: resize,
+    gridToScreen: gridToScreen,
+    screenToGrid: screenToGrid,
+    draw: draw,
+    clampView: clampView,
+    MIN_ZOOM: MIN_ZOOM,
+    MAX_ZOOM: MAX_ZOOM
+  };
 })();

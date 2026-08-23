@@ -60,7 +60,10 @@
   function boot() {
     const canvas = document.getElementById('farm-canvas');
     const state = Persistence.load() || createInitialState();
-    const ui = { tool: null, hoverIndex: -1 };
+    // `view` (pinch/scroll zoom + drag pan on the field, see input.js) is
+    // ephemeral UI state like `tool`, not saved game state — it resets to
+    // "fit the whole farm on screen" on reload, same as any map app.
+    const ui = { tool: null, hoverIndex: -1, view: { zoom: 1, panX: 0, panY: 0 } };
 
     I18N.setLocale(state.settings.locale || I18N.detectLocale());
 

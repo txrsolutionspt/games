@@ -228,19 +228,138 @@ const Input = (function () {
     }
   }
 
+  // Pinch-to-zoom, scroll/trackpad-to-zoom, and drag-to-pan on the farm
+  // grid itself (not a tool-belt button — this is a direct-manipulation
+  // gesture on the field, same as pinching a map). A single pointer that
+  // doesn't move past a small threshold is still a tap (existing
+  // plant/water/harvest/etc. behavior below is unaffected); one that moves
+  // pans instead. Two pointers pinch-zoom, anchored at their midpoint so
+  // panning and zooming blend into one continuous gesture like on a phone
+  // map app. Render.clampView keeps the grid from being panned away
+  // entirely, and stops zoom-out below "fit to screen" (nothing to zoom
+  // out further to).
   function setupCanvas(state, ui, canvas) {
-    canvas.addEventListener('pointerdown', function (e) {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const geom = canvas._geom || Render.resize(canvas);
-      const g = Render.screenToGrid(geom, x, y);
-      if (g.col < 0 || g.col >= geom.cols || g.row < 0 || g.row >= geom.rows) return;
-      const index = g.row * geom.cols + g.col;
+    const pointers = new Map(); // pointerId -> {x, y} in canvas-relative CSS px
+    let mode = 'idle'; // 'idle' | 'drag' | 'pinch'
+    let dragStart = null; // {x, y, panX, panY}
+    let pinchStart = null; // {dist, mid, zoom, panX, panY}
+    let moved = false;
+    // Double-tap-to-reset only matters once the view is actually zoomed
+    // in, so a pending tap is held briefly *only* in that case, in case a
+    // second tap follows within the window — otherwise (the common,
+    // zoom===1 case) every tap fires its plant/water/harvest/etc. action
+    // immediately with no delay at all, same as before this feature
+    // existed. Zoomed-in-only, not real-time-critical.
+    let pendingTapTimer = null;
+
+    function performTap(index, clientX, clientY) {
       Modals.hideTooltip();
-      handlePlotTap(state, ui, index, e.clientX, e.clientY);
+      handlePlotTap(state, ui, index, clientX, clientY);
       Hud.refresh(state, ui);
+    }
+
+    function posFromEvent(e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+    function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+    function mid(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+
+    canvas.addEventListener('pointerdown', function (e) {
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* not universally supported; drag/pinch still work without it as long as the pointer stays over the canvas */ }
+      pointers.set(e.pointerId, posFromEvent(e));
+      if (pointers.size === 1) {
+        const p = pointers.get(e.pointerId);
+        dragStart = { x: p.x, y: p.y, panX: ui.view.panX, panY: ui.view.panY };
+        moved = false;
+        mode = 'drag';
+      } else if (pointers.size === 2) {
+        const pts = Array.from(pointers.values());
+        pinchStart = { dist: dist(pts[0], pts[1]), mid: mid(pts[0], pts[1]), zoom: ui.view.zoom, panX: ui.view.panX, panY: ui.view.panY };
+        mode = 'pinch';
+      }
     });
+
+    canvas.addEventListener('pointermove', function (e) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, posFromEvent(e));
+      const baseGeom = canvas._baseGeom || Render.resize(canvas);
+
+      if (mode === 'drag' && pointers.size === 1) {
+        const p = pointers.get(e.pointerId);
+        const dx = p.x - dragStart.x, dy = p.y - dragStart.y;
+        if (!moved && Math.hypot(dx, dy) > 6) moved = true;
+        if (moved) {
+          ui.view = Render.clampView(baseGeom, { zoom: ui.view.zoom, panX: dragStart.panX + dx, panY: dragStart.panY + dy });
+        }
+      } else if (mode === 'pinch' && pointers.size === 2) {
+        const pts = Array.from(pointers.values());
+        const d = dist(pts[0], pts[1]);
+        const m = mid(pts[0], pts[1]);
+        const scale = pinchStart.dist > 0 ? d / pinchStart.dist : 1;
+        ui.view = Render.clampView(baseGeom, {
+          zoom: pinchStart.zoom * scale,
+          panX: pinchStart.panX + (m.x - pinchStart.mid.x),
+          panY: pinchStart.panY + (m.y - pinchStart.mid.y)
+        });
+        moved = true;
+      }
+    });
+
+    function endPointer(e) {
+      const wasTap = mode === 'drag' && !moved && pointers.size === 1;
+      const tapPos = wasTap ? pointers.get(e.pointerId) : null;
+      pointers.delete(e.pointerId);
+
+      if (pointers.size === 0) {
+        mode = 'idle';
+      } else if (pointers.size === 1) {
+        // Dropped from a pinch (2 fingers) to 1 — start a fresh drag from
+        // here rather than reusing stale pinch math, and treat the
+        // gesture as "already moved" so lifting the last finger next
+        // doesn't spuriously register as a tap.
+        const remaining = Array.from(pointers.values())[0];
+        dragStart = { x: remaining.x, y: remaining.y, panX: ui.view.panX, panY: ui.view.panY };
+        moved = true;
+        mode = 'drag';
+      }
+
+      if (wasTap && tapPos) {
+        if (pendingTapTimer) {
+          // A second tap arrived while the first was still on hold: reset
+          // the view instead of acting on whatever tile is underneath.
+          clearTimeout(pendingTapTimer);
+          pendingTapTimer = null;
+          ui.view = { zoom: 1, panX: 0, panY: 0 };
+          return;
+        }
+
+        const geom = canvas._geom || Render.resize(canvas);
+        const g = Render.screenToGrid(geom, tapPos.x, tapPos.y);
+        if (g.col < 0 || g.col >= geom.cols || g.row < 0 || g.row >= geom.rows) return;
+        const index = g.row * geom.cols + g.col;
+        const clientX = e.clientX, clientY = e.clientY;
+
+        if (ui.view.zoom <= 1.001) {
+          performTap(index, clientX, clientY); // not zoomed in: nothing to reset, act immediately
+        } else {
+          pendingTapTimer = setTimeout(function () {
+            pendingTapTimer = null;
+            performTap(index, clientX, clientY);
+          }, 280);
+        }
+      }
+    }
+
+    canvas.addEventListener('pointerup', endPointer);
+    canvas.addEventListener('pointercancel', endPointer);
+
+    canvas.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      const baseGeom = canvas._baseGeom || Render.resize(canvas);
+      const delta = e.deltaY > 0 ? -0.15 : 0.15;
+      ui.view = Render.clampView(baseGeom, { zoom: ui.view.zoom + delta, panX: ui.view.panX, panY: ui.view.panY });
+    }, { passive: false });
   }
 
   return {
