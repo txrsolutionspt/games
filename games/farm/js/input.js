@@ -235,9 +235,10 @@ const Input = (function () {
   // plant/water/harvest/etc. behavior below is unaffected); one that moves
   // pans instead. Two pointers pinch-zoom, anchored at their midpoint so
   // panning and zooming blend into one continuous gesture like on a phone
-  // map app. Render.clampView keeps the grid from being panned away
-  // entirely, and stops zoom-out below "fit to screen" (nothing to zoom
-  // out further to).
+  // map app. Render.clampView keeps panning within the field's own extent
+  // — the field (CONFIG.gridCols × gridRows) spans multiple screens on
+  // purpose, so most of it is only reachable this way, not by shrinking
+  // everything to fit — and bounds zoom to a sensible min/max.
   function setupCanvas(state, ui, canvas) {
     const pointers = new Map(); // pointerId -> {x, y} in canvas-relative CSS px
     let mode = 'idle'; // 'idle' | 'drag' | 'pinch'
@@ -327,7 +328,11 @@ const Input = (function () {
       if (wasTap && tapPos) {
         if (pendingTapTimer) {
           // A second tap arrived while the first was still on hold: reset
-          // the view instead of acting on whatever tile is underneath.
+          // the view instead of acting on whatever tile is underneath —
+          // checked *before* anything about which tile was tapped, since
+          // on a field this much bigger than the screen the tap can
+          // easily land past the grid's edge (out of bounds) after a big
+          // pan, and the reset must still work there.
           clearTimeout(pendingTapTimer);
           pendingTapTimer = null;
           ui.view = { zoom: 1, panX: 0, panY: 0 };
@@ -336,16 +341,20 @@ const Input = (function () {
 
         const geom = canvas._geom || Render.resize(canvas);
         const g = Render.screenToGrid(geom, tapPos.x, tapPos.y);
-        if (g.col < 0 || g.col >= geom.cols || g.row < 0 || g.row >= geom.rows) return;
-        const index = g.row * geom.cols + g.col;
+        const inBounds = g.col >= 0 && g.col < geom.cols && g.row >= 0 && g.row < geom.rows;
+        const index = inBounds ? g.row * geom.cols + g.col : null;
         const clientX = e.clientX, clientY = e.clientY;
 
-        if (ui.view.zoom <= 1.001) {
-          performTap(index, clientX, clientY); // not zoomed in: nothing to reset, act immediately
+        const atHome = ui.view.zoom <= 1.001 && Math.abs(ui.view.panX) < 1 && Math.abs(ui.view.panY) < 1;
+        if (atHome) {
+          if (index !== null) performTap(index, clientX, clientY); // nothing to reset back to: act immediately
         } else {
+          // Arm the pending-tap timer even for an out-of-bounds tap (index
+          // null just means the eventual action is a no-op) — a double-tap
+          // must be able to cancel it and reset the view either way.
           pendingTapTimer = setTimeout(function () {
             pendingTapTimer = null;
-            performTap(index, clientX, clientY);
+            if (index !== null) performTap(index, clientX, clientY);
           }, 280);
         }
       }

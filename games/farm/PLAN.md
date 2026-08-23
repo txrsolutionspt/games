@@ -345,11 +345,11 @@ already applied to crops/animals/recipes/missions (§1).
 ## 9. Rendering (pseudo-isometric grid)
 
 - `render.js` owns a single `<canvas>` sized to the viewport. The farm is a
-  simple 2D grid (e.g. 6×6 MVP plots) projected to diamond ("2:1
-  pseudo-isometric") screen coordinates with a small, well-documented
-  `gridToScreen(x, y)` / `screenToGrid(px, py)` pair of pure functions —
-  the same math both draws tiles and interprets taps, so hit-testing can't
-  drift from rendering.
+  2D grid (`CONFIG.gridCols` × `gridRows`, 12×12 = 144 plots) projected to
+  diamond ("2:1 pseudo-isometric") screen coordinates with a small,
+  well-documented `gridToScreen(x, y)` / `screenToGrid(px, py)` pair of
+  pure functions — the same math both draws tiles and interprets taps, so
+  hit-testing can't drift from rendering.
 - Draw order per frame: ground tiles → fences/paths → buildings → crops/
   animals (back-to-front by grid row for correct overlap) → transient
   effects (sparkle on harvest-ready, water droplet animation).
@@ -359,20 +359,36 @@ already applied to crops/animals/recipes/missions (§1).
   ready-to-harvest crops and animals, done with a time-based sine offset —
   cheap and reads as "friendly and alive" without needing sprite sheets.
 - Pinch/scroll-to-zoom and drag-to-pan on the field itself (§10), not a
-  tool-belt button. `computeGeometry()` fits the whole grid to the canvas
-  at zoom 1 (the "base" geometry, recomputed on resize); a separate
-  `applyView(baseGeom, {zoom, panX, panY})` scales that baseline around
-  the canvas center and shifts it by the pan offset every frame, producing
-  the same `{tileW, tileH, originX, originY, ...}` shape `gridToScreen`/
-  `screenToGrid` already expect — so neither of those, nor the object
-  hit-testing above, needs to know zoom/pan exist at all.
-- `{zoom, panX, panY}` (the "view") lives on the ephemeral `ui` object
-  like `tool`, not saved game state — it resets to "fit the whole farm on
-  screen" on reload, the same as reopening a map app. `Render.clampView`
-  keeps it sane: zoom is bounded to `[1, 2.5]` (1 = fit-to-screen, nothing
-  to zoom out further to), and pan is bounded proportionally to how far
-  zoomed in the view is (zero slack at zoom 1, since there's nothing to
-  pan around yet) so the grid can never be dragged entirely off-screen.
+  tool-belt button.
+
+### Camera & world size
+
+The field is deliberately bigger than any one screen — 144 plots is more
+than a phone (or even a desktop frame) can show at a readable size at
+once — so most of it is only reachable by panning/scrolling, the same as
+a map. `computeGeometry()` no longer shrinks the whole grid to fit the
+canvas; it picks a natural, readable tile size (bounded so it can't shrink
+below legible on a narrow phone or balloon huge on a wide desktop frame)
+independent of how big the field is, and centers the initial camera on
+the starting unlocked cluster (`FOCUS_COL`/`FOCUS_ROW`) rather than the
+grid's overall geometric center — a new player should land looking at
+their own plots, not empty locked land in the middle of a big field.
+
+A separate `applyView(baseGeom, {zoom, panX, panY})` scales that baseline
+around the canvas center and shifts it by the pan offset every frame,
+producing the same `{tileW, tileH, originX, originY, ...}` shape
+`gridToScreen`/`screenToGrid` already expect — so neither of those, nor
+the object hit-testing above, needs to know zoom/pan exist at all.
+
+`{zoom, panX, panY}` (the "view") lives on the ephemeral `ui` object like
+`tool`, not saved game state — it resets to that natural-size,
+home-cluster-centered camera on reload, the same as reopening a map app.
+`Render.clampView` keeps it sane: zoom is bounded to a sensible min/max
+(zooming out further than that would make tiles unreadably small; zooming
+in further wouldn't show meaningfully more detail), and pan is bounded to
+the field's own extent — past a point there's simply no more world left
+in that direction — which scales with both zoom and `CONFIG.gridCols`/
+`gridRows`, so a bigger field automatically means more room to pan.
 
 ## 10. Input & controls
 
@@ -397,18 +413,21 @@ already applied to crops/animals/recipes/missions (§1).
   zoom/pan (below), which never trigger a tile action by themselves.
 - Pinch (two pointers) zooms the field; scroll/trackpad zooms it on
   desktop; a single pointer that moves past a small threshold pans it
-  instead of tapping. A double-tap resets the view to "see the whole
-  farm". Because a tap and the *start* of a pan look identical until the
-  pointer actually moves, a single pointer is provisionally treated as
-  `mode: 'drag'` and only fires its tile action on release if it never
-  passed that movement threshold — so an accidental tiny wobble mid-tap
-  still counts as a tap, but a real drag never fires one. While the view
-  is zoomed in, a tap on a tile is held for ~280ms before it fires,
-  specifically so a following second tap can cancel it and reset the view
-  instead of *also* acting on whatever tile happens to be underneath
-  (e.g. opening an unlock-cost modal on a locked plot mid-double-tap).
-  At zoom 1 (the common case) taps fire with no delay at all, same as
-  before this feature existed.
+  instead of tapping. A double-tap resets the view back "home" (zoom 1,
+  centered on the starting cluster — see §9). Because a tap and the
+  *start* of a pan look identical until the pointer actually moves, a
+  single pointer is provisionally treated as `mode: 'drag'` and only fires
+  its tile action on release if it never passed that movement threshold —
+  so an accidental tiny wobble mid-tap still counts as a tap, but a real
+  drag never fires one. Whenever the view isn't already at home (zoomed
+  in, or panned away from the starting cluster — panning happens at zoom
+  1 too, since the field is bigger than the screen even there), a tap on
+  a tile is held for ~280ms before it fires, specifically so a following
+  second tap can cancel it and reset the view instead of *also* acting on
+  whatever tile happens to be underneath (e.g. opening an unlock-cost
+  modal on a locked plot mid-double-tap). Right at home (the common case
+  on a fresh load) taps fire with no delay at all, same as before this
+  feature existed.
 - Two hit-testing methods, layered: ground-tile selection uses the exact
   `screenToGrid` math from §9 (tiles tile the plane exactly, so this is
   precise and cheap); animals, buildings, and ready-to-harvest crops —
@@ -485,7 +504,7 @@ already applied to crops/animals/recipes/missions (§1).
 
 | Brief requirement | Plan |
 |---|---|
-| One farm | Single 6×6 (or similar) plot grid, expandable via `economy.js` unlock cost |
+| One farm | Single 12×12 plot grid (bigger than one screen, panned/scrolled — §9), expandable via `economy.js` unlock cost |
 | 4–6 crops | 6 crops in `data-crops.js` (§5) |
 | 2–3 animal types | Chicken, cow, sheep in `data-animals.js` |
 | Planting/watering/growing/harvesting | `farm-rules.js` + `simulation.js` (§8) |

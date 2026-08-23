@@ -5,32 +5,46 @@
 // devicePixelRatio scale once via setTransform so nothing else needs to
 // think about it.
 
-const MIN_ZOOM = 1;
+const MIN_ZOOM = 0.6;
 const MAX_ZOOM = 2.5;
+
+// How many tile-columns fit across the canvas width at zoom 1. The field
+// (CONFIG.gridCols × gridRows) is sized well beyond this on purpose — see
+// PLAN.md §9 "Camera & world size" — so most of it is only reachable by
+// panning/scrolling, the same as a map that's bigger than the screen.
+const TARGET_VISIBLE_COLS = 5;
+
+// Initial camera focus, in grid coordinates: the starting unlocked
+// cluster (roughly the centroid of plot indices 0..initialUnlockedPlots),
+// not the grid's overall center — a new player should land looking at
+// their own plots, not empty locked land in the middle of a big field.
+const FOCUS_COL = 2.5;
+const FOCUS_ROW = 0.5;
 
 const Render = (function () {
   function computeGeometry(canvas) {
     const cssW = canvas.clientWidth || 300;
     const cssH = canvas.clientHeight || 300;
     const cols = CONFIG.gridCols, rows = CONFIG.gridRows;
-    const pad = 0.86;
-    const tileWFromWidth = (cssW * pad) / ((cols + rows) / 2);
-    const tileWFromHeight = (cssH * pad) / ((cols + rows) / 4);
-    const tileW = Math.max(16, Math.min(tileWFromWidth, tileWFromHeight));
+    // Natural, readable tile size — independent of how big the field is,
+    // unlike a "shrink everything to fit" layout. Bounded so it doesn't
+    // shrink below readable on a narrow phone or balloon huge on a wide
+    // desktop frame.
+    const tileW = Math.max(28, Math.min(140, (cssW * 0.82) / TARGET_VISIBLE_COLS));
     const tileH = tileW / 2;
-    const boundingH = (cols + rows) * tileH / 2 + tileH;
-    const originX = cssW / 2;
-    const originY = Math.max(tileH, (cssH - boundingH) / 2 + tileH / 2);
+    const originX = cssW / 2 - (FOCUS_COL - FOCUS_ROW) * (tileW / 2);
+    const originY = cssH / 2 - (FOCUS_COL + FOCUS_ROW) * (tileH / 2);
     return { cssW: cssW, cssH: cssH, tileW: tileW, tileH: tileH, originX: originX, originY: originY, cols: cols, rows: rows };
   }
 
   // The farm grid supports pinch/scroll zoom + drag pan (see input.js).
   // `view` ({zoom, panX, panY}) is ephemeral UI state owned by game.js, not
-  // saved game state. computeGeometry() above is the "fit to canvas at
-  // zoom 1" baseline; applyView() zooms that baseline around the canvas
-  // center and then shifts it by the pan offset, producing the same
-  // {tileW, tileH, originX, originY, ...} shape gridToScreen/screenToGrid
-  // already expect — so neither of those needs to know zoom/pan exist.
+  // saved game state. computeGeometry() above is the "natural size,
+  // camera focused on the starting cluster" baseline; applyView() zooms
+  // that baseline around the canvas center and then shifts it by the pan
+  // offset, producing the same {tileW, tileH, originX, originY, ...}
+  // shape gridToScreen/screenToGrid already expect — so neither of those
+  // needs to know zoom/pan exist.
   function applyView(baseGeom, view) {
     const cx = baseGeom.cssW / 2;
     const cy = baseGeom.cssH / 2;
@@ -47,13 +61,21 @@ const Render = (function () {
     };
   }
 
-  // Keeps the zoomed grid from being panned entirely off-screen: the
-  // further zoomed in, the more slack there is to pan around within, but
-  // at zoom 1 (nothing to explore) no panning is allowed at all.
+  // Keeps panning within the field's own extent: past a certain point
+  // there is simply no more world in that direction to scroll to. The
+  // allowance grows with zoom (a more zoomed-in view needs to travel
+  // further, in screen pixels, to cross the same amount of field) and
+  // with the field's total size, so a bigger CONFIG.gridCols/gridRows
+  // automatically means more room to pan around in.
   function clampView(baseGeom, view) {
     const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, view.zoom));
-    const maxPanX = (zoom - 1) * baseGeom.cssW * 0.5;
-    const maxPanY = (zoom - 1) * baseGeom.cssH * 0.5;
+    const cols = baseGeom.cols, rows = baseGeom.rows;
+    const tileW = baseGeom.tileW * zoom;
+    const tileH = tileW / 2;
+    const worldW = (cols + rows) * tileW / 2 + tileW;
+    const worldH = (cols + rows) * tileH / 2 + tileH;
+    const maxPanX = worldW / 2;
+    const maxPanY = worldH / 2;
     return {
       zoom: zoom,
       panX: Math.max(-maxPanX, Math.min(maxPanX, view.panX)),
