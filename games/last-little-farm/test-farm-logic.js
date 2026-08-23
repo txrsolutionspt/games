@@ -202,6 +202,72 @@ test('regrowTree is a no-op on a healthy tree', () => {
     assert.strictEqual(tree.hp, 3);
 });
 
+console.log('\nBushes (gather → respawn):');
+
+test('gathering a bush with a seed grants a seed and empties it', () => {
+    const bush = FarmLogic.createBush(300);
+    const resources = freshResources({ seeds: 0 });
+    const ok = FarmLogic.gatherBush(bush, resources, 25, 1);
+    assert.strictEqual(ok, true);
+    assert.strictEqual(resources.seeds, 1);
+    assert.strictEqual(bush.hasSeed, false);
+    assert.strictEqual(bush.respawnTimer, 25);
+});
+
+test('gathering an empty bush is a no-op', () => {
+    const bush = FarmLogic.createBush(300);
+    bush.hasSeed = false;
+    bush.respawnTimer = 10;
+    const resources = freshResources({ seeds: 0 });
+    const ok = FarmLogic.gatherBush(bush, resources, 25, 1);
+    assert.strictEqual(ok, false);
+    assert.strictEqual(resources.seeds, 0);
+});
+
+test('a gathered bush regrows its seed once the respawn timer elapses', () => {
+    const bush = FarmLogic.createBush(300);
+    const resources = freshResources({ seeds: 0 });
+    FarmLogic.gatherBush(bush, resources, 10, 1);
+    assert.strictEqual(FarmLogic.regrowBush(bush, 6), false);
+    assert.strictEqual(bush.hasSeed, false);
+    assert.ok(Math.abs(bush.respawnTimer - 4) < 1e-9);
+    assert.strictEqual(FarmLogic.regrowBush(bush, 10), true);
+    assert.strictEqual(bush.hasSeed, true);
+});
+
+test('regrowBush is a no-op on a bush that already has a seed', () => {
+    const bush = FarmLogic.createBush(300);
+    assert.strictEqual(FarmLogic.regrowBush(bush, 100), false);
+    assert.strictEqual(bush.hasSeed, true);
+});
+
+console.log('\nSeed stand (buy seeds with wood):');
+
+test('buying a seed spends wood and grants exactly one seed', () => {
+    const resources = freshResources({ wood: 5, seeds: 0 });
+    const ok = FarmLogic.buySeed(resources, 2);
+    assert.strictEqual(ok, true);
+    assert.strictEqual(resources.wood, 3);
+    assert.strictEqual(resources.seeds, 1);
+});
+
+test('buying a seed fails without enough wood', () => {
+    const resources = freshResources({ wood: 1, seeds: 0 });
+    const ok = FarmLogic.buySeed(resources, 2);
+    assert.strictEqual(ok, false);
+    assert.strictEqual(resources.wood, 1);
+    assert.strictEqual(resources.seeds, 0);
+});
+
+test('buying repeatedly drains wood exactly at the boundary', () => {
+    const resources = freshResources({ wood: 4, seeds: 0 });
+    assert.strictEqual(FarmLogic.buySeed(resources, 2), true);
+    assert.strictEqual(FarmLogic.buySeed(resources, 2), true);
+    assert.strictEqual(resources.wood, 0);
+    assert.strictEqual(resources.seeds, 2);
+    assert.strictEqual(FarmLogic.buySeed(resources, 2), false, 'no wood left');
+});
+
 console.log('\nChicken (feed → egg timer → egg):');
 
 function freshChicken() {

@@ -15,6 +15,8 @@ const MOVE_SPEED = 240;
 const JUMP_VELOCITY = 780;
 const GROW_TIME = 16; // seconds from watered -> ready
 const TREE_REGROW_TIME = 40;
+const BUSH_RESPAWN_TIME = 25;
+const SEED_STAND_COST = 2; // wood per seed
 const CHICKEN_EGG_TIME = 12;
 const INTERACT_RANGE = 70;
 
@@ -56,6 +58,7 @@ resizeCanvas();
 const world = {
     houseX: 220,
     wellX: 470,
+    standX: 350,
     coopX: 900,
     plots: [
         { x: 660, state: 'empty', growth: 0, watered: false },
@@ -66,6 +69,12 @@ const world = {
         { x: 1500, hp: 3, stumpTimer: 0 },
         { x: 1620, hp: 3, stumpTimer: 0 },
         { x: 1760, hp: 3, stumpTimer: 0 },
+    ],
+    bushes: [
+        FarmLogic.createBush(130),
+        FarmLogic.createBush(1150),
+        FarmLogic.createBush(1350),
+        FarmLogic.createBush(2050),
     ],
     chicken: {
         x: 950, vx: 0, dir: 1, idleTimer: 1.5, targetX: 950,
@@ -103,11 +112,13 @@ const quests = [
     { id: 'grow', text: 'Wait for your crop to grow, then harvest it (✋).', done: () => resources.crops > 0 },
     { id: 'chicken', text: 'Bring a crop to the chicken to earn an egg (✋).', done: () => resources.eggs > 0 },
     { id: 'wood', text: 'Chop wood from the trees to gather materials (✋).', done: () => resources.wood > 0 },
+    { id: 'seeds', text: 'Running low on seeds? Gather wild ones from a bush 🌿, or buy some at the seed stand (✋).', done: () => seedSourceUsed },
     { id: 'sleep', text: 'Head into the house and rest to end the day (✋).', done: () => resources.day > 1 },
     { id: 'done', text: 'Your little farm is growing. Keep farming, exploring and restoring! 🌾', done: () => false },
 ];
 let questIndex = 0;
 let questMoved = false;
+let seedSourceUsed = false;
 
 function currentQuest() { return quests[Math.min(questIndex, quests.length - 1)]; }
 
@@ -180,6 +191,7 @@ function saveGame() {
             resources,
             plots: world.plots.map(p => ({ state: p.state, growth: p.growth, watered: p.watered })),
             trees: world.trees.map(t => ({ hp: t.hp, stumpTimer: t.stumpTimer })),
+            bushes: world.bushes.map(b => ({ hasSeed: b.hasSeed, respawnTimer: b.respawnTimer })),
             playerX: player.x,
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -198,6 +210,9 @@ function loadGame() {
         if (Array.isArray(data.trees)) {
             data.trees.forEach((t, i) => { if (world.trees[i]) Object.assign(world.trees[i], t); });
         }
+        if (Array.isArray(data.bushes)) {
+            data.bushes.forEach((b, i) => { if (world.bushes[i]) Object.assign(world.bushes[i], b); });
+        }
         if (typeof data.playerX === 'number') player.x = data.playerX;
         questIndex = quests.findIndex(q => !q.done());
         if (questIndex === -1) questIndex = quests.length - 1;
@@ -214,6 +229,7 @@ function nearestInteractable() {
     const dist = x => Math.abs(player.x - x);
 
     if (dist(world.wellX) < bestDist) { best = { type: 'well' }; bestDist = dist(world.wellX); }
+    if (dist(world.standX) < bestDist) { best = { type: 'stand' }; bestDist = dist(world.standX); }
     if (dist(world.houseX) < bestDist) { best = { type: 'house' }; bestDist = dist(world.houseX); }
     if (dist(world.chicken.x) < bestDist) { best = { type: 'chicken' }; bestDist = dist(world.chicken.x); }
 
@@ -222,6 +238,9 @@ function nearestInteractable() {
     });
     world.trees.forEach((t, i) => {
         if (t.hp > 0 && dist(t.x) < bestDist) { best = { type: 'tree', index: i }; bestDist = dist(t.x); }
+    });
+    world.bushes.forEach((b, i) => {
+        if (dist(b.x) < bestDist) { best = { type: 'bush', index: i }; bestDist = dist(b.x); }
     });
 
     return best;
@@ -234,6 +253,12 @@ function promptFor(target) {
         case 'house': return 'Rest & save';
         case 'chicken': return resources.crops > 0 ? 'Feed chicken' : 'Say hi';
         case 'tree': return 'Chop wood';
+        case 'bush': {
+            const b = world.bushes[target.index];
+            return b.hasSeed ? 'Gather seeds 🌿' : 'Bush is bare';
+        }
+        case 'stand':
+            return resources.wood >= SEED_STAND_COST ? `Buy seed (${SEED_STAND_COST} wood)` : `Need ${SEED_STAND_COST} wood`;
         case 'plot': {
             const p = world.plots[target.index];
             if (p.state === 'empty') return 'Till soil';
@@ -266,6 +291,14 @@ function doAction(target) {
             if (FarmLogic.chopTree(t, resources, TREE_REGROW_TIME) && t.hp <= 0) saveGame();
             break;
         }
+        case 'bush': {
+            const b = world.bushes[target.index];
+            if (FarmLogic.gatherBush(b, resources, BUSH_RESPAWN_TIME, 1)) { seedSourceUsed = true; saveGame(); }
+            break;
+        }
+        case 'stand':
+            if (FarmLogic.buySeed(resources, SEED_STAND_COST)) { seedSourceUsed = true; saveGame(); }
+            break;
         case 'plot': {
             const p = world.plots[target.index];
             if (p.state === 'empty') {
@@ -329,6 +362,9 @@ function update(dt) {
     // --- trees regrow ---
     world.trees.forEach(t => FarmLogic.regrowTree(t, dt));
 
+    // --- bushes regrow ---
+    world.bushes.forEach(b => FarmLogic.regrowBush(b, dt));
+
     // --- chicken AI ---
     updateChicken(dt);
 
@@ -362,6 +398,18 @@ function updateChicken(dt) {
     }
 }
 
+function targetWorldX(target) {
+    switch (target.type) {
+        case 'plot': return world.plots[target.index].x;
+        case 'tree': return world.trees[target.index].x;
+        case 'bush': return world.bushes[target.index].x;
+        case 'well': return world.wellX;
+        case 'stand': return world.standX;
+        case 'house': return world.houseX;
+        case 'chicken': return world.chicken.x;
+    }
+}
+
 function updatePrompt(target) {
     const bubble = document.getElementById('prompt-bubble');
     const actionBtn = document.getElementById('btn-action');
@@ -370,12 +418,7 @@ function updatePrompt(target) {
         bubble.textContent = text;
         bubble.classList.add('visible');
         actionBtn.classList.add('available');
-        const worldX = target.type === 'plot' ? world.plots[target.index].x
-            : target.type === 'tree' ? world.trees[target.index].x
-            : target.type === 'well' ? world.wellX
-            : target.type === 'house' ? world.houseX
-            : world.chicken.x;
-        const screenX = worldX - camX;
+        const screenX = targetWorldX(target) - camX;
         const screenY = groundY - 70;
         bubble.style.left = screenX + 'px';
         bubble.style.top = screenY + 'px';
@@ -404,11 +447,13 @@ function draw() {
     drawParallaxHills();
     drawGround();
     drawWell();
+    drawStand();
     drawHouse();
     drawCoop();
     drawFencePosts();
     drawPlots();
     drawTrees();
+    drawBushes();
     drawChicken();
     drawPlayer();
     if (dayFlashTimer > 0) {
@@ -532,6 +577,49 @@ function drawWell() {
     const pct = resources.water / resources.waterMax;
     ctx.fillStyle = '#3a7fc9';
     ctx.fillRect(x - 20, groundY - 8 - 14 * pct, 40, 14 * pct);
+}
+
+function drawStand() {
+    const x = w2s(world.standX);
+    if (x < -50 || x > viewW + 50) return;
+    // table
+    ctx.fillStyle = '#8a6a42';
+    ctx.fillRect(x - 24, groundY - 22, 48, 6);
+    ctx.fillRect(x - 20, groundY - 16, 5, 16);
+    ctx.fillRect(x + 15, groundY - 16, 5, 16);
+    // awning
+    ctx.fillStyle = '#c9503a';
+    ctx.beginPath();
+    ctx.moveTo(x - 30, groundY - 22);
+    ctx.lineTo(x + 30, groundY - 22);
+    ctx.lineTo(x + 22, groundY - 46);
+    ctx.lineTo(x - 22, groundY - 46);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#fff8e7';
+    for (let i = -18; i < 18; i += 12) {
+        ctx.beginPath();
+        ctx.moveTo(x + i, groundY - 22);
+        ctx.lineTo(x + i + 6, groundY - 22);
+        ctx.lineTo(x + i * 0.75 + 3, groundY - 46);
+        ctx.lineTo(x + i * 0.75 - 3, groundY - 46);
+        ctx.closePath();
+        ctx.fill();
+    }
+    // seed bags on the table
+    ctx.fillStyle = '#c98a3a';
+    ctx.beginPath();
+    ctx.ellipse(x - 8, groundY - 26, 6, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 6, groundY - 27, 6, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const near = Math.abs(player.x - world.standX) < INTERACT_RANGE;
+    if (near && resources.wood >= SEED_STAND_COST) {
+        ctx.fillStyle = 'rgba(255, 230, 120, 0.9)';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🌱', x, groundY - 52);
+        ctx.textAlign = 'left';
+    }
 }
 
 function drawHouse() {
@@ -659,6 +747,27 @@ function drawTrees() {
         ctx.arc(x - 22 + shake, groundY - 60, 22, 0, Math.PI * 2);
         ctx.arc(x + 22 + shake, groundY - 60, 22, 0, Math.PI * 2);
         ctx.fill();
+    });
+}
+
+function drawBushes() {
+    world.bushes.forEach(b => {
+        const x = w2s(b.x);
+        if (x < -30 || x > viewW + 30) return;
+        ctx.fillStyle = b.hasSeed ? '#4f9a4a' : '#5f7a52';
+        ctx.beginPath();
+        ctx.arc(x, groundY - 14, 16, 0, Math.PI * 2);
+        ctx.arc(x - 11, groundY - 9, 11, 0, Math.PI * 2);
+        ctx.arc(x + 11, groundY - 9, 11, 0, Math.PI * 2);
+        ctx.fill();
+        if (b.hasSeed) {
+            ctx.fillStyle = '#e8c23a';
+            [[-8, -16], [6, -20], [0, -10]].forEach(([dx, dy]) => {
+                ctx.beginPath();
+                ctx.arc(x + dx, groundY + dy, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
     });
 }
 
