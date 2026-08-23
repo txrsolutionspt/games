@@ -119,8 +119,13 @@ html, body {
   width: 100%;
   height: 100%;
   display: block;
+  /* touch-action: none hands pinch/pan gestures to input.js's own pointer
+     handling instead of the browser's native page-zoom/scroll. */
   touch-action: none;
+  cursor: grab;
 }
+
+#farm-canvas:active { cursor: grabbing; }
 
 /* ---- Right rail: tool belt ---- */
 
