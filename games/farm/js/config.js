@@ -10,8 +10,22 @@ const CONFIG = {
   // natural, readable tile size (see render.js computeGeometry) rather
   // than shrunk to fit, so most of it is only reachable by panning/
   // scrolling — see PLAN.md §9 "Camera & world size".
-  gridCols: 12,
-  gridRows: 12,
+  //
+  // 60x60 (3,600 plots) is a deliberate ceiling, not an arbitrary round
+  // number: state.plots holds one object per plot and gets JSON-
+  // serialized into localStorage on every autosave (see persistence.js),
+  // and render.js sorts/iterates every plot each frame. At this size a
+  // save is well under 1MB (localStorage quotas are typically ~5-10MB)
+  // and the per-frame sort is a few thousand elements (imperceptible at
+  // 60fps) — both comfortably safe without changing how state or
+  // rendering work. A dense per-plot grid stops being safe well before
+  // six figures of plots: at that scale most of the array would be
+  // default "locked, empty" filler nobody will ever reach anyway, so it
+  // would need a sparse/lazy world model (only store and draw what's
+  // actually been touched or is on screen) rather than just a bigger
+  // number here.
+  gridCols: 60,
+  gridRows: 60,
   initialUnlockedPlots: 8, // first N plots (row-major) are unlocked at game start
 
   // 1 tick = 1 real second at timeScale 1. Raising timeScale speeds up the
@@ -33,11 +47,13 @@ const CONFIG = {
   startingCoins: 60,
 
   // Cost, in coins, to unlock the Nth plot (0-indexed) beyond the
-  // starting set. Slower growth than a 36-plot field would need, since
-  // the 144-plot field means there is much more of it to eventually grow
-  // into.
+  // starting set. Growth is slower than a smaller field would need — at
+  // the far edge of a 3,600-plot field (index ~3599) this is still only
+  // in the low thousands of coins, not the tens of thousands a steeper
+  // per-plot rate would reach — since there's now far more field to
+  // eventually grow into than any player needs to fully unlock.
   plotUnlockCost(index) {
-    return 20 + index * 6;
+    return 20 + index * 2;
   }
 };
 
