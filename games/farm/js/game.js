@@ -110,6 +110,40 @@
     });
 
     document.getElementById('btn-settings').addEventListener('click', function () {
+      // Switching/creating a farm reloads the page so game.js re-boots
+      // cleanly against the newly-active slot, rather than trying to
+      // hot-swap state/timers/listeners mid-session. Any pending autosave
+      // for the *current* farm is flushed first so leaving it never loses
+      // its last few seconds of progress.
+      const farmActions = {
+        switchTo: function (id) {
+          Persistence.saveNow(state);
+          Persistence.setActiveSlotId(id);
+          window.location.reload();
+        },
+        create: function (name) {
+          Persistence.saveNow(state);
+          const newId = Persistence.createSlot(name);
+          Persistence.setActiveSlotId(newId);
+          window.location.reload();
+        },
+        rename: function (id, name) {
+          Persistence.renameSlot(id, name);
+          Modals.showFarmSlots(farmActions);
+        },
+        delete: function (id) {
+          const wasActive = Persistence.getActiveSlotId() === id;
+          const ok = Persistence.deleteSlot(id);
+          if (!ok) {
+            Hud.toast(I18N.t('ui.farms.cantDeleteLast', 'You need at least one farm!'));
+            Modals.showFarmSlots(farmActions);
+            return;
+          }
+          if (wasActive) { window.location.reload(); return; }
+          Modals.showFarmSlots(farmActions);
+        }
+      };
+
       Modals.showSettings(state, {
         setLocale: function (code) {
           state.settings.locale = code;
@@ -121,7 +155,8 @@
         reset: function () {
           Persistence.reset();
           window.location.reload();
-        }
+        },
+        farms: farmActions
       });
     });
 

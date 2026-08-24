@@ -301,15 +301,32 @@ already applied to crops/animals/recipes/missions (§1).
   settings{}, lastTickTimestamp }`. Plots/animals are plain serializable
   objects (id, position, cropId/animalId, plantedAt, lastWateredAt,
   lastFedAt, growthStage, quality).
-- `persistence.js` owns `localStorage` under a single namespaced key
-  (`farm-school-save-v1`), JSON-serializes the whole state, and debounces
-  autosave (~1s after any mutation) so gameplay never blocks on writes.
-  Includes a `SCHEMA_VERSION` and a tiny migration hook so future field
-  additions don't wipe existing saves.
+- `persistence.js` owns `localStorage`, split across two kinds of keys:
+  a **slots index** (`farm-school-slots-v1`) holding the list of "Farms"
+  (id, name, createdAt/updatedAt, a lightweight `preview` of coins/day for
+  the list UI) plus which one is active, and one **per-slot save**
+  (`farm-school-save-v1:<slotId>`) per farm holding that farm's full
+  serialized state. JSON-serializes the whole state and debounces autosave
+  (~1s after any mutation) so gameplay never blocks on writes. Includes a
+  `schemaVersion` and a plot-count shape check so future field/grid-size
+  changes don't load a mismatched save.
+- **Farms (save slots):** the Settings modal's "My Farms" screen lists every
+  slot (name, coins/day preview, which one is currently active) with
+  Play/Rename/Delete per row and a "New Farm" button. Switching or creating
+  a farm flushes the current farm's autosave, updates the active slot id,
+  then reloads the page so `game.js` re-boots cleanly against the new slot
+  rather than hot-swapping in-memory state and timers. The last remaining
+  farm can't be deleted (there must always be at least one). The very first
+  time the slots index doesn't exist yet, `persistence.js` auto-migrates any
+  pre-slots single-key save it finds into a slot named "Farm 1" (preserving
+  its coins/day for the preview) and removes the old key, so existing
+  players' progress carries over transparently.
 - A **Reset Game** action lives in the settings modal (confirm dialog before
   clearing), satisfying the brief's "mechanism to reset local data for
   dev/testing" requirement. This is also the action the in-game Privacy
-  panel points to (§11) when it tells a parent how to clear saved data.
+  panel points to (§11) when it tells a parent how to clear saved data. Note
+  this wipes *every* farm and the slots index itself — it's a full reset,
+  distinct from deleting a single farm from "My Farms".
 - On load, persistence computes elapsed real time since
   `lastTickTimestamp` and hands it to `simulation.js` as one bounded
   catch-up step (capped, e.g., at 24 in-game hours of progress) so crops/

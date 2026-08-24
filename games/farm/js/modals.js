@@ -45,6 +45,15 @@ const Modals = (function () {
     });
   }
 
+  // Farm names are free-typed by the player, so they go through here
+  // before ever landing in an innerHTML string (farm names, unlike
+  // everything else in this file, aren't fixed copy or data-file content).
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   // ---- Non-modal "i" info tooltip (PLAN.md §12: available anytime, not
   // just once) --------------------------------------------------------------
 
@@ -262,12 +271,14 @@ const Modals = (function () {
       '<button class="btn-secondary lang-btn" data-lang="en">English</button>' +
       '<button class="btn-secondary lang-btn" data-lang="pt">Português</button>' +
       '</div>' +
+      '<button class="btn-secondary" id="farms-btn">🚜 ' + I18N.t('ui.farms.settingsEntry', 'My Farms') + '</button>' +
       '<button class="btn-secondary" id="privacy-btn">🛡️ ' + I18N.t('ui.settings.privacy', 'Privacy for Parents') + '</button>' +
       '<button class="btn-danger" id="reset-btn">🗑️ ' + I18N.t('ui.settings.reset', 'Reset Game Data') + '</button>' +
       '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
     root().querySelectorAll('.lang-btn').forEach(function (btn) {
       btn.addEventListener('click', function () { actions.setLocale(btn.dataset.lang); renderSettings(state, actions); });
     });
+    document.getElementById('farms-btn').addEventListener('click', function () { renderFarmSlots(actions.farms); });
     document.getElementById('privacy-btn').addEventListener('click', function () { showPrivacy(); });
     document.getElementById('reset-btn').addEventListener('click', function () { showResetConfirm(actions); });
   }
@@ -301,6 +312,105 @@ const Modals = (function () {
     document.getElementById('reset-yes').addEventListener('click', function () { close(); actions.reset(); });
   }
 
+  // ---- Farm (save slot) management ---------------------------------------------
+
+  // Reached only as in-place navigation from the already-open Settings
+  // modal (renderSettings' farms-btn handler calls this directly, not via
+  // showFarmSlots), and refreshed in place after every rename/delete —
+  // same reasoning as renderMarket/renderSettings above for rendering
+  // directly rather than through enqueueOrRun.
+  function renderFarmSlots(actions) {
+    const slots = Persistence.listSlots();
+    const activeId = Persistence.getActiveSlotId();
+    const rows = slots.map(function (s) {
+      const isActive = s.id === activeId;
+      const dayLabel = I18N.t('ui.hud.day', 'Day') + ' ' + (s.preview ? s.preview.day : 1);
+      const coins = s.preview ? s.preview.coins : 0;
+      return '<div class="farm-slot-row' + (isActive ? ' active' : '') + '">' +
+        '<div class="farm-slot-info">' +
+        '<div class="farm-slot-name">' + escapeHtml(s.name) +
+        (isActive ? ' <span class="farm-slot-badge">' + I18N.t('ui.farms.current', 'Playing now') + '</span>' : '') +
+        '</div>' +
+        '<div class="farm-slot-meta">🪙 ' + coins + ' · ' + dayLabel + '</div>' +
+        '</div>' +
+        '<div class="farm-slot-actions">' +
+        (isActive ? '' : '<button class="btn-primary" data-play="' + s.id + '">' + I18N.t('ui.farms.play', 'Play') + '</button>') +
+        '<button class="btn-secondary" data-rename="' + s.id + '" aria-label="' + I18N.t('ui.farms.rename', 'Rename') + '">✏️</button>' +
+        (slots.length > 1 ? '<button class="btn-danger" data-delete="' + s.id + '" aria-label="' + I18N.t('ui.farms.delete', 'Delete') + '">🗑️</button>' : '') +
+        '</div>' +
+        '</div>';
+    }).join('');
+
+    open('<h2>🚜 ' + I18N.t('ui.farms.title', 'My Farms') + '</h2>' +
+      '<div class="farm-slot-list">' + rows + '</div>' +
+      '<button class="btn-primary" id="farm-new">➕ ' + I18N.t('ui.farms.new', 'New Farm') + '</button>' +
+      '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
+
+    root().querySelectorAll('[data-play]').forEach(function (btn) {
+      btn.addEventListener('click', function () { actions.switchTo(btn.dataset.play); });
+    });
+    root().querySelectorAll('[data-rename]').forEach(function (btn) {
+      btn.addEventListener('click', function () { showRenameFarm(btn.dataset.rename, actions); });
+    });
+    root().querySelectorAll('[data-delete]').forEach(function (btn) {
+      btn.addEventListener('click', function () { showDeleteFarmConfirm(btn.dataset.delete, actions); });
+    });
+    document.getElementById('farm-new').addEventListener('click', function () { showNewFarmName(actions); });
+  }
+
+  function showFarmSlots(actions) {
+    enqueueOrRun(function () { renderFarmSlots(actions); });
+  }
+
+  function showNewFarmName(actions) {
+    const suggested = I18N.t('ui.farms.defaultNamePrefix', 'Farm') + ' ' + (Persistence.listSlots().length + 1);
+    open('<h2>➕ ' + I18N.t('ui.farms.newTitle', 'Name Your New Farm') + '</h2>' +
+      '<input type="text" class="text-input" id="farm-name-input" maxlength="24" value="' + escapeHtml(suggested) + '">' +
+      '<div class="modal-actions">' +
+      '<button class="btn-primary" id="farm-name-confirm">' + I18N.t('ui.farms.create', 'Create') + '</button>' +
+      '<button class="btn-secondary" data-close>' + I18N.t('ui.settings.resetConfirmNo', 'Cancel') + '</button>' +
+      '</div>');
+    const input = document.getElementById('farm-name-input');
+    input.focus();
+    input.select();
+    document.getElementById('farm-name-confirm').addEventListener('click', function () {
+      const name = input.value.trim() || suggested;
+      close();
+      actions.create(name);
+    });
+  }
+
+  function showRenameFarm(id, actions) {
+    const slot = Persistence.listSlots().find(function (s) { return s.id === id; });
+    const current = slot ? slot.name : '';
+    open('<h2>✏️ ' + I18N.t('ui.farms.renameTitle', 'Rename Farm') + '</h2>' +
+      '<input type="text" class="text-input" id="farm-name-input" maxlength="24" value="' + escapeHtml(current) + '">' +
+      '<div class="modal-actions">' +
+      '<button class="btn-primary" id="farm-name-confirm">' + I18N.t('ui.farms.save', 'Save') + '</button>' +
+      '<button class="btn-secondary" data-close>' + I18N.t('ui.settings.resetConfirmNo', 'Cancel') + '</button>' +
+      '</div>');
+    const input = document.getElementById('farm-name-input');
+    input.focus();
+    input.select();
+    document.getElementById('farm-name-confirm').addEventListener('click', function () {
+      const name = input.value.trim();
+      close();
+      if (name) actions.rename(id, name);
+    });
+  }
+
+  function showDeleteFarmConfirm(id, actions) {
+    const slot = Persistence.listSlots().find(function (s) { return s.id === id; });
+    const name = slot ? slot.name : '';
+    open('<h2>🗑️ ' + I18N.t('ui.farms.deleteTitle', 'Delete Farm') + '</h2>' +
+      '<p>' + I18N.t('ui.farms.deleteConfirm', 'This will permanently erase this farm:') + ' <strong>' + escapeHtml(name) + '</strong></p>' +
+      '<div class="modal-actions">' +
+      '<button class="btn-danger" id="farm-delete-yes">' + I18N.t('ui.farms.deleteYes', 'Yes, Delete') + '</button>' +
+      '<button class="btn-secondary" data-close>' + I18N.t('ui.settings.resetConfirmNo', 'Cancel') + '</button>' +
+      '</div>');
+    document.getElementById('farm-delete-yes').addEventListener('click', function () { close(); actions.delete(id); });
+  }
+
   return {
     close: close,
     showTooltip: showTooltip,
@@ -314,6 +424,7 @@ const Modals = (function () {
     showMissionComplete: showMissionComplete,
     showFact: showFact,
     showMarket: showMarket,
-    showSettings: showSettings
+    showSettings: showSettings,
+    showFarmSlots: showFarmSlots
   };
 })();

@@ -3,7 +3,11 @@
 // time scale, save key) never require touching crops/animals/recipes.
 
 const CONFIG = {
-  saveKey: 'farm-school-save-v1',
+  // Prefix for a per-slot save (persistence.js appends ":<slotId>"); the
+  // slots themselves — name, which one is active, last-played preview —
+  // live under slotsKey. Both still 100% localStorage, no accounts.
+  saveKeyPrefix: 'farm-school-save-v1',
+  slotsKey: 'farm-school-slots-v1',
   // Bump this whenever the save shape changes in a way old saves can't
   // just be loaded as-is — including changing gridCols/gridRows, since
   // state.plots.length silently stops matching what render.js assumes

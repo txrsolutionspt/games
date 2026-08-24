@@ -321,6 +321,70 @@ button.btn-danger { background: var(--danger); color: #fff; }
 
 .lang-btn { flex: 1; }
 
+/* ---- Farm (save slot) list ---- */
+
+.farm-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.farm-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.farm-slot-row.active {
+  border-color: var(--green);
+  background: #eef6e6;
+}
+
+.farm-slot-info { flex: 1; min-width: 0; }
+
+.farm-slot-name {
+  font-weight: 700;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.farm-slot-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.farm-slot-meta { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+
+.farm-slot-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.farm-slot-actions button {
+  margin-top: 0;
+  padding: 8px 10px;
+  min-height: 36px;
+}
+
+.text-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 16px;
+  padding: 10px 12px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  margin: 8px 0;
+}
+
 /* ---- Toasts ---- */
 
 #toast-root {
