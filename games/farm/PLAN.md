@@ -310,6 +310,18 @@ already applied to crops/animals/recipes/missions (§1).
   (~1s after any mutation) so gameplay never blocks on writes. Includes a
   `schemaVersion` and a plot-count shape check so future field/grid-size
   changes don't load a mismatched save.
+- No save-on-open: a fresh boot schedules its first autosave
+  `CONFIG.initialAutosaveDelayMs` (10s) out rather than writing immediately,
+  since just opening the game (and leaving again a moment later) would
+  otherwise re-write a save that's often identical to what's already there,
+  and needlessly bump the farm's "last played" order in My Farms. It shares
+  the same timer a real action's autosave uses, so anything the player
+  actually does in those first 10s reschedules straight down to the normal
+  short debounce — only truly idle time gets the long delay. The per-tick
+  simulation loop (§8) only reschedules a save when the tick actually
+  changed something (a day boundary, or a crop/animal/job newly ready), not
+  on every tick unconditionally, so ticking alone can't quietly override
+  this delay the way an unconditional per-tick save would.
 - `game.js` also flushes a synchronous save immediately on `visibilitychange`
   (fires when a mobile browser is backgrounded — the case `beforeunload`
   often misses) and `pagehide` (desktop tab close/navigation), so the last

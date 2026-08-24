@@ -67,11 +67,27 @@ const Simulation = (function () {
 
   // One simulation tick: advance the clock, flip any plot whose growth/
   // produce/job just completed, and let the UI/missions react via events.
+  //
+  // Only schedules a save when something in this tick is actually worth
+  // persisting (a day boundary, or a crop/animal/job newly becoming ready)
+  // — NOT on every tick unconditionally. Ticks fire every second forever
+  // while the tab is open, so an unconditional save here would mean the
+  // game effectively autosaves every ~1-2s regardless of player activity,
+  // which is both wasteful and defeats the point of debouncing/delaying
+  // autosave elsewhere (game.js's initial-boot delay, in particular, would
+  // get clobbered by the very first tick). Direct player actions already
+  // schedule their own save from input.js; the clock tick itself doesn't
+  // need to force one, since lastRealTimestamp is refreshed at whatever
+  // save actually happens next, not tied to a specific tick count.
   function tick(state) {
     const oldDay = currentDay(state);
     state.clock.tick += 1;
     const newDay = currentDay(state);
-    if (newDay > oldDay) processDayBoundaries(state, oldDay, newDay);
+    let changed = false;
+    if (newDay > oldDay) {
+      processDayBoundaries(state, oldDay, newDay);
+      changed = true;
+    }
 
     state.plots.forEach(function (plot) {
       if (!plot.occupant) return;
@@ -82,6 +98,7 @@ const Simulation = (function () {
         const progress = FarmRules.cropProgress(occ, def, state.clock.tick);
         if (progress.matured && occ.state !== 'ready') {
           occ.state = 'ready';
+          changed = true;
           Events.emit('cropReady', { plot: plot, cropId: occ.id });
         }
       } else if (occ.kind === 'animal') {
@@ -89,6 +106,7 @@ const Simulation = (function () {
         const progress = FarmRules.animalProgress(occ, def, state.clock.tick);
         if (progress.ready && occ.state !== 'ready') {
           occ.state = 'ready';
+          changed = true;
           Events.emit('produceReady', { plot: plot, animalId: occ.id });
         }
       } else if (occ.kind === 'building' && occ.job) {
@@ -96,13 +114,14 @@ const Simulation = (function () {
         const progress = FarmRules.recipeProgress(occ.job, def, state.clock.tick);
         if (progress.ready && !occ.job.readyNotified) {
           occ.job.readyNotified = true;
+          changed = true;
           Events.emit('productReady', { plot: plot, recipeId: occ.job.recipeId });
         }
       }
     });
 
     Events.emit('tick', { tick: state.clock.tick, day: newDay, season: currentSeason(state), weather: currentWeather(state) });
-    Persistence.scheduleSave(state);
+    if (changed) Persistence.scheduleSave(state);
   }
 
   // Called once at boot: fast-forwards the clock (and any day boundaries

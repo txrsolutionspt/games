@@ -186,9 +186,15 @@ const Persistence = (function () {
     }
   }
 
-  function scheduleSave(state) {
+  // delayMs defaults to the normal post-action debounce; game.js's initial
+  // boot-time autosave passes a longer one instead (see game.js) so sitting
+  // idle right after opening the game doesn't immediately re-write a save
+  // that's often identical to what's already there. Either way this reuses
+  // the same timer an action's save would use, so the first real action
+  // naturally reschedules it down to the short debounce.
+  function scheduleSave(state, delayMs) {
     if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () { saveNow(state); }, CONFIG.autosaveDebounceMs);
+    saveTimer = setTimeout(function () { saveNow(state); }, delayMs || CONFIG.autosaveDebounceMs);
   }
 
   // Erases every farm and the slots index itself — the blanket "erase all

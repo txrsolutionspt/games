@@ -216,7 +216,17 @@
     requestAnimationFrame(frame);
 
     Hud.refresh(state, ui);
-    Persistence.saveNow(state);
+    // No immediate save-on-open: a fresh boot's state is either a brand new
+    // farm (nothing worth persisting yet) or identical to what's already in
+    // localStorage, so writing it right away is a redundant disk write and
+    // needlessly bumps the farm's "last played" order in My Farms even if
+    // the player just glanced at it and left. Scheduling the first autosave
+    // ~10s out instead means it only actually happens if they're still here
+    // by then; scheduleSave's shared timer means any real action in the
+    // meantime reschedules straight down to the normal short debounce (see
+    // persistence.js), and flushSave below still covers anyone who leaves
+    // before either fires.
+    Persistence.scheduleSave(state, CONFIG.initialAutosaveDelayMs);
 
     // The autosave in persistence.js debounces ~1s after each mutation so
     // gameplay never blocks on writes — but that means the very last action
