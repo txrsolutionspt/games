@@ -314,7 +314,18 @@ already applied to crops/animals/recipes/missions (§1).
   (fires when a mobile browser is backgrounded — the case `beforeunload`
   often misses) and `pagehide` (desktop tab close/navigation), so the last
   action before the player leaves is never sitting unsaved inside that ~1s
-  debounce window.
+  debounce window. A 💾 **Save** button in the HUD rail (next to Market)
+  calls the same immediate `saveNow` and shows a "Saved!" toast, so a player
+  who wants certainty doesn't have to trust an invisible background
+  mechanism.
+- `test-persistence.js` (`node test-persistence.js`) exercises the actual
+  save/load round trip through `persistence.js` itself — not just
+  farm-rules.js's pure math — asserting coins and planted-crop occupants
+  come back identical after a save+load. `persistence.js` only ever touches
+  `CONFIG`/`localStorage` as ambient globals (same as the browser's
+  `<script>` load order provides), so the test stubs an in-memory
+  `localStorage` and sets `global.CONFIG` before requiring it, rather than
+  needing a browser.
 - **Farms (save slots):** the Settings modal's "My Farms" screen lists every
   slot (name, coins/day preview, which one is currently active) with
   Play/Rename/Delete per row and a "New Farm" button. Switching or creating
@@ -568,6 +579,9 @@ what's on screen) rather than just raising this number further.
   covers growth-stage math, water/feed timing edge cases, yield/quality
   degradation on neglect (never negative/deletion), recipe input
   consumption, and mission trigger matching — all pure, DOM-free logic.
+- `test-persistence.js` (`node test-persistence.js`): asserts the actual
+  save/load round trip (§7) preserves coins and planted-crop occupants
+  exactly, using an in-memory `localStorage` stub rather than a browser.
 - Manual QA pass in a real mobile browser (touch target sizes, the rotate
   overlay actually blocking portrait, landscape play on phone and tablet)
   before calling a phase done, since layout/touch feel can't be unit

@@ -224,3 +224,11 @@ const Persistence = (function () {
     deleteSlot: deleteSlot
   };
 })();
+
+// Node-testable (see test-persistence.js): this file only ever touches
+// CONFIG and localStorage as ambient globals (the same way <script> load
+// order provides them in the browser), so a test just needs to set
+// global.CONFIG/global.localStorage before requiring this file.
+if (typeof module === 'object' && module.exports) {
+  module.exports = Persistence;
+}

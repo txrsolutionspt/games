@@ -94,6 +94,7 @@ const LOCALE_PT = {
   'ui.toast.collected': 'Recolhido!',
   'ui.toast.started': 'Iniciado!',
   'ui.toast.unlocked': 'Terreno desbloqueado!',
+  'ui.toast.saved': 'Guardado!',
 
   'ui.info.growth': 'Crescimento',
   'ui.info.water': 'Água',

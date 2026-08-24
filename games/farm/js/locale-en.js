@@ -93,6 +93,7 @@ const LOCALE_EN = {
   'ui.toast.collected': 'Collected!',
   'ui.toast.started': 'Started!',
   'ui.toast.unlocked': 'Plot unlocked!',
+  'ui.toast.saved': 'Saved!',
 
   'ui.info.growth': 'Growth',
   'ui.info.water': 'Water',

@@ -160,6 +160,15 @@
       });
     });
 
+    // Autosave is debounced and now also flushes on hide (see below), but a
+    // visible Save button gives players an explicit, immediate "yes, this
+    // is saved" they can act on themselves rather than trusting a
+    // background mechanism they can't see happen.
+    document.getElementById('btn-save').addEventListener('click', function () {
+      Persistence.saveNow(state);
+      Hud.toast(I18N.t('ui.toast.saved', 'Saved!'));
+    });
+
     document.getElementById('btn-fullscreen').addEventListener('click', function () {
       if (isFullscreen()) {
         exitFullscreen();
