@@ -310,11 +310,34 @@ already applied to crops/animals/recipes/missions (§1).
   (~1s after any mutation) so gameplay never blocks on writes. Includes a
   `schemaVersion` and a plot-count shape check so future field/grid-size
   changes don't load a mismatched save.
+- No save-on-open: a fresh boot schedules its first autosave
+  `CONFIG.initialAutosaveDelayMs` (10s) out rather than writing immediately,
+  since just opening the game (and leaving again a moment later) would
+  otherwise re-write a save that's often identical to what's already there,
+  and needlessly bump the farm's "last played" order in My Farms. It shares
+  the same timer a real action's autosave uses, so anything the player
+  actually does in those first 10s reschedules straight down to the normal
+  short debounce — only truly idle time gets the long delay. The per-tick
+  simulation loop (§8) only reschedules a save when the tick actually
+  changed something (a day boundary, or a crop/animal/job newly ready), not
+  on every tick unconditionally, so ticking alone can't quietly override
+  this delay the way an unconditional per-tick save would.
 - `game.js` also flushes a synchronous save immediately on `visibilitychange`
   (fires when a mobile browser is backgrounded — the case `beforeunload`
   often misses) and `pagehide` (desktop tab close/navigation), so the last
   action before the player leaves is never sitting unsaved inside that ~1s
-  debounce window.
+  debounce window. A 💾 **Save** button in the HUD rail (next to Market)
+  calls the same immediate `saveNow` and shows a "Saved!" toast, so a player
+  who wants certainty doesn't have to trust an invisible background
+  mechanism.
+- `test-persistence.js` (`node test-persistence.js`) exercises the actual
+  save/load round trip through `persistence.js` itself — not just
+  farm-rules.js's pure math — asserting coins and planted-crop occupants
+  come back identical after a save+load. `persistence.js` only ever touches
+  `CONFIG`/`localStorage` as ambient globals (same as the browser's
+  `<script>` load order provides), so the test stubs an in-memory
+  `localStorage` and sets `global.CONFIG` before requiring it, rather than
+  needing a browser.
 - **Farms (save slots):** the Settings modal's "My Farms" screen lists every
   slot (name, coins/day preview, which one is currently active) with
   Play/Rename/Delete per row and a "New Farm" button. Switching or creating
@@ -568,6 +591,9 @@ what's on screen) rather than just raising this number further.
   covers growth-stage math, water/feed timing edge cases, yield/quality
   degradation on neglect (never negative/deletion), recipe input
   consumption, and mission trigger matching — all pure, DOM-free logic.
+- `test-persistence.js` (`node test-persistence.js`): asserts the actual
+  save/load round trip (§7) preserves coins and planted-crop occupants
+  exactly, using an in-memory `localStorage` stub rather than a browser.
 - Manual QA pass in a real mobile browser (touch target sizes, the rotate
   overlay actually blocking portrait, landscape play on phone and tablet)
   before calling a phase done, since layout/touch feel can't be unit

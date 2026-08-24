@@ -57,6 +57,13 @@ const CONFIG = {
   maxOfflineCatchUpSec: 24 * 60 * 60,
 
   autosaveDebounceMs: 1000,
+  // How long to wait before the very first autosave of a fresh boot, so
+  // just opening the game (and closing it again a moment later) doesn't
+  // immediately re-write a save that's often identical to what's already
+  // there. A real action within this window reschedules straight to the
+  // short debounce above (see Persistence.scheduleSave); closing the tab
+  // before either fires is still covered by game.js's flush-on-hide.
+  initialAutosaveDelayMs: 10000,
 
   startingCoins: 60,
 
