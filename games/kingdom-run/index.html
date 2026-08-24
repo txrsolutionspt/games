@@ -33,6 +33,12 @@
                 <button class="icon-btn" id="btn-mute-title" aria-label="Toggle sound">🔊</button>
             </div>
 
+            <div id="screen-level-select" class="screen hidden">
+                <h2>Select Level</h2>
+                <div id="level-select-list"></div>
+                <button class="menu-btn" id="btn-back-level-select">Back</button>
+            </div>
+
             <div id="screen-pause" class="screen hidden">
                 <h2>Paused</h2>
                 <button class="menu-btn primary" id="btn-resume">Resume</button>
@@ -45,7 +51,7 @@
                 <p>Final Score: <span id="gameover-score">0</span></p>
                 <p>High Score: <span id="gameover-highscore">0</span></p>
                 <button class="menu-btn primary" id="btn-retry-gameover">Retry Level</button>
-                <button class="menu-btn" id="btn-quit-gameover">Quit to Menu</button>
+                <button class="menu-btn" id="btn-levelselect-gameover">Level Select</button>
             </div>
 
             <div id="screen-levelcomplete" class="screen hidden">
@@ -54,8 +60,9 @@
                 <p>Time: <span id="complete-time">0:00</span></p>
                 <p>Coins: <span id="complete-coins">0/0</span></p>
                 <p>No-Damage Bonus: <span id="complete-nodamage">No</span></p>
-                <button class="menu-btn primary" id="btn-retry-complete">Play Again</button>
-                <button class="menu-btn" id="btn-quit-complete">Quit to Menu</button>
+                <button class="menu-btn primary hidden" id="btn-next-level">Next Level</button>
+                <button class="menu-btn" id="btn-retry-complete">Play Again</button>
+                <button class="menu-btn" id="btn-levelselect-complete">Level Select</button>
             </div>
         </div>
 

@@ -5,7 +5,20 @@
 // error, private-browsing restriction, or disabled storage never blocks play.
 
 const STORAGE_KEY = 'kingdomRun.saveData';
-const SAVE_DATA_VERSION = 2; // bump only when the saved shape actually changes
+const SAVE_DATA_VERSION = 3; // bump only when the saved shape actually changes
+
+// See games/kingdom-run/LEVELS.md for what each level is. Only level 1
+// starts unlocked; completing a level unlocks the next one (see
+// KingdomRunStorage.reportLevelResult).
+const TOTAL_LEVELS = 5;
+
+function defaultLevelsMap() {
+    const levels = {};
+    for (let id = 1; id <= TOTAL_LEVELS; id++) {
+        levels[String(id)] = { unlocked: id === 1, completed: false, bestScore: 0, bestTimeMs: null };
+    }
+    return levels;
+}
 
 function getDefaultSaveData() {
     return {
@@ -17,9 +30,7 @@ function getDefaultSaveData() {
             controlSize: 'normal'
         },
         highScore: 0,
-        levels: {
-            '1': { unlocked: true, completed: false, bestScore: 0, bestTimeMs: null }
-        },
+        levels: defaultLevelsMap(),
         // Explicit mid-level "Save & Quit" slot (see GAME_SPEC.md § Data
         // Persistence & Local Storage) — null when there's nothing to
         // resume. Populated only by an explicit player action, never
@@ -38,9 +49,24 @@ const migrations = {
         data.inProgress = null;
         data.version = 2;
         return data;
+    },
+    2: (data) => {
+        // Levels 2-5 shipped (see LEVELS.md) — add locked entries for them.
+        // (mergeWithDefaults would backfill these anyway since `levels` is
+        // merged key-by-key, but doing it explicitly here keeps the
+        // migration chain the single source of truth for what changed at
+        // each version, matching the 1->2 migration above.)
+        for (let id = 2; id <= TOTAL_LEVELS; id++) {
+            const key = String(id);
+            if (!data.levels[key]) {
+                data.levels[key] = { unlocked: false, completed: false, bestScore: 0, bestTimeMs: null };
+            }
+        }
+        data.version = 3;
+        return data;
     }
     // Example for the next schema change:
-    // 2: (data) => { data.settings.someNewField = true; data.version = 3; return data; }
+    // 3: (data) => { data.settings.someNewField = true; data.version = 4; return data; }
 };
 
 function migrate(data) {
@@ -150,6 +176,14 @@ const KingdomRunStorage = {
         }
         existing.unlocked = true;
         saveData.levels[key] = existing;
+
+        if (completed && levelId < TOTAL_LEVELS) {
+            const nextKey = String(levelId + 1);
+            const next = saveData.levels[nextKey] || { unlocked: false, completed: false, bestScore: 0, bestTimeMs: null };
+            next.unlocked = true;
+            saveData.levels[nextKey] = next;
+        }
+
         saveSaveData(saveData);
         return saveData;
     },
@@ -166,7 +200,9 @@ const KingdomRunStorage = {
             saveSaveData(saveData);
         }
         return saveData;
-    }
+    },
+
+    TOTAL_LEVELS
 };
 
 window.KingdomRunStorage = KingdomRunStorage;

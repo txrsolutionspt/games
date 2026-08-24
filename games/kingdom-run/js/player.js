@@ -25,7 +25,8 @@ function createPlayer(spawnPoint) {
         lastGroundedAt: -Infinity,
         lives: 3,
         invincibleUntil: 0,
-        controlLockedUntil: 0
+        controlLockedUntil: 0,
+        jumpCutApplied: false // guards the early-release height cut to a single, one-time trim per jump
     };
 }
 
@@ -68,11 +69,16 @@ function updatePlayer(player, now, level) {
             player.vy = cfg.jumpVelocity;
             player.grounded = false;
             player.lastGroundedAt = -Infinity; // prevent a second coyote jump off the same fall
+            player.jumpCutApplied = false; // this is a new jump — early release may trim it once
             Input.consumeJumpBuffer();
             events.push({ type: 'jump' });
-        } else if (!Input.jumpHeld && player.vy < 0) {
-            // Early release cuts the jump short (deterministic, controllable height).
+        } else if (!Input.jumpHeld && player.vy < 0 && !player.jumpCutApplied) {
+            // Early release cuts the jump short exactly once (deterministic,
+            // controllable height) — without the guard this re-applies every
+            // frame the key stays up, halving vy repeatedly and collapsing
+            // the jump almost immediately instead of trimming it predictably.
             player.vy *= cfg.jumpCutMultiplier;
+            player.jumpCutApplied = true;
         }
     } else if (player.vx > 0) {
         player.vx = Math.max(0, player.vx - cfg.airDeceleration);
@@ -156,6 +162,7 @@ function playerRespawn(player, position, now) {
     player.grounded = false;
     player.lastGroundedAt = -Infinity;
     player.controlLockedUntil = 0;
+    player.jumpCutApplied = false;
     player.invincibleUntil = now + PhysicsConfig.invincibilityDurationMs;
     setPlayerState(player, PlayerState.INVINCIBLE, now);
 }
