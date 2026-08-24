@@ -63,6 +63,11 @@ const Hud = (function () {
 
   function refreshTop(state) {
     el('coins-val').textContent = state.coins;
+    // Coins are shown twice: the left rail chip, and again here in the top
+    // bar — in fullscreen on some devices the left rail chip can end up
+    // hard to read (small, edge-of-screen), so the top bar copy is the
+    // reliably-visible one.
+    el('coins-val-top-num').textContent = state.coins;
     const day = Simulation.currentDay(state);
     const season = Simulation.currentSeason(state);
     const weather = Simulation.currentWeather(state);
