@@ -310,6 +310,11 @@ already applied to crops/animals/recipes/missions (§1).
   (~1s after any mutation) so gameplay never blocks on writes. Includes a
   `schemaVersion` and a plot-count shape check so future field/grid-size
   changes don't load a mismatched save.
+- `game.js` also flushes a synchronous save immediately on `visibilitychange`
+  (fires when a mobile browser is backgrounded — the case `beforeunload`
+  often misses) and `pagehide` (desktop tab close/navigation), so the last
+  action before the player leaves is never sitting unsaved inside that ~1s
+  debounce window.
 - **Farms (save slots):** the Settings modal's "My Farms" screen lists every
   slot (name, coins/day preview, which one is currently active) with
   Play/Rename/Delete per row and a "New Farm" button. Switching or creating

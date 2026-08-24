@@ -208,6 +208,20 @@
 
     Hud.refresh(state, ui);
     Persistence.saveNow(state);
+
+    // The autosave in persistence.js debounces ~1s after each mutation so
+    // gameplay never blocks on writes — but that means the very last action
+    // before the player closes the tab, switches apps, or hits reload can
+    // still be sitting in that debounce window and never gets written.
+    // 'visibilitychange' (fires when a mobile browser is backgrounded, which
+    // 'beforeunload' often misses) and 'pagehide' (fires on desktop tab
+    // close/navigation) both flush a synchronous save immediately so the
+    // debounce window is never the last word on what actually got saved.
+    function flushSave() { Persistence.saveNow(state); }
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') flushSave();
+    });
+    window.addEventListener('pagehide', flushSave);
   }
 
   if (document.readyState === 'loading') {
