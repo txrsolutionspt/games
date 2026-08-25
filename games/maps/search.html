@@ -104,8 +104,17 @@
             "maplibre-gl.js from unpkg.com never loaded. Check your network connection, " +
               "content blocker, or CSP — the map cannot render without it."
           );
+          return;
         }
-      }, 6000);
+        var summary = document.getElementById("object-summary");
+        if (summary && summary.children.length === 0) {
+          showError(
+            "The map style never finished initializing (sidebar is still empty). " +
+              "This is usually the satellite or terrain tile server being unreachable — " +
+              "try again on a different network, or check the browser console for the failing request."
+          );
+        }
+      }, 8000);
     })();
   </script>
   <script type="module" src="js/app.js" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
