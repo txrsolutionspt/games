@@ -15,7 +15,7 @@
 </head>
 <body>
   <div id="build-badge" style="position:fixed;bottom:8px;right:8px;z-index:9999;background:#111827;color:#fff;font:11px/1.4 monospace;padding:4px 8px;border-radius:4px;opacity:0.85;pointer-events:none;">
-    map-editor build 2026-08-25.3
+    map-editor build 2026-08-25.4
   </div>
   <div id="fatal-error-banner" class="hidden" style="position:fixed;top:0;left:0;right:0;z-index:10000;background:#b91c1c;color:#fff;padding:10px 14px;font:13px/1.4 monospace;white-space:pre-wrap;"></div>
 
@@ -91,12 +91,22 @@
         banner.textContent = "Error: " + message;
         banner.classList.remove("hidden");
       }
+      // Once the app has reached a working state (see app.js), a later error is
+      // most likely a background rendering glitch, not "the page shows nothing" —
+      // log it instead of alarming the user with the full-page banner again.
+      function reportError(message) {
+        if (window.__mapEditorInitialized) {
+          console.error("map-editor (post-init, not shown as a banner):", message);
+        } else {
+          showError(message);
+        }
+      }
       window.addEventListener("error", function (event) {
         var location = event.filename ? " (" + event.filename + ":" + event.lineno + ")" : "";
-        showError((event.message || "Unknown script error") + location);
+        reportError((event.message || "Unknown script error") + location);
       });
       window.addEventListener("unhandledrejection", function (event) {
-        showError(String(event.reason && event.reason.message ? event.reason.message : event.reason));
+        reportError(String(event.reason && event.reason.message ? event.reason.message : event.reason));
       });
       if (window.__mapEditorScriptError) {
         showError(window.__mapEditorScriptError);
