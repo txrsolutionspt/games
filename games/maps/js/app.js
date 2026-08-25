@@ -57,7 +57,12 @@ async function seedIfEmpty() {
   }
 }
 
-map.on("load", async () => {
+// Use "style.load" rather than "load": "load" waits for the first visually
+// complete render, which on a terrain/globe map can block on DEM and
+// satellite tile fetches. "style.load" fires as soon as the (inline, already
+// in-memory) style and its sources/layers are parsed, which is all addSource
+// / addLayer below actually need — it does not depend on tile network access.
+map.on("style.load", async () => {
   await seedIfEmpty();
 
   setupObjectLayers(map, toFeatureCollection());
