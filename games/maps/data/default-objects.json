@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "objects": [
+    {
+      "id": "seed-farmhouse",
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [137.91, 36.25] },
+      "properties": {
+        "id": "seed-farmhouse",
+        "name": "Sample Place",
+        "category": "place",
+        "description": "Click + Add to create your own points, lines and areas."
+      },
+      "metadata": { "createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:00:00.000Z" }
+    },
+    {
+      "id": "seed-field",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [137.90, 36.24],
+          [137.92, 36.24],
+          [137.92, 36.26],
+          [137.90, 36.26],
+          [137.90, 36.24]
+        ]]
+      },
+      "properties": {
+        "id": "seed-field",
+        "name": "Sample Area",
+        "category": "area",
+        "description": "Drawn areas like this become GeoJSON polygons."
+      },
+      "metadata": { "createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:00:00.000Z" }
+    }
+  ]
+}
