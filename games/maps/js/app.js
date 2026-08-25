@@ -88,6 +88,11 @@ map.on("style.load", async () => {
 
   subscribe(render);
   render(getState());
+
+  // Tells the page-level diagnostics (see search.html) that the app reached a
+  // working state, so a later, unrelated error (e.g. a MapLibre terrain/globe
+  // rendering glitch) doesn't get reported as if the page never loaded.
+  window.__mapEditorInitialized = true;
 });
 
 function handleAdd(kind) {
