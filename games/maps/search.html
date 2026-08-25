@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>MapLibre 3D Terrain & Globe</title>
-  <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js" onerror="window.__mapEditorScriptError='maplibre-gl.js failed to load from unpkg.com'"></script>
   <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet" />
   <link href="css/map-editor.css" rel="stylesheet" />
   <style>
@@ -11,6 +11,11 @@
   </style>
 </head>
 <body>
+  <div id="build-badge" style="position:fixed;bottom:8px;right:8px;z-index:9999;background:#111827;color:#fff;font:11px/1.4 monospace;padding:4px 8px;border-radius:4px;opacity:0.85;pointer-events:none;">
+    map-editor build 2026-08-25.2
+  </div>
+  <div id="fatal-error-banner" class="hidden" style="position:fixed;top:0;left:0;right:0;z-index:10000;background:#b91c1c;color:#fff;padding:10px 14px;font:13px/1.4 monospace;white-space:pre-wrap;"></div>
+
   <div id="app">
     <header id="toolbar">
       <div class="search-box">
@@ -76,6 +81,33 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js"></script>
+  <script>
+    (function () {
+      var banner = document.getElementById("fatal-error-banner");
+      function showError(message) {
+        banner.textContent = "Error: " + message;
+        banner.classList.remove("hidden");
+      }
+      window.addEventListener("error", function (event) {
+        var location = event.filename ? " (" + event.filename + ":" + event.lineno + ")" : "";
+        showError((event.message || "Unknown script error") + location);
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        showError(String(event.reason && event.reason.message ? event.reason.message : event.reason));
+      });
+      if (window.__mapEditorScriptError) {
+        showError(window.__mapEditorScriptError);
+      }
+      setTimeout(function () {
+        if (typeof window.maplibregl === "undefined") {
+          showError(
+            "maplibre-gl.js from unpkg.com never loaded. Check your network connection, " +
+              "content blocker, or CSP — the map cannot render without it."
+          );
+        }
+      }, 6000);
+    })();
+  </script>
+  <script type="module" src="js/app.js" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
 </body>
 </html>
