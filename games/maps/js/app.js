@@ -1,24 +1,24 @@
-import { createMap } from "./map/map-init.js?v=2026-08-26.6";
+import { createMap } from "./map/map-init.js?v=2026-08-26.7";
 import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
   applyLayerVisibility,
-} from "./map/map-layers.js?v=2026-08-26.6";
-import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.6";
-import { setupSelection } from "./map/map-selection.js?v=2026-08-26.6";
+} from "./map/map-layers.js?v=2026-08-26.7";
+import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.7";
+import { setupSelection } from "./map/map-selection.js?v=2026-08-26.7";
 import {
   setupEditLayers,
   showEditVertices,
   clearEditVertices,
   enableVertexDragging,
-} from "./map/map-edit.js?v=2026-08-26.6";
+} from "./map/map-edit.js?v=2026-08-26.7";
 import {
   MODES,
   createPoint,
   createLine,
   createPolygon,
-} from "./objects/object-model.js?v=2026-08-26.6";
+} from "./objects/object-model.js?v=2026-08-26.7";
 import {
   getState,
   subscribe,
@@ -33,14 +33,14 @@ import {
   getObject,
   toFeatureCollection,
   replaceAll,
-} from "./objects/object-store.js?v=2026-08-26.6";
-import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.6";
-import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.6";
-import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.6";
-import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.6";
-import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.6";
-import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.6";
-import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.6";
+} from "./objects/object-store.js?v=2026-08-26.7";
+import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.7";
+import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.7";
+import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.7";
+import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.7";
+import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.7";
+import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.7";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.7";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");

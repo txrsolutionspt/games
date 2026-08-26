@@ -1,4 +1,4 @@
-import { updateObjectGeometry } from "../objects/object-store.js?v=2026-08-26.6";
+import { updateObjectGeometry } from "../objects/object-store.js?v=2026-08-26.7";
 
 const EDIT_SOURCE_ID = "edit-vertices";
 let dragState = null;
@@ -49,7 +49,11 @@ export function clearEditVertices(map) {
 }
 
 export function enableVertexDragging(map, getEditingFeatureId) {
-  map.on("mousedown", "edit-vertices", (event) => {
+  // Mouse and touch are handled in parallel: browsers only fire mousemove
+  // continuously for an actual mouse, not for a finger drag, so touchstart/
+  // touchmove/touchend are required for this to work on a real phone at all
+  // — it isn't just a UX nicety on top of the mouse handlers.
+  function startDrag(event) {
     const featureId = getEditingFeatureId();
     if (!featureId) return;
 
@@ -57,9 +61,9 @@ export function enableVertexDragging(map, getEditingFeatureId) {
     dragState = { featureId, vertexIndex: event.features[0].properties.index };
     map.dragPan.disable();
     map.getCanvas().style.cursor = "grabbing";
-  });
+  }
 
-  map.on("mousemove", (event) => {
+  function moveDrag(event) {
     if (!dragState) return;
 
     const { featureId, vertexIndex } = dragState;
@@ -78,14 +82,24 @@ export function enableVertexDragging(map, getEditingFeatureId) {
         }
       }
     });
-  });
+  }
 
-  map.on("mouseup", () => {
+  function endDrag() {
     if (!dragState) return;
     dragState = null;
     map.dragPan.enable();
     map.getCanvas().style.cursor = "";
-  });
+  }
+
+  map.on("mousedown", "edit-vertices", startDrag);
+  map.on("touchstart", "edit-vertices", startDrag);
+
+  map.on("mousemove", moveDrag);
+  map.on("touchmove", moveDrag);
+
+  map.on("mouseup", endDrag);
+  map.on("touchend", endDrag);
+  map.on("touchcancel", endDrag);
 
   map.on("mouseenter", "edit-vertices", () => {
     if (!dragState) map.getCanvas().style.cursor = "grab";
