@@ -16,7 +16,8 @@ html, body {
   flex-direction: column;
 }
 
-/* Toolbar */
+/* Toolbar (desktop: a solid header bar; mobile: overridden below into a
+   floating search pill + a fixed bottom nav — same DOM, different layout) */
 #toolbar {
   display: flex;
   align-items: center;
@@ -36,11 +37,24 @@ html, body {
 
 #search-input {
   width: 100%;
-  padding: 8px 10px;
+  padding: 8px 32px 8px 10px;
   border-radius: 6px;
   border: 1px solid #374151;
   background: #111827;
   color: #fff;
+}
+
+.search-clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
 }
 
 .search-results {
@@ -79,8 +93,7 @@ html, body {
   gap: 8px;
 }
 
-.toolbar-actions button,
-#toolbar .search-box + .toolbar-actions button {
+.toolbar-actions button {
   padding: 8px 12px;
   border-radius: 6px;
   border: 1px solid #374151;
@@ -99,8 +112,18 @@ html, body {
   border-color: #2563eb;
 }
 
+.nav-icon {
+  display: inline-block;
+}
+
+.nav-label {
+  display: inline;
+  margin-left: 4px;
+}
+
 .add-menu,
-.view-menu {
+.view-menu,
+.more-menu {
   position: relative;
 }
 
@@ -197,6 +220,10 @@ html, body {
   margin: 0 0 10px;
 }
 
+.sheet-handle {
+  display: none;
+}
+
 #object-summary {
   list-style: none;
   margin: 0 0 14px;
@@ -252,6 +279,14 @@ html, body {
   flex: 1;
 }
 
+#sidebar-toggle-button {
+  display: none;
+}
+
+#sidebar-scrim {
+  display: none;
+}
+
 /* Drawing hint */
 .hint {
   position: absolute;
@@ -268,15 +303,28 @@ html, body {
   z-index: 25;
   font-size: 13px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  max-width: calc(100vw - 24px);
+}
+
+.hint-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .hint button {
   background: #374151;
   border: none;
   color: #fff;
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 13px;
+}
+
+#drawing-finish {
+  background: #2563eb;
+  font-weight: 600;
 }
 
 /* Dialogs */
@@ -352,6 +400,10 @@ html, body {
 }
 
 /* Feature popup */
+.feature-popup {
+  min-width: 200px;
+}
+
 .feature-popup h4 {
   margin: 0 0 4px;
   font-size: 14px;
@@ -373,11 +425,12 @@ html, body {
 .feature-popup .actions {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
 .feature-popup .actions button {
-  padding: 5px 8px;
+  flex: 1;
+  padding: 8px;
   border-radius: 5px;
   border: 1px solid #d1d5db;
   background: #f3f4f6;
@@ -385,8 +438,226 @@ html, body {
   font-size: 12px;
 }
 
-.feature-popup .actions button.danger {
+.feature-popup .actions-danger {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
+}
+
+.feature-popup .actions-danger button {
+  width: 100%;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #fca5a5;
   background: #fee2e2;
-  border-color: #fca5a5;
   color: #b91c1c;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Mobile: the map becomes the primary surface. The toolbar turns
+   into a floating search pill + a fixed bottom nav, the sidebar
+   becomes a bottom sheet, and the More/Add/View dropdowns become
+   bottom sheets of their own instead of small anchored menus.
+   Same elements as desktop — only their position/layout changes.
+   ============================================================ */
+@media (max-width: 720px) {
+  #toolbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: none;
+    padding: 10px 12px;
+    pointer-events: none;
+  }
+
+  .search-box {
+    max-width: none;
+    pointer-events: auto;
+  }
+
+  #search-input {
+    background: #fff;
+    color: #111827;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 36px 12px 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .search-results {
+    background: #fff;
+    color: #111827;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    border: none;
+  }
+
+  .search-results button {
+    color: #111827;
+  }
+
+  .search-results button:hover {
+    background: #f3f4f6;
+  }
+
+  /* The toolbar-actions row becomes the bottom nav bar. */
+  .toolbar-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    background: #1f2937;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    justify-content: space-around;
+    gap: 0;
+    pointer-events: auto;
+  }
+
+  #sidebar-toggle-button {
+    display: flex;
+  }
+
+  .toolbar-actions button {
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border: none;
+    background: none;
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .toolbar-actions button:hover {
+    background: #374151;
+  }
+
+  .toolbar-actions button.active {
+    background: none;
+    color: #60a5fa;
+  }
+
+  .nav-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .nav-label {
+    margin-left: 0;
+  }
+
+  #add-button {
+    background: none;
+  }
+
+  #add-button .nav-icon {
+    background: #2563eb;
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  /* Dropdowns become bottom sheets anchored above the nav bar, regardless
+     of which nav button opened them. */
+  .dropdown {
+    position: fixed;
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    margin-top: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .dropdown button {
+    padding: 14px;
+  }
+
+  /* Sidebar becomes a bottom sheet, hidden until toggled open. */
+  #body {
+    overflow: hidden;
+  }
+
+  #sidebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 65vh;
+    border-right: none;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.25);
+    transform: translateY(105%);
+    transition: transform 0.25s ease;
+    z-index: 45;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  #sidebar.open {
+    transform: translateY(0);
+  }
+
+  .sheet-handle {
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: #d1d5db;
+    margin: 4px auto 12px;
+  }
+
+  #sidebar-scrim.open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.3);
+    z-index: 44;
+  }
+
+  .hint {
+    top: 72px;
+  }
+}
+
+@media (min-width: 721px) {
+  /* Fold the "More" menu's items back into plain inline toolbar buttons on
+     desktop — there's no clutter problem to solve there, so no need to hide
+     Labels/Import/Export behind a menu. */
+  .more-menu {
+    display: contents;
+  }
+
+  #more-button {
+    display: none;
+  }
+
+  /* #more-dropdown normally starts with class="hidden" (display:none
+     !important) since it's a JS-toggled panel — but on desktop it should
+     always be unwrapped and visible, and its trigger button (which would
+     normally toggle that class off) is hidden above. An ID selector beats
+     a single class selector even when both carry !important, so this wins
+     regardless of whether "hidden" is present. */
+  #more-dropdown {
+    display: contents !important;
+  }
+
+  #more-dropdown button {
+    display: inline-block;
+    width: auto;
+  }
+
+  #more-dropdown .dropdown-divider {
+    display: none;
+  }
 }

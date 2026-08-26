@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>MapLibre 3D Terrain & Globe</title>
   <!-- Vendored locally (see vendor/maplibre-gl/README.md) instead of loaded from a CDN:
        @latest on unpkg silently broke once MapLibre v6 dropped this UMD bundle, and a
@@ -15,27 +16,38 @@
 </head>
 <body>
   <div id="build-badge" style="position:fixed;bottom:8px;right:8px;z-index:9999;background:#111827;color:#fff;font:11px/1.4 monospace;padding:4px 8px;border-radius:4px;opacity:0.85;pointer-events:none;">
-    map-editor build 2026-08-26.2
+    map-editor build 2026-08-26.3
   </div>
   <div id="fatal-error-banner" class="hidden" style="position:fixed;top:0;left:0;right:0;z-index:10000;background:#b91c1c;color:#fff;padding:10px 14px;font:13px/1.4 monospace;white-space:pre-wrap;"></div>
 
   <div id="app">
     <header id="toolbar">
       <div class="search-box">
-        <input id="search-input" placeholder="Search location..." autocomplete="off" />
+        <input id="search-input" placeholder="Search places..." autocomplete="off" />
+        <button id="search-clear" type="button" class="search-clear hidden" aria-label="Clear search">✕</button>
         <div id="search-results" class="search-results hidden"></div>
       </div>
+
       <div class="toolbar-actions">
+        <button id="sidebar-toggle-button" type="button" class="nav-item">
+          <span class="nav-icon">☷</span><span class="nav-label">Objects</span>
+        </button>
+
         <div class="add-menu">
-          <button id="add-button" type="button">+ Add</button>
+          <button id="add-button" type="button" class="nav-item">
+            <span class="nav-icon">＋</span><span class="nav-label">Add</span>
+          </button>
           <div id="add-dropdown" class="dropdown hidden">
             <button type="button" data-add="point">📍 Point<span>Add a location</span></button>
             <button type="button" data-add="line">╱ Line<span>Draw a route/line</span></button>
             <button type="button" data-add="polygon">▱ Area<span>Draw an area</span></button>
           </div>
         </div>
+
         <div class="view-menu">
-          <button id="view-button" type="button">🗺 View</button>
+          <button id="view-button" type="button" class="nav-item">
+            <span class="nav-icon">🗺</span><span class="nav-label">View</span>
+          </button>
           <div id="view-dropdown" class="dropdown hidden">
             <div class="dropdown-section-label">Map style</div>
             <button type="button" data-style="street">🛣️ Street</button>
@@ -48,24 +60,38 @@
             <button type="button" data-projection="globe">🌐 3D Globe</button>
           </div>
         </div>
-        <button id="labels-button" type="button">🏷 Labels</button>
-        <button id="import-button" type="button">Import</button>
+
+        <div class="more-menu">
+          <button id="more-button" type="button" class="nav-item">
+            <span class="nav-icon">⋯</span><span class="nav-label">Menu</span>
+          </button>
+          <div id="more-dropdown" class="dropdown hidden">
+            <button type="button" data-action="labels">🏷 Toggle labels</button>
+            <div class="dropdown-divider"></div>
+            <button type="button" data-action="import">⬆ Import data</button>
+            <button type="button" data-action="export">⬇ Export data</button>
+          </div>
+        </div>
         <input id="import-input" type="file" accept="application/json" hidden />
-        <button id="export-button" type="button">Export</button>
       </div>
     </header>
 
     <div id="body">
       <aside id="sidebar">
+        <div class="sheet-handle"></div>
         <h2>Map objects</h2>
         <ul id="object-summary"></ul>
         <div id="object-list"></div>
       </aside>
+      <div id="sidebar-scrim"></div>
       <div id="map"></div>
 
       <div id="drawing-hint" class="hint hidden">
         <span id="drawing-hint-text"></span>
-        <button id="drawing-cancel" type="button">Cancel</button>
+        <div class="hint-actions">
+          <button id="drawing-finish" type="button" class="hidden">Finish</button>
+          <button id="drawing-cancel" type="button">Cancel</button>
+        </div>
       </div>
     </div>
   </div>

@@ -9,7 +9,7 @@ export function setupViewMenu({ getSettings, onSelectStyle, onSelectProjection }
   });
 
   document.addEventListener("click", (event) => {
-    if (!viewDropdown.contains(event.target) && event.target !== viewButton) {
+    if (!viewDropdown.contains(event.target) && !viewButton.contains(event.target)) {
       viewDropdown.classList.add("hidden");
     }
   });
