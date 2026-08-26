@@ -10,6 +10,21 @@ const SATELLITE_SOURCE = {
   attribution: "Sentinel-2 cloudless — EOX IT Services GmbH",
 };
 
+// CARTO's basemaps.cartocdn.com raster endpoints (rastertiles/voyager,
+// dark_all) now require a signed-up API key and serve a watermarked
+// "API KEY REQUIRED" placeholder instead of tiles without one. OpenStreetMap's
+// own tile server remains free with no key required, so "street" uses that
+// directly; "dark" reuses it too, darkened with raster paint properties
+// (MapLibre has no true color-invert paint property, so this is a dimmed/
+// muted look rather than a proper dark-mode redraw — but it actually renders,
+// which the previous CARTO source no longer does).
+const OSM_SOURCE = {
+  type: "raster",
+  tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+  tileSize: 256,
+  attribution: "© OpenStreetMap contributors",
+};
+
 const TERRAIN_DEM_SOURCE = {
   type: "raster-dem",
   url: "https://demotiles.maplibre.org/terrain-tiles/tiles.json",
@@ -21,12 +36,7 @@ export const MAP_STYLES = Object.freeze({
     id: "street",
     name: "Street",
     icon: "🛣️",
-    source: {
-      type: "raster",
-      tiles: ["https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors © CARTO",
-    },
+    source: OSM_SOURCE,
   },
   satellite: {
     id: "satellite",
@@ -45,11 +55,11 @@ export const MAP_STYLES = Object.freeze({
     id: "dark",
     name: "Dark",
     icon: "🌙",
-    source: {
-      type: "raster",
-      tiles: ["https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png"],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors © CARTO",
+    source: OSM_SOURCE,
+    paint: {
+      "raster-brightness-max": 0.35,
+      "raster-saturation": -0.6,
+      "raster-contrast": 0.15,
     },
   },
 });
@@ -66,7 +76,14 @@ export function buildBaseStyle(styleId, projection) {
     version: 8,
     projection: { type: projection },
     sources,
-    layers: [{ id: "base-layer", type: "raster", source: "base" }],
+    layers: [
+      {
+        id: "base-layer",
+        type: "raster",
+        source: "base",
+        ...(style.paint ? { paint: style.paint } : {}),
+      },
+    ],
     ...(style.elevation ? { terrain: { source: "terrain", exaggeration: 1.5 } } : {}),
   };
 }
