@@ -44,7 +44,11 @@ import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js"
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
 const hintCancel = document.getElementById("drawing-cancel");
-const labelsButton = document.getElementById("labels-button");
+const hintFinish = document.getElementById("drawing-finish");
+const labelsButton = document.querySelector('[data-action="labels"]');
+const sidebarToggleButton = document.getElementById("sidebar-toggle-button");
+const sidebarScrim = document.getElementById("sidebar-scrim");
+const sidebarEl = document.getElementById("sidebar");
 
 let mapSettings = loadMapSettings();
 const map = createMap(mapSettings);
@@ -72,6 +76,27 @@ function applyLabelsToggle() {
   saveMapSettings(mapSettings);
   setLabelsVisibility(map, mapSettings.labelsVisible);
   updateLabelsButton();
+}
+
+// On mobile the sidebar is a bottom sheet, closed by default; on desktop
+// it's the always-visible left panel and these classes are simply inert
+// (the CSS only reads them inside the mobile breakpoint).
+function openSidebarSheet() {
+  sidebarEl.classList.add("open");
+  sidebarScrim.classList.add("open");
+}
+
+function closeSidebarSheet() {
+  sidebarEl.classList.remove("open");
+  sidebarScrim.classList.remove("open");
+}
+
+function toggleSidebarSheet() {
+  if (sidebarEl.classList.contains("open")) {
+    closeSidebarSheet();
+  } else {
+    openSidebarSheet();
+  }
 }
 
 function applyStyleChange(styleId) {
@@ -142,6 +167,7 @@ map.on("style.load", async () => {
   setupToolbar({
     onAdd: handleAdd,
     onFlyTo: (center) => map.flyTo({ center, zoom: 12, pitch: mapSettings.projection === "globe" ? 65 : 0 }),
+    onToggleLabels: applyLabelsToggle,
   });
 
   setupViewMenu({
@@ -150,8 +176,12 @@ map.on("style.load", async () => {
     onSelectProjection: applyProjectionChange,
   });
 
-  labelsButton.addEventListener("click", applyLabelsToggle);
   updateLabelsButton();
+
+  sidebarToggleButton.addEventListener("click", toggleSidebarSheet);
+  sidebarScrim.addEventListener("click", closeSidebarSheet);
+
+  hintFinish.addEventListener("click", finishDrawing);
 
   subscribe(render);
   render(getState());
@@ -165,6 +195,7 @@ map.on("style.load", async () => {
 function handleAdd(kind) {
   closeFeaturePopup();
   selectObject(null);
+  closeSidebarSheet();
 
   if (kind === "point") {
     setMode(MODES.ADD_POINT);
@@ -288,12 +319,23 @@ document.addEventListener("keydown", (event) => {
 });
 
 function updateDrawingHint(state) {
+  hintFinish.classList.add("hidden");
+
   if (state.mode === MODES.DRAW_LINE || state.mode === MODES.DRAW_POLYGON) {
-    hintText.textContent = "Click on the map to add points. Double-click to finish.";
+    const count = state.drawing.coordinates.length;
+    const minPoints = state.mode === MODES.DRAW_POLYGON ? 3 : 2;
+
+    // Relying on a double-tap to finish is unreliable on touchscreens (it
+    // competes with the map's own double-tap-to-zoom gesture), so give
+    // mobile users an explicit button as soon as there are enough points.
+    hintText.textContent = count === 0
+      ? "Tap the map to start drawing."
+      : `${count} point${count === 1 ? "" : "s"} — tap Finish when done, or keep tapping to add more.`;
     hintCancel.textContent = "Cancel";
+    hintFinish.classList.toggle("hidden", count < minPoints);
     hintEl.classList.remove("hidden");
   } else if (state.mode === MODES.ADD_POINT) {
-    hintText.textContent = "Click on the map to place a point.";
+    hintText.textContent = "Tap the map to place a point.";
     hintCancel.textContent = "Cancel";
     hintEl.classList.remove("hidden");
   } else if (state.mode === MODES.EDIT_SHAPE) {
@@ -311,7 +353,10 @@ function render(state) {
   const collection = toFeatureCollection();
   refreshObjectLayers(map, collection);
   setSelectedFilter(map, state.selectedId);
-  renderSidebar(state.objects, state.selectedId, (id) => selectObject(id));
+  renderSidebar(state.objects, state.selectedId, (id) => {
+    selectObject(id);
+    closeSidebarSheet();
+  });
   updateDrawingHint(state);
   updateDrawingPreview(map, state.drawing.coordinates, state.drawing.geometryType);
 

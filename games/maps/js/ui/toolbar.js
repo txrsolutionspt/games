@@ -2,33 +2,23 @@ import { getState, replaceAll } from "../objects/object-store.js";
 
 const addButton = document.getElementById("add-button");
 const addDropdown = document.getElementById("add-dropdown");
-const importButton = document.getElementById("import-button");
+const moreButton = document.getElementById("more-button");
+const moreDropdown = document.getElementById("more-dropdown");
 const importInput = document.getElementById("import-input");
-const exportButton = document.getElementById("export-button");
 const searchInput = document.getElementById("search-input");
+const searchClear = document.getElementById("search-clear");
 const searchResults = document.getElementById("search-results");
 
-export function setupToolbar({ onAdd, onFlyTo }) {
-  addButton.addEventListener("click", () => {
-    addDropdown.classList.toggle("hidden");
+export function setupToolbar({ onAdd, onFlyTo, onToggleLabels }) {
+  setupDropdown(addButton, addDropdown, "[data-add]", (button) => onAdd(button.dataset.add));
+
+  setupDropdown(moreButton, moreDropdown, "[data-action]", (button) => {
+    const action = button.dataset.action;
+    if (action === "labels") onToggleLabels();
+    else if (action === "import") importInput.click();
+    else if (action === "export") exportData();
   });
 
-  document.addEventListener("click", (event) => {
-    if (!addDropdown.contains(event.target) && event.target !== addButton) {
-      addDropdown.classList.add("hidden");
-    }
-  });
-
-  for (const button of addDropdown.querySelectorAll("[data-add]")) {
-    button.addEventListener("click", () => {
-      addDropdown.classList.add("hidden");
-      onAdd(button.dataset.add);
-    });
-  }
-
-  exportButton.addEventListener("click", exportData);
-
-  importButton.addEventListener("click", () => importInput.click());
   importInput.addEventListener("change", async () => {
     const file = importInput.files[0];
     importInput.value = "";
@@ -48,6 +38,25 @@ export function setupToolbar({ onAdd, onFlyTo }) {
   });
 
   setupSearch(onFlyTo);
+}
+
+function setupDropdown(triggerButton, dropdown, itemSelector, onItemClick) {
+  triggerButton.addEventListener("click", () => {
+    dropdown.classList.toggle("hidden");
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!dropdown.contains(event.target) && !triggerButton.contains(event.target)) {
+      dropdown.classList.add("hidden");
+    }
+  });
+
+  for (const button of dropdown.querySelectorAll(itemSelector)) {
+    button.addEventListener("click", () => {
+      dropdown.classList.add("hidden");
+      onItemClick(button);
+    });
+  }
 }
 
 function exportData() {
@@ -70,6 +79,8 @@ function setupSearch(onFlyTo) {
     clearTimeout(searchDebounce);
     const query = searchInput.value.trim();
 
+    searchClear.classList.toggle("hidden", query.length === 0);
+
     if (query.length < 3) {
       searchResults.classList.add("hidden");
       searchResults.innerHTML = "";
@@ -77,6 +88,14 @@ function setupSearch(onFlyTo) {
     }
 
     searchDebounce = setTimeout(() => runSearch(query, onFlyTo), 350);
+  });
+
+  searchClear.addEventListener("click", () => {
+    searchInput.value = "";
+    searchClear.classList.add("hidden");
+    searchResults.classList.add("hidden");
+    searchResults.innerHTML = "";
+    searchInput.focus();
   });
 
   document.addEventListener("click", (event) => {

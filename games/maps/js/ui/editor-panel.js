@@ -50,9 +50,11 @@ export function showFeaturePopup(map, feature, handlers) {
     <p class="category">${escapeHtml(feature.properties.category || "")}</p>
     <p>${escapeHtml(feature.properties.description || "")}</p>
     <div class="actions">
-      <button data-action="edit-info">Edit info</button>
-      <button data-action="edit-shape">Edit shape</button>
-      <button data-action="delete" class="danger">Delete</button>
+      <button data-action="edit-info">✏ Edit</button>
+      <button data-action="edit-shape">⌖ Shape</button>
+    </div>
+    <div class="actions-danger">
+      <button data-action="delete">🗑 Delete</button>
     </div>
   `;
 
