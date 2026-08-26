@@ -1,4 +1,4 @@
-import { updateObjectGeometry } from "../objects/object-store.js?v=2026-08-26.7";
+import { updateObjectGeometry } from "../objects/object-store.js?v=2026-08-26.8";
 
 const EDIT_SOURCE_ID = "edit-vertices";
 let dragState = null;
