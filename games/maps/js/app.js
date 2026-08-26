@@ -36,32 +36,39 @@ import {
 import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js";
 import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js";
 import { setupToolbar } from "./ui/toolbar.js";
+import { setupViewMenu } from "./ui/view-menu.js";
+import { buildBaseStyle } from "./map/map-styles.js";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
 const hintCancel = document.getElementById("drawing-cancel");
-const viewToggleButton = document.getElementById("view-toggle-button");
 
-const map = createMap();
+let mapSettings = loadMapSettings();
+const map = createMap(mapSettings);
 
-let is3DView = true;
+// The map style (base imagery, terrain) is swappable independently of the
+// user's data: map.setStyle() reloads the style and wipes any source/layer
+// that isn't part of it, so the object/drawing/edit-vertex overlay layers
+// have to be re-added every time — see addOverlayLayers() and the
+// non-first-load branch of the "style.load" handler below.
+function addOverlayLayers() {
+  setupObjectLayers(map, toFeatureCollection());
+  setupDrawingLayers(map);
+  setupEditLayers(map);
+}
 
-function setupViewToggle() {
-  viewToggleButton.addEventListener("click", () => {
-    is3DView = !is3DView;
+function applyStyleChange(styleId) {
+  mapSettings = { ...mapSettings, style: styleId };
+  saveMapSettings(mapSettings);
+  map.setStyle(buildBaseStyle(mapSettings.style, mapSettings.projection));
+}
 
-    if (is3DView) {
-      map.setProjection({ type: "globe" });
-      map.setTerrain({ source: "terrain-source", exaggeration: 1.5 });
-      map.easeTo({ pitch: 65, duration: 500 });
-      viewToggleButton.textContent = "2D View";
-    } else {
-      map.setTerrain(null);
-      map.setProjection({ type: "mercator" });
-      map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
-      viewToggleButton.textContent = "3D View";
-    }
-  });
+function applyProjectionChange(projection) {
+  mapSettings = { ...mapSettings, projection };
+  saveMapSettings(mapSettings);
+  map.setProjection({ type: projection });
+  map.easeTo({ pitch: projection === "globe" ? 65 : 0, duration: 500 });
 }
 
 async function seedIfEmpty() {
@@ -83,12 +90,26 @@ async function seedIfEmpty() {
 // satellite tile fetches. "style.load" fires as soon as the (inline, already
 // in-memory) style and its sources/layers are parsed, which is all addSource
 // / addLayer below actually need — it does not depend on tile network access.
-map.on("style.load", async () => {
-  await seedIfEmpty();
+//
+// "style.load" also fires again every time applyStyleChange() calls
+// map.setStyle() (switching Street/Satellite/Terrain/Dark from the View
+// menu), which wipes our overlay source/layers along with the old style. The
+// one-time app wiring (event listeners, store subscription, toolbar/menus)
+// only needs to happen once — those survive a style swap since they're
+// registered on the Map instance, not the style — but the overlay layers
+// need to be re-added every time.
+let firstStyleLoad = true;
 
-  setupObjectLayers(map, toFeatureCollection());
-  setupDrawingLayers(map);
-  setupEditLayers(map);
+map.on("style.load", async () => {
+  if (!firstStyleLoad) {
+    addOverlayLayers();
+    render(getState()); // reapply selection highlight / drawing preview / edit vertices
+    return;
+  }
+  firstStyleLoad = false;
+
+  await seedIfEmpty();
+  addOverlayLayers();
 
   setupSelection(map, {
     isSelectable: () => getState().mode === MODES.VIEW,
@@ -104,10 +125,14 @@ map.on("style.load", async () => {
 
   setupToolbar({
     onAdd: handleAdd,
-    onFlyTo: (center) => map.flyTo({ center, zoom: 12, pitch: is3DView ? 65 : 0 }),
+    onFlyTo: (center) => map.flyTo({ center, zoom: 12, pitch: mapSettings.projection === "globe" ? 65 : 0 }),
   });
 
-  setupViewToggle();
+  setupViewMenu({
+    getSettings: () => mapSettings,
+    onSelectStyle: applyStyleChange,
+    onSelectProjection: applyProjectionChange,
+  });
 
   subscribe(render);
   render(getState());

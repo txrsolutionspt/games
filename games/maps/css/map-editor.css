@@ -94,7 +94,8 @@ html, body {
   background: #374151;
 }
 
-.add-menu {
+.add-menu,
+.view-menu {
   position: relative;
 }
 
@@ -140,6 +141,26 @@ html, body {
   display: block;
   font-size: 12px;
   color: #9ca3af;
+}
+
+.dropdown button.active {
+  background: #1f2937;
+  color: #facc15;
+  font-weight: 600;
+}
+
+.dropdown-section-label {
+  padding: 8px 14px 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #374151;
+  margin: 6px 0;
 }
 
 .hidden {
