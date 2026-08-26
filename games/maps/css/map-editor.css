@@ -94,6 +94,11 @@ html, body {
   background: #374151;
 }
 
+.toolbar-actions button.active {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
 .add-menu,
 .view-menu {
   position: relative;

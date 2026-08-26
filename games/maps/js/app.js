@@ -3,6 +3,7 @@ import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
+  setLabelsVisibility,
 } from "./map/map-layers.js";
 import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js";
 import { setupSelection } from "./map/map-selection.js";
@@ -43,6 +44,7 @@ import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js"
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
 const hintCancel = document.getElementById("drawing-cancel");
+const labelsButton = document.getElementById("labels-button");
 
 let mapSettings = loadMapSettings();
 const map = createMap(mapSettings);
@@ -51,11 +53,25 @@ const map = createMap(mapSettings);
 // user's data: map.setStyle() reloads the style and wipes any source/layer
 // that isn't part of it, so the object/drawing/edit-vertex overlay layers
 // have to be re-added every time — see addOverlayLayers() and the
-// non-first-load branch of the "style.load" handler below.
+// non-first-load branch of the "style.load" handler below. The name-label
+// layers are part of that same overlay source, so their visibility has to be
+// reapplied here too every time they're recreated, not just once.
 function addOverlayLayers() {
   setupObjectLayers(map, toFeatureCollection());
   setupDrawingLayers(map);
   setupEditLayers(map);
+  setLabelsVisibility(map, mapSettings.labelsVisible);
+}
+
+function updateLabelsButton() {
+  labelsButton.classList.toggle("active", mapSettings.labelsVisible);
+}
+
+function applyLabelsToggle() {
+  mapSettings = { ...mapSettings, labelsVisible: !mapSettings.labelsVisible };
+  saveMapSettings(mapSettings);
+  setLabelsVisibility(map, mapSettings.labelsVisible);
+  updateLabelsButton();
 }
 
 function applyStyleChange(styleId) {
@@ -133,6 +149,9 @@ map.on("style.load", async () => {
     onSelectStyle: applyStyleChange,
     onSelectProjection: applyProjectionChange,
   });
+
+  labelsButton.addEventListener("click", applyLabelsToggle);
+  updateLabelsButton();
 
   subscribe(render);
   render(getState());

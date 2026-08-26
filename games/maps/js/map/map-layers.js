@@ -70,6 +70,76 @@ export function setupObjectLayers(map, initialData) {
     filter: ["all", ["==", ["geometry-type"], "Polygon"], ["==", ["get", "id"], "__none__"]],
     paint: { "line-color": "#facc15", "line-width": 4 },
   });
+
+  addLabelLayers(map);
+}
+
+const LABEL_LAYOUT_PAINT = {
+  paint: {
+    "text-color": "#111827",
+    "text-halo-color": "#ffffff",
+    "text-halo-width": 1.5,
+  },
+};
+
+const LABEL_LAYER_IDS = ["user-points-label", "user-lines-label", "user-polygons-label"];
+
+function addLabelLayers(map) {
+  // Hidden by default (visibility: "none") and toggled as a group via
+  // setLabelsVisibility — a layout-property flip, not add/remove, so turning
+  // labels on/off is instant. One layer per geometry type so each can use a
+  // placement that actually suits its shape.
+  map.addLayer({
+    id: "user-points-label",
+    type: "symbol",
+    source: SOURCE_ID,
+    filter: ["==", ["geometry-type"], "Point"],
+    layout: {
+      "text-field": ["get", "name"],
+      "text-size": 12,
+      "text-anchor": "top",
+      "text-offset": [0, 0.8],
+      "text-max-width": 10,
+      visibility: "none",
+    },
+    ...LABEL_LAYOUT_PAINT,
+  });
+
+  map.addLayer({
+    id: "user-lines-label",
+    type: "symbol",
+    source: SOURCE_ID,
+    filter: ["==", ["geometry-type"], "LineString"],
+    layout: {
+      "text-field": ["get", "name"],
+      "text-size": 12,
+      "symbol-placement": "line",
+      visibility: "none",
+    },
+    ...LABEL_LAYOUT_PAINT,
+  });
+
+  map.addLayer({
+    id: "user-polygons-label",
+    type: "symbol",
+    source: SOURCE_ID,
+    filter: ["==", ["geometry-type"], "Polygon"],
+    layout: {
+      "text-field": ["get", "name"],
+      "text-size": 12,
+      "text-max-width": 10,
+      visibility: "none",
+    },
+    ...LABEL_LAYOUT_PAINT,
+  });
+}
+
+export function setLabelsVisibility(map, visible) {
+  const value = visible ? "visible" : "none";
+  for (const id of LABEL_LAYER_IDS) {
+    if (!map.getLayer(id)) continue;
+    map.setLayoutProperty(id, "visibility", value);
+  }
 }
 
 export function refreshObjectLayers(map, featureCollection) {
