@@ -75,6 +75,12 @@ export function buildBaseStyle(styleId, projection) {
   return {
     version: 8,
     projection: { type: projection },
+    // Required before any symbol layer with a "text-field" can be added
+    // (our name-label layers, see map-layers.js) — MapLibre otherwise
+    // rejects addLayer with "requires a style glyphs property" and the
+    // label layers never get created at all. Same host as the terrain DEM
+    // source above: MapLibre's own project-maintained demo server.
+    glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
     sources,
     layers: [
       {
