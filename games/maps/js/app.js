@@ -1,24 +1,24 @@
-import { createMap } from "./map/map-init.js?v=2026-08-26.5";
+import { createMap } from "./map/map-init.js?v=2026-08-26.6";
 import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
-  setLabelsVisibility,
-} from "./map/map-layers.js?v=2026-08-26.5";
-import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.5";
-import { setupSelection } from "./map/map-selection.js?v=2026-08-26.5";
+  applyLayerVisibility,
+} from "./map/map-layers.js?v=2026-08-26.6";
+import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.6";
+import { setupSelection } from "./map/map-selection.js?v=2026-08-26.6";
 import {
   setupEditLayers,
   showEditVertices,
   clearEditVertices,
   enableVertexDragging,
-} from "./map/map-edit.js?v=2026-08-26.5";
+} from "./map/map-edit.js?v=2026-08-26.6";
 import {
   MODES,
   createPoint,
   createLine,
   createPolygon,
-} from "./objects/object-model.js?v=2026-08-26.5";
+} from "./objects/object-model.js?v=2026-08-26.6";
 import {
   getState,
   subscribe,
@@ -33,19 +33,19 @@ import {
   getObject,
   toFeatureCollection,
   replaceAll,
-} from "./objects/object-store.js?v=2026-08-26.5";
-import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.5";
-import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.5";
-import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.5";
-import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.5";
-import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.5";
-import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.5";
+} from "./objects/object-store.js?v=2026-08-26.6";
+import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.6";
+import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.6";
+import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.6";
+import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.6";
+import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.6";
+import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.6";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.6";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
 const hintCancel = document.getElementById("drawing-cancel");
 const hintFinish = document.getElementById("drawing-finish");
-const labelsButton = document.querySelector('[data-action="labels"]');
 const sidebarToggleButton = document.getElementById("sidebar-toggle-button");
 const sidebarScrim = document.getElementById("sidebar-scrim");
 const sidebarEl = document.getElementById("sidebar");
@@ -64,18 +64,20 @@ function addOverlayLayers() {
   setupObjectLayers(map, toFeatureCollection());
   setupDrawingLayers(map);
   setupEditLayers(map);
-  setLabelsVisibility(map, mapSettings.labelsVisible);
-}
-
-function updateLabelsButton() {
-  labelsButton.classList.toggle("active", mapSettings.labelsVisible);
+  applyLayerVisibility(map, { groupVisibility: mapSettings.layers, labelsVisible: mapSettings.labelsVisible });
 }
 
 function applyLabelsToggle() {
   mapSettings = { ...mapSettings, labelsVisible: !mapSettings.labelsVisible };
   saveMapSettings(mapSettings);
-  setLabelsVisibility(map, mapSettings.labelsVisible);
-  updateLabelsButton();
+  applyLayerVisibility(map, { groupVisibility: mapSettings.layers, labelsVisible: mapSettings.labelsVisible });
+}
+
+function toggleLayerGroup(geometryType) {
+  const currentlyOn = mapSettings.layers[geometryType] !== false;
+  mapSettings = { ...mapSettings, layers: { ...mapSettings.layers, [geometryType]: !currentlyOn } };
+  saveMapSettings(mapSettings);
+  applyLayerVisibility(map, { groupVisibility: mapSettings.layers, labelsVisible: mapSettings.labelsVisible });
 }
 
 // On mobile the sidebar is a bottom sheet, closed by default; on desktop
@@ -167,7 +169,6 @@ map.on("style.load", async () => {
   setupToolbar({
     onAdd: handleAdd,
     onFlyTo: (center) => map.flyTo({ center, zoom: 12, pitch: mapSettings.projection === "globe" ? 65 : 0 }),
-    onToggleLabels: applyLabelsToggle,
   });
 
   setupViewMenu({
@@ -176,7 +177,11 @@ map.on("style.load", async () => {
     onSelectProjection: applyProjectionChange,
   });
 
-  updateLabelsButton();
+  setupLayersMenu({
+    getSettings: () => mapSettings,
+    onToggleGroup: toggleLayerGroup,
+    onToggleLabels: applyLabelsToggle,
+  });
 
   sidebarToggleButton.addEventListener("click", toggleSidebarSheet);
   sidebarScrim.addEventListener("click", closeSidebarSheet);

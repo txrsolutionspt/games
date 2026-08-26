@@ -123,6 +123,7 @@ html, body {
 
 .add-menu,
 .view-menu,
+.layers-menu,
 .more-menu {
   position: relative;
 }
@@ -189,6 +190,43 @@ html, body {
   height: 1px;
   background: #374151;
   margin: 6px 0;
+}
+
+.dropdown button.layer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.layer-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.layer-dot-outline {
+  background: none;
+  border: 2px solid #9ca3af;
+  width: 6px;
+  height: 6px;
+}
+
+.layer-name {
+  flex: 1;
+}
+
+.layer-state {
+  font-size: 13px;
+  color: #4ade80;
+}
+
+.dropdown button.layer-toggle.layer-off {
+  opacity: 0.55;
+}
+
+.dropdown button.layer-toggle.layer-off .layer-state {
+  color: #6b7280;
 }
 
 .hidden {
