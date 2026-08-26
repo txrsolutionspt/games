@@ -1,5 +1,5 @@
-import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.5";
-import { MODES, touch } from "./object-model.js?v=2026-08-26.5";
+import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.6";
+import { MODES, touch } from "./object-model.js?v=2026-08-26.6";
 
 const state = {
   objects: loadObjects(),

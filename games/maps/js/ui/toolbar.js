@@ -1,4 +1,4 @@
-import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.5";
+import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.6";
 
 const addButton = document.getElementById("add-button");
 const addDropdown = document.getElementById("add-dropdown");
@@ -9,13 +9,12 @@ const searchInput = document.getElementById("search-input");
 const searchClear = document.getElementById("search-clear");
 const searchResults = document.getElementById("search-results");
 
-export function setupToolbar({ onAdd, onFlyTo, onToggleLabels }) {
+export function setupToolbar({ onAdd, onFlyTo }) {
   setupDropdown(addButton, addDropdown, "[data-add]", (button) => onAdd(button.dataset.add));
 
   setupDropdown(moreButton, moreDropdown, "[data-action]", (button) => {
     const action = button.dataset.action;
-    if (action === "labels") onToggleLabels();
-    else if (action === "import") importInput.click();
+    if (action === "import") importInput.click();
     else if (action === "export") exportData();
   });
 

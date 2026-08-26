@@ -82,13 +82,11 @@ const LABEL_LAYOUT_PAINT = {
   },
 };
 
-const LABEL_LAYER_IDS = ["user-points-label", "user-lines-label", "user-polygons-label"];
-
 function addLabelLayers(map) {
-  // Hidden by default (visibility: "none") and toggled as a group via
-  // setLabelsVisibility — a layout-property flip, not add/remove, so turning
-  // labels on/off is instant. One layer per geometry type so each can use a
-  // placement that actually suits its shape.
+  // Hidden by default (visibility: "none") and toggled via applyLayerVisibility
+  // below — a layout-property flip, not add/remove, so turning labels on/off
+  // is instant. One layer per geometry type so each can use a placement that
+  // actually suits its shape.
   map.addLayer({
     id: "user-points-label",
     type: "symbol",
@@ -134,11 +132,35 @@ function addLabelLayers(map) {
   });
 }
 
-export function setLabelsVisibility(map, visible) {
-  const value = visible ? "visible" : "none";
-  for (const id of LABEL_LAYER_IDS) {
-    if (!map.getLayer(id)) continue;
-    map.setLayoutProperty(id, "visibility", value);
+const GROUP_LAYER_IDS = {
+  Point: ["user-points", "user-points-selected"],
+  LineString: ["user-lines", "user-lines-selected"],
+  Polygon: ["user-polygons", "user-polygon-outline", "user-polygon-selected-outline"],
+};
+
+const GROUP_LABEL_LAYER_ID = {
+  Point: "user-points-label",
+  LineString: "user-lines-label",
+  Polygon: "user-polygons-label",
+};
+
+// Each geometry-type group (Places/Routes/Areas) can be shown or hidden on
+// its own, and labels are a further toggle on top of that — a label only
+// actually shows when its group is visible AND labels are turned on.
+export function applyLayerVisibility(map, { groupVisibility, labelsVisible }) {
+  for (const [type, layerIds] of Object.entries(GROUP_LAYER_IDS)) {
+    const groupOn = groupVisibility[type] !== false;
+    const value = groupOn ? "visible" : "none";
+
+    for (const id of layerIds) {
+      if (!map.getLayer(id)) continue;
+      map.setLayoutProperty(id, "visibility", value);
+    }
+
+    const labelId = GROUP_LABEL_LAYER_ID[type];
+    if (map.getLayer(labelId)) {
+      map.setLayoutProperty(labelId, "visibility", groupOn && labelsVisible ? "visible" : "none");
+    }
   }
 }
 
