@@ -1,3 +1,11 @@
+import {
+  lineLengthMeters,
+  polygonAreaMeters,
+  formatDistance,
+  formatArea,
+  formatCoordinate,
+} from "../geo/measure.js?v=2026-08-26.8";
+
 const summaryEl = document.getElementById("object-summary");
 const listEl = document.getElementById("object-list");
 
@@ -48,6 +56,7 @@ export function showFeaturePopup(map, feature, handlers) {
   container.innerHTML = `
     <h4>${escapeHtml(feature.properties.name || "(unnamed)")}</h4>
     <p class="category">${escapeHtml(feature.properties.category || "")}</p>
+    ${geometryMeta(feature.geometry)}
     <p>${escapeHtml(feature.properties.description || "")}</p>
     <div class="actions">
       <button data-action="edit-info">✏ Edit</button>
@@ -73,6 +82,30 @@ export function closeFeaturePopup() {
     activePopup.remove();
     activePopup = null;
   }
+}
+
+function geometryMeta(geometry) {
+  if (geometry.type === "Point") {
+    return `<p class="meta">📍 ${formatCoordinate(geometry.coordinates)}</p>`;
+  }
+
+  if (geometry.type === "LineString") {
+    const length = lineLengthMeters(geometry.coordinates);
+    return `
+      <p class="meta">📍 ${formatCoordinate(geometry.coordinates[0])}</p>
+      <p class="meta">📏 ${formatDistance(length)}</p>
+    `;
+  }
+
+  if (geometry.type === "Polygon") {
+    const area = polygonAreaMeters(geometry.coordinates);
+    return `
+      <p class="meta">📍 ${formatCoordinate(geometry.coordinates[0][0])}</p>
+      <p class="meta">▦ ${formatArea(area)}</p>
+    `;
+  }
+
+  return "";
 }
 
 function popupAnchor(geometry) {
