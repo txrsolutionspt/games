@@ -40,8 +40,29 @@ import { setupToolbar } from "./ui/toolbar.js";
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
 const hintCancel = document.getElementById("drawing-cancel");
+const viewToggleButton = document.getElementById("view-toggle-button");
 
 const map = createMap();
+
+let is3DView = true;
+
+function setupViewToggle() {
+  viewToggleButton.addEventListener("click", () => {
+    is3DView = !is3DView;
+
+    if (is3DView) {
+      map.setProjection({ type: "globe" });
+      map.setTerrain({ source: "terrain-source", exaggeration: 1.5 });
+      map.easeTo({ pitch: 65, duration: 500 });
+      viewToggleButton.textContent = "2D View";
+    } else {
+      map.setTerrain(null);
+      map.setProjection({ type: "mercator" });
+      map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
+      viewToggleButton.textContent = "3D View";
+    }
+  });
+}
 
 async function seedIfEmpty() {
   if (getState().objects.length > 0) return;
@@ -83,8 +104,10 @@ map.on("style.load", async () => {
 
   setupToolbar({
     onAdd: handleAdd,
-    onFlyTo: (center) => map.flyTo({ center, zoom: 12, pitch: 0 }),
+    onFlyTo: (center) => map.flyTo({ center, zoom: 12, pitch: is3DView ? 65 : 0 }),
   });
+
+  setupViewToggle();
 
   subscribe(render);
   render(getState());
