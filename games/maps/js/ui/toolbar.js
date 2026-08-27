@@ -1,4 +1,4 @@
-import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.12";
+import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.13";
 
 const addButton = document.getElementById("add-button");
 const addDropdown = document.getElementById("add-dropdown");
@@ -9,7 +9,6 @@ const searchInput = document.getElementById("search-input");
 const searchClear = document.getElementById("search-clear");
 const searchResults = document.getElementById("search-results");
 const aboutOverlay = document.getElementById("about-overlay");
-const aboutVersion = document.getElementById("about-version");
 const aboutClose = document.getElementById("about-close");
 
 export function setupToolbar({ onAdd, onFlyTo }) {
@@ -64,11 +63,7 @@ function setupDropdown(triggerButton, dropdown, itemSelector, onItemClick) {
   }
 }
 
-// Reads from the build badge rather than a separate literal, so there's
-// only one place to update when the version is bumped.
 function openAboutDialog() {
-  const badge = document.getElementById("build-badge");
-  aboutVersion.textContent = badge ? badge.textContent.trim() : "";
   aboutOverlay.classList.remove("hidden");
 }
 
