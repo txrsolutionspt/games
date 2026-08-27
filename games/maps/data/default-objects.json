@@ -4,7 +4,7 @@
     {
       "id": "seed-farmhouse",
       "type": "Feature",
-      "geometry": { "type": "Point", "coordinates": [137.91, 36.25] },
+      "geometry": { "type": "Point", "coordinates": [-8.0, 39.5] },
       "properties": {
         "id": "seed-farmhouse",
         "name": "Sample Place",
@@ -19,11 +19,11 @@
       "geometry": {
         "type": "Polygon",
         "coordinates": [[
-          [137.90, 36.24],
-          [137.92, 36.24],
-          [137.92, 36.26],
-          [137.90, 36.26],
-          [137.90, 36.24]
+          [-8.02, 39.48],
+          [-7.98, 39.48],
+          [-7.98, 39.52],
+          [-8.02, 39.52],
+          [-8.02, 39.48]
         ]]
       },
       "properties": {
