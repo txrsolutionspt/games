@@ -1,4 +1,4 @@
-import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.11";
+import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.12";
 
 const addButton = document.getElementById("add-button");
 const addDropdown = document.getElementById("add-dropdown");
@@ -8,6 +8,9 @@ const importInput = document.getElementById("import-input");
 const searchInput = document.getElementById("search-input");
 const searchClear = document.getElementById("search-clear");
 const searchResults = document.getElementById("search-results");
+const aboutOverlay = document.getElementById("about-overlay");
+const aboutVersion = document.getElementById("about-version");
+const aboutClose = document.getElementById("about-close");
 
 export function setupToolbar({ onAdd, onFlyTo }) {
   setupDropdown(addButton, addDropdown, "[data-add]", (button) => onAdd(button.dataset.add));
@@ -16,7 +19,10 @@ export function setupToolbar({ onAdd, onFlyTo }) {
     const action = button.dataset.action;
     if (action === "import") importInput.click();
     else if (action === "export") exportData();
+    else if (action === "about") openAboutDialog();
   });
+
+  aboutClose.addEventListener("click", () => aboutOverlay.classList.add("hidden"));
 
   importInput.addEventListener("change", async () => {
     const file = importInput.files[0];
@@ -56,6 +62,14 @@ function setupDropdown(triggerButton, dropdown, itemSelector, onItemClick) {
       onItemClick(button);
     });
   }
+}
+
+// Reads from the build badge rather than a separate literal, so there's
+// only one place to update when the version is bumped.
+function openAboutDialog() {
+  const badge = document.getElementById("build-badge");
+  aboutVersion.textContent = badge ? badge.textContent.trim() : "";
+  aboutOverlay.classList.remove("hidden");
 }
 
 function exportData() {
