@@ -91,3 +91,35 @@ export function formatArea(squareMeters) {
 export function formatCoordinate([lng, lat]) {
   return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 }
+
+function collectCoordinatePairs(coordinates, out) {
+  if (typeof coordinates[0] === "number") {
+    out.push(coordinates);
+  } else {
+    for (const nested of coordinates) collectCoordinatePairs(nested, out);
+  }
+}
+
+// Works for any geometry's coordinates (Point/LineString/Polygon nest to
+// different depths) by recursively flattening down to [lng, lat] pairs.
+export function geometryBounds(geometry) {
+  const points = [];
+  collectCoordinatePairs(geometry.coordinates, points);
+
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
+
+  for (const [lng, lat] of points) {
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+  }
+
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
+}
