@@ -2,7 +2,7 @@ const SETTINGS_KEY = "map-settings-v1";
 
 const DEFAULT_SETTINGS = Object.freeze({
   style: "satellite",
-  projection: "globe",
+  projection: "mercator", // flat top-down view by default; 3D Globe is opt-in via the View menu
   labelsVisible: false,
   layers: Object.freeze({ Point: true, LineString: true, Polygon: true }),
 });

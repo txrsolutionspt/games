@@ -1,4 +1,4 @@
-import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.9";
+import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.10";
 
 const editorOverlay = document.getElementById("editor-overlay");
 const editorForm = document.getElementById("editor-form");
