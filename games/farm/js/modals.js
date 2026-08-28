@@ -288,7 +288,8 @@ const Modals = (function () {
       '<button class="btn-secondary" id="farms-btn">🚜 ' + I18N.t('ui.farms.settingsEntry', 'My Farms') + '</button>' +
       '<button class="btn-secondary" id="privacy-btn">🛡️ ' + I18N.t('ui.settings.privacy', 'Privacy for Parents') + '</button>' +
       '<button class="btn-danger" id="reset-btn">🗑️ ' + I18N.t('ui.settings.reset', 'Reset Game Data') + '</button>' +
-      '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
+      '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>' +
+      '<p class="settings-version">' + I18N.t('ui.settings.version', 'Version') + ' ' + CONFIG.appVersion + '</p>');
     root().querySelectorAll('.lang-btn').forEach(function (btn) {
       btn.addEventListener('click', function () { actions.setLocale(btn.dataset.lang); renderSettings(state, actions); });
     });

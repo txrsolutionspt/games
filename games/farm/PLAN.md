@@ -622,6 +622,12 @@ step rather than growing into a second economy mid-implementation.
   gameplay" rule. It's the one screen in the game aimed at a parent rather
   than the child player, so it's allowed plainer, longer text than the
   rest of the UI.
+- Settings also shows a small, muted **Version** line (`CONFIG.appVersion`)
+  below the Close button — there's no build tooling to stamp this
+  automatically, so it's bumped by hand alongside any notable change, the
+  same manual discipline `schemaVersion` (§7) already uses. Purely
+  informational (confirming which deployment a player/tester is looking
+  at), not tied to save compatibility.
 
 ## 13. Missions & "what you learned" loop
 

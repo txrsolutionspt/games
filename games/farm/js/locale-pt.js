@@ -69,6 +69,7 @@ const LOCALE_PT = {
   'ui.settings.language': 'Idioma',
   'ui.settings.privacy': 'Privacidade para os Pais',
   'ui.settings.reset': 'Repor Dados do Jogo',
+  'ui.settings.version': 'Versão',
 
   'ui.farms.settingsEntry': 'As Minhas Quintas',
   'ui.farms.title': 'As Minhas Quintas',
