@@ -1,24 +1,24 @@
-import { createMap } from "./map/map-init.js?v=2026-08-26.14";
+import { createMap } from "./map/map-init.js?v=2026-08-26.15";
 import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
   applyLayerVisibility,
-} from "./map/map-layers.js?v=2026-08-26.14";
-import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.14";
-import { setupSelection } from "./map/map-selection.js?v=2026-08-26.14";
+} from "./map/map-layers.js?v=2026-08-26.15";
+import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.15";
+import { setupSelection } from "./map/map-selection.js?v=2026-08-26.15";
 import {
   setupEditLayers,
   showEditVertices,
   clearEditVertices,
   enableVertexDragging,
-} from "./map/map-edit.js?v=2026-08-26.14";
+} from "./map/map-edit.js?v=2026-08-26.15";
 import {
   MODES,
   createPoint,
   createLine,
   createPolygon,
-} from "./objects/object-model.js?v=2026-08-26.14";
+} from "./objects/object-model.js?v=2026-08-26.15";
 import {
   getState,
   subscribe,
@@ -33,15 +33,16 @@ import {
   getObject,
   toFeatureCollection,
   replaceAll,
-} from "./objects/object-store.js?v=2026-08-26.14";
-import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.14";
-import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.14";
-import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.14";
-import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.14";
-import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.14";
-import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.14";
-import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.14";
-import { geometryBounds } from "./geo/measure.js?v=2026-08-26.14";
+} from "./objects/object-store.js?v=2026-08-26.15";
+import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.15";
+import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.15";
+import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.15";
+import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.15";
+import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.15";
+import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.15";
+import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.15";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.15";
+import { geometryBounds, featureCollectionBounds } from "./geo/measure.js?v=2026-08-26.15";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
@@ -135,6 +136,16 @@ function flyToFeature(feature) {
   }
 }
 
+function fitAllObjects() {
+  const objects = getState().objects;
+  if (objects.length === 0) return;
+  map.fitBounds(featureCollectionBounds(objects), {
+    padding: 72,
+    maxZoom: 16,
+    duration: 800,
+  });
+}
+
 async function seedIfEmpty() {
   if (getState().objects.length > 0) return;
 
@@ -171,6 +182,8 @@ map.on("style.load", async () => {
     return;
   }
   firstStyleLoad = false;
+
+  map.addControl(createFitAllControl(fitAllObjects));
 
   await seedIfEmpty();
   addOverlayLayers();

@@ -1,4 +1,4 @@
-import { buildBaseStyle } from "./map-styles.js?v=2026-08-26.14";
+import { buildBaseStyle } from "./map-styles.js?v=2026-08-26.15";
 
 export function createMap(initialSettings) {
   const map = new maplibregl.Map({
@@ -11,6 +11,18 @@ export function createMap(initialSettings) {
   });
 
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
+
+  // "Locate me": centers on the device's current position, and (since
+  // trackUserLocation is on) turns into a "follow my location" toggle on a
+  // second click — MapLibre handles the permission prompt and the button's
+  // active/error states itself.
+  map.addControl(
+    new maplibregl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: true,
+      showUserHeading: true,
+    })
+  );
 
   return map;
 }
