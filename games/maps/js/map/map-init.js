@@ -1,4 +1,4 @@
-import { buildBaseStyle } from "./map-styles.js?v=2026-08-26.16";
+import { buildBaseStyle } from "./map-styles.js?v=2026-08-26.17";
 
 export function createMap(initialSettings) {
   const map = new maplibregl.Map({

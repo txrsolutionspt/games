@@ -1,4 +1,4 @@
-import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.16";
+import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.17";
 
 const addButton = document.getElementById("add-button");
 const addDropdown = document.getElementById("add-dropdown");

@@ -1,5 +1,5 @@
-import { CATEGORIES } from "../objects/object-model.js?v=2026-08-26.16";
-import { registerCategoryIcons, categoryIconExpression } from "./map-icons.js?v=2026-08-26.16";
+import { CATEGORIES } from "../objects/object-model.js?v=2026-08-26.17";
+import { registerCategoryIcons, categoryIconExpression } from "./map-icons.js?v=2026-08-26.17";
 
 const SOURCE_ID = "user-objects";
 
@@ -17,6 +17,16 @@ export function setupObjectLayers(map, initialData) {
     paint: { "fill-color": "#22c55e", "fill-opacity": 0.35 },
   });
 
+  // A brighter fill tint for the selected polygon, so selection is obvious
+  // at a glance from the shape's body — not just a slightly thicker outline.
+  map.addLayer({
+    id: "user-polygons-selected-fill",
+    type: "fill",
+    source: SOURCE_ID,
+    filter: ["all", ["==", ["geometry-type"], "Polygon"], ["==", ["get", "id"], "__none__"]],
+    paint: { "fill-color": "#facc15", "fill-opacity": 0.25 },
+  });
+
   map.addLayer({
     id: "user-polygon-outline",
     type: "line",
@@ -31,6 +41,27 @@ export function setupObjectLayers(map, initialData) {
     source: SOURCE_ID,
     filter: ["==", ["geometry-type"], "LineString"],
     paint: { "line-color": "#f97316", "line-width": 4 },
+  });
+
+  // A soft, wide halo drawn under the selected line so selection reads as a
+  // highlighter stroke, not just a color/width change on the line itself.
+  map.addLayer({
+    id: "user-lines-halo",
+    type: "line",
+    source: SOURCE_ID,
+    filter: ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], "__none__"]],
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#facc15", "line-width": 14, "line-opacity": 0.35 },
+  });
+
+  // Same idea for points: a soft ring behind the marker, rather than
+  // relying on the marker just growing a little larger.
+  map.addLayer({
+    id: "user-points-halo",
+    type: "circle",
+    source: SOURCE_ID,
+    filter: ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], "__none__"]],
+    paint: { "circle-radius": 22, "circle-color": "#facc15", "circle-opacity": 0.35 },
   });
 
   map.addLayer({
@@ -152,9 +183,9 @@ function addLabelLayers(map) {
 }
 
 const GROUP_LAYER_IDS = {
-  Point: ["user-points", "user-points-selected", "user-points-icons"],
-  LineString: ["user-lines", "user-lines-selected"],
-  Polygon: ["user-polygons", "user-polygon-outline", "user-polygon-selected-outline"],
+  Point: ["user-points-halo", "user-points", "user-points-selected", "user-points-icons"],
+  LineString: ["user-lines", "user-lines-halo", "user-lines-selected"],
+  Polygon: ["user-polygons", "user-polygons-selected-fill", "user-polygon-outline", "user-polygon-selected-outline"],
 };
 
 const GROUP_LABEL_LAYER_ID = {
@@ -190,8 +221,11 @@ export function refreshObjectLayers(map, featureCollection) {
 }
 
 const SELECTABLE_LAYERS = [
+  { id: "user-points-halo", geometryType: "Point" },
   { id: "user-points-selected", geometryType: "Point" },
+  { id: "user-lines-halo", geometryType: "LineString" },
   { id: "user-lines-selected", geometryType: "LineString" },
+  { id: "user-polygons-selected-fill", geometryType: "Polygon" },
   { id: "user-polygon-selected-outline", geometryType: "Polygon" },
 ];
 
