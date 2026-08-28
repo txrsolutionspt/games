@@ -1,24 +1,24 @@
-import { createMap } from "./map/map-init.js?v=2026-08-26.17";
+import { createMap } from "./map/map-init.js?v=2026-08-26.18";
 import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
   applyLayerVisibility,
-} from "./map/map-layers.js?v=2026-08-26.17";
-import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.17";
-import { setupSelection } from "./map/map-selection.js?v=2026-08-26.17";
+} from "./map/map-layers.js?v=2026-08-26.18";
+import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.18";
+import { setupSelection } from "./map/map-selection.js?v=2026-08-26.18";
 import {
   setupEditLayers,
   showEditVertices,
   clearEditVertices,
   enableVertexDragging,
-} from "./map/map-edit.js?v=2026-08-26.17";
+} from "./map/map-edit.js?v=2026-08-26.18";
 import {
   MODES,
   createPoint,
   createLine,
   createPolygon,
-} from "./objects/object-model.js?v=2026-08-26.17";
+} from "./objects/object-model.js?v=2026-08-26.18";
 import {
   getState,
   subscribe,
@@ -33,16 +33,23 @@ import {
   getObject,
   toFeatureCollection,
   replaceAll,
-} from "./objects/object-store.js?v=2026-08-26.17";
-import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.17";
-import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.17";
-import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.17";
-import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.17";
-import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.17";
-import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.17";
-import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.17";
-import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.17";
-import { geometryBounds, featureCollectionBounds } from "./geo/measure.js?v=2026-08-26.17";
+} from "./objects/object-store.js?v=2026-08-26.18";
+import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.18";
+import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.18";
+import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.18";
+import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.18";
+import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.18";
+import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.18";
+import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.18";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.18";
+import {
+  geometryBounds,
+  featureCollectionBounds,
+  lineLengthMeters,
+  polygonAreaMeters,
+  formatDistance,
+  formatArea,
+} from "./geo/measure.js?v=2026-08-26.18";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
@@ -203,6 +210,12 @@ map.on("style.load", async () => {
   setupToolbar({
     onAdd: handleAdd,
     onFlyTo: (center) => map.flyTo({ center, zoom: 12, pitch: mapSettings.projection === "globe" ? 65 : 0 }),
+    onSelectObject: (id) => {
+      selectObject(id);
+      closeSidebarSheet();
+      const feature = getObject(id);
+      if (feature) flyToFeature(feature);
+    },
   });
 
   setupViewMenu({
@@ -253,6 +266,9 @@ function handleAdd(kind) {
   } else if (kind === "polygon") {
     setMode(MODES.DRAW_POLYGON);
     startDrawing("Polygon");
+  } else if (kind === "measure") {
+    setMode(MODES.MEASURE);
+    startDrawing("Measure");
   }
 }
 
@@ -272,13 +288,22 @@ async function handleMapClick(event) {
     return;
   }
 
-  if (state.mode === MODES.DRAW_LINE || state.mode === MODES.DRAW_POLYGON) {
+  if (state.mode === MODES.DRAW_LINE || state.mode === MODES.DRAW_POLYGON || state.mode === MODES.MEASURE) {
     addDrawingPoint(coordinate);
   }
 }
 
 function handleMapDoubleClick(event) {
   const state = getState();
+
+  // Measuring never saves anything, so "finish" is just "stop and clear" —
+  // the same thing Cancel/Escape/Done already do for it.
+  if (state.mode === MODES.MEASURE) {
+    event.preventDefault();
+    cancelDrawing();
+    return;
+  }
+
   if (state.mode !== MODES.DRAW_LINE && state.mode !== MODES.DRAW_POLYGON) return;
 
   event.preventDefault();
@@ -391,6 +416,20 @@ function updateDrawingHint(state) {
     hintText.textContent = geometry && geometry.type !== "Point"
       ? "Drag a white handle to move it, tap it to remove it, or drag a light blue handle to add a point."
       : "Drag the white handle to move it.";
+    hintCancel.textContent = "Done";
+    hintEl.classList.remove("hidden");
+  } else if (state.mode === MODES.MEASURE) {
+    const coords = state.drawing.coordinates;
+    if (coords.length < 2) {
+      hintText.textContent = "Tap the map to start measuring.";
+    } else {
+      let text = `📏 ${formatDistance(lineLengthMeters(coords))}`;
+      if (coords.length >= 3) {
+        const area = polygonAreaMeters([[...coords, coords[0]]]);
+        text += ` · ▦ ${formatArea(area)} enclosed`;
+      }
+      hintText.textContent = `${text} — tap to add more points, or Done to finish.`;
+    }
     hintCancel.textContent = "Done";
     hintEl.classList.remove("hidden");
   } else {

@@ -1,4 +1,5 @@
-import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.17";
+import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.18";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.18";
 
 const addButton = document.getElementById("add-button");
 const addDropdown = document.getElementById("add-dropdown");
@@ -11,7 +12,7 @@ const searchResults = document.getElementById("search-results");
 const aboutOverlay = document.getElementById("about-overlay");
 const aboutClose = document.getElementById("about-close");
 
-export function setupToolbar({ onAdd, onFlyTo }) {
+export function setupToolbar({ onAdd, onFlyTo, onSelectObject }) {
   setupDropdown(addButton, addDropdown, "[data-add]", (button) => onAdd(button.dataset.add));
 
   setupDropdown(moreButton, moreDropdown, "[data-action]", (button) => {
@@ -41,7 +42,7 @@ export function setupToolbar({ onAdd, onFlyTo }) {
     }
   });
 
-  setupSearch(onFlyTo);
+  setupSearch(onFlyTo, onSelectObject);
 }
 
 function setupDropdown(triggerButton, dropdown, itemSelector, onItemClick) {
@@ -81,28 +82,40 @@ function exportData() {
 }
 
 let searchDebounce = null;
+let userMatches = [];
+let geoResults = [];
 
-function setupSearch(onFlyTo) {
+// Unified search: your own map objects (instant, no network) plus
+// geographic places (debounced, via Nominatim) in one dropdown, so the
+// search box isn't just "where is this place" but also "where's the thing
+// I already added".
+function setupSearch(onFlyTo, onSelectObject) {
   searchInput.addEventListener("input", () => {
     clearTimeout(searchDebounce);
     const query = searchInput.value.trim();
 
     searchClear.classList.toggle("hidden", query.length === 0);
 
-    if (query.length < 3) {
-      searchResults.classList.add("hidden");
-      searchResults.innerHTML = "";
+    if (query.length < 2) {
+      userMatches = [];
+      geoResults = [];
+      renderSearchResults(onFlyTo, onSelectObject);
       return;
     }
 
-    searchDebounce = setTimeout(() => runSearch(query, onFlyTo), 350);
+    userMatches = matchUserObjects(query);
+    renderSearchResults(onFlyTo, onSelectObject);
+
+    if (query.length < 3) return;
+    searchDebounce = setTimeout(() => runGeoSearch(query, onFlyTo, onSelectObject), 350);
   });
 
   searchClear.addEventListener("click", () => {
     searchInput.value = "";
     searchClear.classList.add("hidden");
-    searchResults.classList.add("hidden");
-    searchResults.innerHTML = "";
+    userMatches = [];
+    geoResults = [];
+    renderSearchResults(onFlyTo, onSelectObject);
     searchInput.focus();
   });
 
@@ -113,31 +126,79 @@ function setupSearch(onFlyTo) {
   });
 }
 
-async function runSearch(query, onFlyTo) {
+function matchUserObjects(query) {
+  const needle = query.toLowerCase();
+  return getState()
+    .objects.filter((feature) => (feature.properties.name || "").toLowerCase().includes(needle))
+    .slice(0, 5);
+}
+
+async function runGeoSearch(query, onFlyTo, onSelectObject) {
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`;
     const response = await fetch(url, { headers: { Accept: "application/json" } });
-    const results = await response.json();
-
-    searchResults.innerHTML = "";
-
-    if (!results.length) {
-      searchResults.classList.add("hidden");
-      return;
-    }
-
-    for (const result of results) {
-      const button = document.createElement("button");
-      button.textContent = result.display_name;
-      button.addEventListener("click", () => {
-        onFlyTo([parseFloat(result.lon), parseFloat(result.lat)]);
-        searchResults.classList.add("hidden");
-      });
-      searchResults.appendChild(button);
-    }
-
-    searchResults.classList.remove("hidden");
+    geoResults = await response.json();
   } catch (error) {
     console.error("Location search failed", error);
+    geoResults = [];
   }
+  renderSearchResults(onFlyTo, onSelectObject);
+}
+
+function renderSearchResults(onFlyTo, onSelectObject) {
+  searchResults.innerHTML = "";
+
+  if (userMatches.length === 0 && geoResults.length === 0) {
+    searchResults.classList.add("hidden");
+    return;
+  }
+
+  for (const feature of userMatches) {
+    const category = categoryInfo(feature.geometry.type, feature.properties.category);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = `
+      <span class="search-result-icon">${category?.icon || "📍"}</span>
+      <span class="search-result-text">
+        <span class="search-result-name">${escapeHtml(feature.properties.name || "(unnamed)")}</span>
+        <span class="search-result-tag">Your map</span>
+      </span>
+    `;
+    button.addEventListener("click", () => {
+      onSelectObject(feature.id);
+      searchResults.classList.add("hidden");
+    });
+    searchResults.appendChild(button);
+  }
+
+  if (userMatches.length > 0 && geoResults.length > 0) {
+    const divider = document.createElement("div");
+    divider.className = "search-results-divider";
+    searchResults.appendChild(divider);
+  }
+
+  for (const result of geoResults) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = `
+      <span class="search-result-icon">🌍</span>
+      <span class="search-result-text">
+        <span class="search-result-name">${escapeHtml(result.display_name)}</span>
+        <span class="search-result-tag">Map location</span>
+      </span>
+    `;
+    button.addEventListener("click", () => {
+      onFlyTo([parseFloat(result.lon), parseFloat(result.lat)]);
+      searchResults.classList.add("hidden");
+    });
+    searchResults.appendChild(button);
+  }
+
+  searchResults.classList.remove("hidden");
+}
+
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = value;
+  return div.innerHTML;
 }

@@ -72,7 +72,9 @@ html, body {
 }
 
 .search-results button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   text-align: left;
   padding: 8px 10px;
@@ -85,6 +87,36 @@ html, body {
 
 .search-results button:hover {
   background: #1f2937;
+}
+
+.search-result-icon {
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.search-result-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.search-result-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #9ca3af;
+}
+
+.search-results-divider {
+  height: 1px;
+  background: #374151;
+  margin: 4px 0;
 }
 
 .toolbar-actions {
@@ -600,6 +632,10 @@ html, body {
 
   .search-results button:hover {
     background: #f3f4f6;
+  }
+
+  .search-results-divider {
+    background: #e5e7eb;
   }
 
   /* The toolbar-actions row becomes the bottom nav bar. */
