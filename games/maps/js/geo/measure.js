@@ -100,12 +100,7 @@ function collectCoordinatePairs(coordinates, out) {
   }
 }
 
-// Works for any geometry's coordinates (Point/LineString/Polygon nest to
-// different depths) by recursively flattening down to [lng, lat] pairs.
-export function geometryBounds(geometry) {
-  const points = [];
-  collectCoordinatePairs(geometry.coordinates, points);
-
+function boundsFromPoints(points) {
   let minLng = Infinity;
   let minLat = Infinity;
   let maxLng = -Infinity;
@@ -122,4 +117,21 @@ export function geometryBounds(geometry) {
     [minLng, minLat],
     [maxLng, maxLat],
   ];
+}
+
+// Works for any geometry's coordinates (Point/LineString/Polygon nest to
+// different depths) by recursively flattening down to [lng, lat] pairs.
+export function geometryBounds(geometry) {
+  const points = [];
+  collectCoordinatePairs(geometry.coordinates, points);
+  return boundsFromPoints(points);
+}
+
+// Bounds enclosing every feature's geometry, for a "fit all objects" zoom.
+export function featureCollectionBounds(features) {
+  const points = [];
+  for (const feature of features) {
+    collectCoordinatePairs(feature.geometry.coordinates, points);
+  }
+  return boundsFromPoints(points);
 }
