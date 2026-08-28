@@ -4,8 +4,8 @@ import {
   formatDistance,
   formatArea,
   formatCoordinate,
-} from "../geo/measure.js?v=2026-08-26.16";
-import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.16";
+} from "../geo/measure.js?v=2026-08-26.17";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.17";
 
 const summaryEl = document.getElementById("object-summary");
 const listEl = document.getElementById("object-list");

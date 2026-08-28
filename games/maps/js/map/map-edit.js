@@ -1,4 +1,4 @@
-import { updateObjectGeometry, getObject } from "../objects/object-store.js?v=2026-08-26.16";
+import { updateObjectGeometry, getObject } from "../objects/object-store.js?v=2026-08-26.17";
 
 const EDIT_SOURCE_ID = "edit-vertices";
 const MIDPOINT_SOURCE_ID = "edit-midpoints";
