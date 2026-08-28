@@ -40,7 +40,12 @@ const CONFIG = {
   // number here.
   gridCols: 60,
   gridRows: 60,
-  initialUnlockedPlots: 8, // first N plots (row-major) are unlocked at game start
+  // For now every plot starts unlocked (see state.js) — this no longer
+  // gates which plots begin playable. It still anchors the starting camera
+  // focus (render.js FOCUS_COL/FOCUS_ROW) and sizes the terrain safe zone
+  // (terrainSafeCols below), so it stays meaningful even with buy-to-expand
+  // switched off.
+  initialUnlockedPlots: 8,
 
   // Terrain (PLAN.md §10): plots are grouped into blockSize x blockSize
   // blocks for terrain generation, so each terrain type reads as a
