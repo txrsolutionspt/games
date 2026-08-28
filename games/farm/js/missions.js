@@ -1,4 +1,4 @@
-// Mission progress tracking + "what you learned" — PLAN.md §12. Listens on
+// Mission progress tracking + "what you learned" — PLAN.md §13. Listens on
 // the shared event bus so simulation/economy/input never need to know
 // missions exist; on completion it awards coins and emits
 // 'missionCompleted' for the UI to show a short popup with the mission's

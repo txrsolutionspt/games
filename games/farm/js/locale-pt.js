@@ -30,6 +30,18 @@ const LOCALE_PT = {
   'ui.plot.locked.body': 'Desbloqueie este terreno para cultivar mais!',
   'ui.plot.locked.unlock': 'Desbloquear',
   'ui.plot.empty.hint': 'Toque em Plantar para cultivar algo aqui!',
+  'ui.plot.empty.pasture': 'Toque em Animais para criar algo aqui!',
+  'ui.plot.empty.lake': '🌊 Um lago — talvez seja útil um dia!',
+  'ui.plot.empty.mountain': '⛰️ Terreno rochoso — talvez seja útil um dia!',
+
+  'terrain.soil.name': 'Terra Fértil',
+  'terrain.soil.hint': 'Cultive plantas e construa aqui',
+  'terrain.pasture.name': 'Pastagem',
+  'terrain.pasture.hint': 'Perfeito para animais',
+  'terrain.lake.name': 'Lago',
+  'terrain.lake.hint': 'Sem cultivo aqui (por agora)',
+  'terrain.mountain.name': 'Montanha',
+  'terrain.mountain.hint': 'Sem cultivo aqui (por agora)',
 
   'ui.animal.feed': 'Alimentar',
   'ui.animal.water': 'Regar',
@@ -83,6 +95,8 @@ const LOCALE_PT = {
   'ui.privacy.fullBody': 'Não recolhemos qualquer informação pessoal: sem nomes, emails, fotos ou localização. Não existem contas, autenticação nem cópias na nuvem, nem publicidade, análise ou rastreamento de terceiros. Tudo é guardado apenas no armazenamento local deste navegador, neste dispositivo. Você (ou um encarregado de educação) pode apagar tudo a qualquer momento com "Repor Dados do Jogo" nas Definições, ou limpando os dados deste site nas definições do navegador.',
 
   'ui.toast.notEnoughCoins': 'Ainda não tem moedas suficientes!',
+  'ui.toast.needsFarmland': '🌾 Precisa de terra fértil!',
+  'ui.toast.needsPasture': '🐄 Os animais precisam de pastagem!',
   'ui.toast.planted': 'Plantado!',
   'ui.toast.placed': 'Bem-vindo à quinta!',
   'ui.toast.built': 'Construído!',

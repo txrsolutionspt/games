@@ -109,7 +109,7 @@ const Render = (function () {
   }
 
   // Inverse of gridToScreen — rounds to the nearest cell, used by input.js
-  // for exact tile-ground hit-testing (see PLAN.md §10 on the two layered
+  // for exact tile-ground hit-testing (see PLAN.md §11 on the two layered
   // hit-testing methods).
   function screenToGrid(geom, x, y) {
     const dx = x - geom.originX;
@@ -268,6 +268,27 @@ const Render = (function () {
     }
   }
 
+  // Terrain (PLAN.md §10) tile colors: soil keeps the original farmland
+  // brown so existing plots look unchanged; pasture/lake/mountain get their
+  // own base/highlight/hover tiers of the same 3-tier scheme soil already
+  // had. Lake and mountain are never highlightable (nothing can be placed
+  // there), so they have no highlight tier — only base and hover.
+  const TERRAIN_BASE_FILL = { soil: '#d8b478', pasture: '#9ecf6b', lake: '#5b9bd5', mountain: '#9a938a' };
+  const TERRAIN_HIGHLIGHT_FILL = { soil: '#f3e2a9', pasture: '#d5f0a0' };
+  const TERRAIN_HOVER_FILL = { soil: '#e2c48f', pasture: '#b7dd85', lake: '#4a86c0', mountain: '#847e77' };
+  const TERRAIN_HOVER_HIGHLIGHT_FILL = { soil: '#ffe9a8', pasture: '#e6ffb0' };
+  // Soil needs no icon when empty (its color already reads as "farmland",
+  // same as before this feature existed); the other three read clearly as
+  // their type even with nothing placed on them.
+  const TERRAIN_EMPTY_ICON = { lake: '🌊', mountain: '⛰️', pasture: '🌿' };
+  const KIND_FOR_TOOL_TYPE = { 'plant-crop': 'crop', 'place-animal': 'animal', 'place-building': 'building' };
+
+  function tileFillFor(terrain, highlightable, hovered) {
+    if (hovered) return (highlightable && TERRAIN_HOVER_HIGHLIGHT_FILL[terrain]) || TERRAIN_HOVER_FILL[terrain] || TERRAIN_HOVER_FILL.soil;
+    if (highlightable) return TERRAIN_HIGHLIGHT_FILL[terrain] || TERRAIN_BASE_FILL[terrain];
+    return TERRAIN_BASE_FILL[terrain] || TERRAIN_BASE_FILL.soil;
+  }
+
   function draw(canvas, state, ui) {
     const ctx = canvas.getContext('2d');
     const baseGeom = canvas._baseGeom || resize(canvas);
@@ -299,11 +320,20 @@ const Render = (function () {
         return;
       }
 
-      const highlightable = ui.tool && !plot.occupant && (ui.tool.type === 'plant-crop' || ui.tool.type === 'place-animal' || ui.tool.type === 'place-building');
-      let fill = '#d8b478';
-      if (highlightable) fill = '#f3e2a9';
-      if (hovered) fill = highlightable ? '#ffe9a8' : '#e2c48f';
+      const terrain = FarmRules.terrainForPlot(col, row, CONFIG.terrainBlockSize, CONFIG.terrainSafeCols);
+      const toolKind = ui.tool && KIND_FOR_TOOL_TYPE[ui.tool.type];
+      const highlightable = !!toolKind && !plot.occupant && FarmRules.canPlaceKindOnTerrain(toolKind, terrain);
+      const fill = tileFillFor(terrain, highlightable, hovered);
       drawDiamond(ctx, cx, cy, geom.tileW, geom.tileH, fill, 'rgba(0,0,0,0.12)');
+
+      if (!plot.occupant && TERRAIN_EMPTY_ICON[terrain]) {
+        ctx.globalAlpha = 0.55;
+        ctx.font = (geom.tileH * 0.55) + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(TERRAIN_EMPTY_ICON[terrain], cx, cy);
+        ctx.globalAlpha = 1;
+      }
 
       if (plot.occupant) {
         if (plot.occupant.kind === 'crop') drawCrop(ctx, plot, geom, cx, cy, t, state.clock.tick);

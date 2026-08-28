@@ -1,5 +1,5 @@
 // Modal dialogs (shop drawers, animal/building info, settings, mission
-// popups) and the non-modal info tooltip — PLAN.md §11/§12. Every modal is
+// popups) and the non-modal info tooltip — PLAN.md §12/§13. Every modal is
 // a simple centered DOM card with icon-first content and at most a couple
 // of short sentences, per the brief's "minimal text" requirement.
 
@@ -54,7 +54,7 @@ const Modals = (function () {
     });
   }
 
-  // ---- Non-modal "i" info tooltip (PLAN.md §12: available anytime, not
+  // ---- Non-modal "i" info tooltip (PLAN.md §13: available anytime, not
   // just once) --------------------------------------------------------------
 
   let tooltipTimer = null;
@@ -134,12 +134,26 @@ const Modals = (function () {
 
   // ---- Locked plot ---------------------------------------------------------
 
-  function showUnlockPlot(state, plot, onUnlock) {
+  // Terrain (PLAN.md §10) icon/name/hint shown before a player spends coins
+  // to unlock, so "why can't I plant here" is answered before the
+  // purchase — e.g. a locked Mountain tile says so up front, rather than
+  // the player unlocking it and only then discovering it's not plantable.
+  const TERRAIN_INFO = {
+    soil: { icon: '🌾', nameKey: 'terrain.soil.name', nameFallback: 'Farmland', hintKey: 'terrain.soil.hint', hintFallback: 'Grow crops and build here' },
+    pasture: { icon: '🐄', nameKey: 'terrain.pasture.name', nameFallback: 'Pasture', hintKey: 'terrain.pasture.hint', hintFallback: 'Perfect for animals' },
+    lake: { icon: '🌊', nameKey: 'terrain.lake.name', nameFallback: 'Lake', hintKey: 'terrain.lake.hint', hintFallback: 'No farming here (yet)' },
+    mountain: { icon: '⛰️', nameKey: 'terrain.mountain.name', nameFallback: 'Mountain', hintKey: 'terrain.mountain.hint', hintFallback: 'No farming here (yet)' }
+  };
+
+  function showUnlockPlot(state, plot, terrain, onUnlock) {
     enqueueOrRun(function () {
       const cost = Economy.plotUnlockCost(plot.index);
       const canAfford = state.coins >= cost;
+      const info = TERRAIN_INFO[terrain] || TERRAIN_INFO.soil;
       open('<h2>🔒 ' + I18N.t('ui.plot.locked.title', 'Locked Plot') + '</h2>' +
         '<p>' + I18N.t('ui.plot.locked.body', 'Unlock this land to grow more!') + '</p>' +
+        '<p class="fact">' + info.icon + ' <strong>' + I18N.t(info.nameKey, info.nameFallback) + '</strong> — ' +
+        I18N.t(info.hintKey, info.hintFallback) + '</p>' +
         '<p class="shop-cost">🪙 ' + cost + '</p>' +
         '<button class="btn-primary" id="unlock-btn"' + (canAfford ? '' : ' disabled') + '>' +
         I18N.t('ui.plot.locked.unlock', 'Unlock') + '</button> ' +

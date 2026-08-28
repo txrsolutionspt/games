@@ -29,6 +29,18 @@ const LOCALE_EN = {
   'ui.plot.locked.body': 'Unlock this land to grow more!',
   'ui.plot.locked.unlock': 'Unlock',
   'ui.plot.empty.hint': 'Tap Plant to grow something here!',
+  'ui.plot.empty.pasture': 'Tap Animals to raise something here!',
+  'ui.plot.empty.lake': '🌊 A lake — maybe useful someday!',
+  'ui.plot.empty.mountain': '⛰️ Rocky ground — maybe useful someday!',
+
+  'terrain.soil.name': 'Farmland',
+  'terrain.soil.hint': 'Grow crops and build here',
+  'terrain.pasture.name': 'Pasture',
+  'terrain.pasture.hint': 'Perfect for animals',
+  'terrain.lake.name': 'Lake',
+  'terrain.lake.hint': 'No farming here (yet)',
+  'terrain.mountain.name': 'Mountain',
+  'terrain.mountain.hint': 'No farming here (yet)',
 
   'ui.animal.feed': 'Feed',
   'ui.animal.water': 'Water',
@@ -82,6 +94,8 @@ const LOCALE_EN = {
   'ui.privacy.fullBody': 'We collect no personal information: no names, emails, photos or location. There are no accounts, logins or cloud saves, and no advertising, analytics or third-party tracking. Everything is stored only in this browser’s local storage on this device. You (or a parent/guardian) can erase it anytime with Reset Game Data in Settings, or by clearing this site’s data in the browser’s own settings.',
 
   'ui.toast.notEnoughCoins': 'Not enough coins yet!',
+  'ui.toast.needsFarmland': '🌾 Needs farmland soil!',
+  'ui.toast.needsPasture': '🐄 Animals need pasture!',
   'ui.toast.planted': 'Planted!',
   'ui.toast.placed': 'Welcome to the farm!',
   'ui.toast.built': 'Built!',

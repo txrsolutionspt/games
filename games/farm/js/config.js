@@ -42,6 +42,15 @@ const CONFIG = {
   gridRows: 60,
   initialUnlockedPlots: 8, // first N plots (row-major) are unlocked at game start
 
+  // Terrain (PLAN.md §10): plots are grouped into blockSize x blockSize
+  // blocks for terrain generation, so each terrain type reads as a
+  // multi-tile patch rather than single-tile speckle. terrainSafeCols is
+  // set below, right after initialUnlockedPlots, so the two can never
+  // drift apart — the starting cluster (row 0, col < terrainSafeCols) is
+  // always soil regardless of the hash, guaranteeing the tutorial's first
+  // planting step always lands on usable ground.
+  terrainBlockSize: 4,
+
   // 1 tick = 1 real second at timeScale 1. Raising timeScale speeds up the
   // whole game (growth, animal cycles, day length) uniformly for tuning
   // without touching any content data.
@@ -77,6 +86,8 @@ const CONFIG = {
     return 20 + index * 2;
   }
 };
+
+CONFIG.terrainSafeCols = CONFIG.initialUnlockedPlots;
 
 if (typeof module === 'object' && module.exports) {
   module.exports = CONFIG;

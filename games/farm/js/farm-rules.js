@@ -22,8 +22,57 @@
 
   // ---- Plots -------------------------------------------------------------
 
-  function canPlaceOnPlot(plot) {
-    return !!plot && plot.unlocked && !plot.occupant;
+  // Terrain is a pure function of (col, row), never stored in the save —
+  // see PLAN.md §10. Blocks (not individual plots) are hashed so each
+  // terrain type forms a readable multi-tile patch instead of single-tile
+  // speckle; the hash itself is the same Math.sin-based deterministic trick
+  // simulation.js's hashDay already uses, just seeded by block coordinates
+  // instead of a day index.
+  var TERRAIN_WEIGHTS = [
+    { type: 'soil', weight: 0.65 },
+    { type: 'pasture', weight: 0.15 },
+    { type: 'lake', weight: 0.12 },
+    { type: 'mountain', weight: 0.08 }
+  ];
+
+  function hashBlock(bcol, brow) {
+    var x = Math.sin(bcol * 127.1 + brow * 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  // The starting cluster itself (row 0, col < safeCols — matching
+  // CONFIG.initialUnlockedPlots) is always soil regardless of the hash, so
+  // the tutorial's first "plant wheat on an empty plot" step can never
+  // land on unusable ground. Deliberately just that small cluster, not a
+  // whole safe row: plots unlock in row-major order, so forcing all of row
+  // 0 to soil would mean animals (pasture-only) stay unreachable until a
+  // player unlocks all the way into row 1 — a large chunk of the field —
+  // which would break the early-game loop rather than protect it.
+  function terrainForPlot(col, row, blockSize, safeCols) {
+    if (row === 0 && col < safeCols) return 'soil';
+    var bcol = Math.floor(col / blockSize);
+    var brow = Math.floor(row / blockSize);
+    var r = hashBlock(bcol, brow);
+    var acc = 0;
+    for (var i = 0; i < TERRAIN_WEIGHTS.length; i++) {
+      acc += TERRAIN_WEIGHTS[i].weight;
+      if (r < acc) return TERRAIN_WEIGHTS[i].type;
+    }
+    return 'soil';
+  }
+
+  // What kind of occupant (if any) a terrain type accepts. Lake and
+  // mountain accept nothing in this pass (pure scenery — see PLAN.md §10's
+  // "not in this pass" note on future irrigation/quarry mechanics).
+  function canPlaceKindOnTerrain(kind, terrain) {
+    if (kind === 'crop') return terrain === 'soil';
+    if (kind === 'building') return terrain === 'soil';
+    if (kind === 'animal') return terrain === 'pasture';
+    return false;
+  }
+
+  function canPlaceOnPlot(plot, terrain, kind) {
+    return !!plot && plot.unlocked && !plot.occupant && canPlaceKindOnTerrain(kind, terrain);
   }
 
   function canUnlockPlot(plot, coins, cost) {
@@ -139,6 +188,8 @@
   }
 
   return {
+    terrainForPlot: terrainForPlot,
+    canPlaceKindOnTerrain: canPlaceKindOnTerrain,
     canPlaceOnPlot: canPlaceOnPlot,
     canUnlockPlot: canUnlockPlot,
     isCropInSeason: isCropInSeason,
