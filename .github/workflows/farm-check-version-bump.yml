@@ -1,0 +1,39 @@
+name: Little Farm School version bump check
+
+on:
+  pull_request:
+    paths:
+      - 'games/farm/**'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify version.js was updated alongside release-facing changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -e
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- games/farm/)
+          echo "Changed files under games/farm/:"
+          echo "$CHANGED"
+
+          # Release-facing files: anything except tests, docs, and the version files themselves.
+          RELEASE_CHANGED=$(echo "$CHANGED" | grep -vE '(^games/farm/test|\.md$|^games/farm/js/version\.js$|^games/farm/bump-version\.sh$)' || true)
+
+          if [ -n "$RELEASE_CHANGED" ]; then
+            if ! echo "$CHANGED" | grep -q '^games/farm/js/version\.js$'; then
+              echo "::error::This PR changes release-facing farm files but does not bump js/version.js. Run './bump-version.sh' in games/farm/ and commit the result. See games/farm/CLAUDE.md."
+              echo "Release-facing files changed without a version bump:"
+              echo "$RELEASE_CHANGED"
+              exit 1
+            fi
+          fi
+
+          echo "OK"
