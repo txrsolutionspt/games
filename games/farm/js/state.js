@@ -5,7 +5,13 @@ function createInitialState() {
   const plots = [];
   const total = CONFIG.gridCols * CONFIG.gridRows;
   for (let i = 0; i < total; i++) {
-    plots.push({ index: i, unlocked: i < CONFIG.initialUnlockedPlots, occupant: null });
+    // For now, every plot starts unlocked — no buy-to-expand economy.
+    // Easy to bring back later: change this to
+    // `i < CONFIG.initialUnlockedPlots` again. The unlock machinery itself
+    // (farm-rules.js canUnlockPlot, input.js unlockPlot, Modals.
+    // showUnlockPlot) is left in place, just unreachable while every plot
+    // starts unlocked.
+    plots.push({ index: i, unlocked: true, occupant: null });
   }
 
   return {

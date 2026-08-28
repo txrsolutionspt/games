@@ -450,7 +450,89 @@ every save regardless. That would need a genuinely different, sparser
 world model (only store plots that have actually been touched; only draw
 what's on screen) rather than just raising this number further.
 
-## 10. Input & controls
+## 10. Terrain & tile types
+
+The field is no longer visually/functionally uniform farmland — every
+unlocked plot has one of four terrain types, each restricting what can be
+placed there. This is a placement-and-visuals layer only for now (see the
+"not in this pass" note below for the bigger follow-on ideas it deliberately
+leaves out).
+
+- **Farmland (soil)** — the default; plantable. Crops and processing
+  buildings (mill/bakery/churn/kitchen) can both go here, same as every
+  plot could before this feature.
+- **Pasture (grassland)** — animals only. Crops and buildings can't be
+  placed here; it exists specifically so a farm reads as having a
+  dedicated area for livestock, not livestock scattered arbitrarily
+  wherever.
+- **Lake** — nothing can be placed here. Pure scenery/future-hook for now
+  (see below).
+- **Mountain** — nothing can be placed here either. Same reasoning as
+  Lake.
+
+**Generation is a pure function of position, not saved state.** Rather than
+adding a `terrain` field to every one of the 3,600 saved plot objects
+(bloating every save and requiring a schema migration — see §7), terrain is
+computed on demand from `(col, row)` by `FarmRules.terrainForPlot`, the same
+"pure function, shared by every consumer" approach `farm-rules.js` already
+uses for crop/animal/recipe math. It's deterministic — the same field
+layout every time, for every player, forever — and Node-testable exactly
+like the rest of `farm-rules.js`.
+
+- Plots are grouped into `CONFIG.terrainBlockSize` × `terrainBlockSize`
+  blocks (default 4×4), and each *block* — not each individual plot — gets
+  hashed to a terrain type (the same `Math.sin`-based deterministic-hash
+  trick `simulation.js`'s `hashDay` already uses, seeded by the block's own
+  coordinates). Hashing per-block rather than per-plot means each terrain
+  type forms a readable multi-tile patch instead of a single-tile speckle
+  scattered randomly across the field.
+- Weighted distribution: soil 65%, pasture 15%, lake 12%, mountain 8% — soil
+  stays the common case so the game doesn't feel terrain-starved.
+- **Safe zone:** only the starting cluster itself — row 0, `col <
+  CONFIG.terrainSafeCols` (kept equal to `initialUnlockedPlots`) — is forced
+  to soil regardless of the hash, guaranteeing the tutorial's first "tap an
+  empty plot and plant wheat" step always lands on usable ground.
+  Deliberately narrow, not a whole safe row: since plots unlock in
+  row-major order, forcing all of row 0 to soil would make pasture (and
+  therefore animals) unreachable until a player unlocked all the way into
+  row 1 — a much bigger, more expensive stretch of the field — which would
+  break the early-game loop rather than protect it. Beyond the starting
+  cluster, row 0 gets real terrain variety like anywhere else, so an early
+  pasture patch (and a first chicken) stays within easy reach.
+- Locked plots still render as the same uniform gray padlock tile
+  regardless of underlying terrain — terrain is only revealed once a plot
+  is unlocked, so a locked tile never looks like it's promising a lake the
+  player can't actually reach yet. The unlock-plot modal *does* show the
+  terrain (icon + name + one-line hint) before the player spends coins, so
+  "why can't I plant here" is answered before the purchase, not after.
+- **Every plot starts unlocked, for now.** `state.js`'s `createInitialState`
+  sets `unlocked: true` on every plot rather than gating it behind
+  `initialUnlockedPlots`/coins, so the whole 60×60 terrain patchwork is
+  visible immediately instead of being revealed plot-by-plot as a player
+  buys their way outward. The buy-to-expand machinery this bypasses
+  (`farm-rules.js` `canUnlockPlot`, `input.js` `unlockPlot`, `Modals.
+  showUnlockPlot`, the locked-tile padlock rendering) is left fully in
+  place, just unreachable — reverting is a one-line change back to
+  `unlocked: i < CONFIG.initialUnlockedPlots`. `initialUnlockedPlots` itself
+  stays in `CONFIG` regardless, since it still anchors the starting camera
+  focus and sizes the terrain safe zone above.
+- Attempting to plant/build on non-soil or place an animal on non-pasture
+  shows a specific toast (e.g. "Crops need farmland soil!") rather than
+  silently doing nothing — the same "always give feedback" rule the rest of
+  the input layer already follows for insufficient coins, etc. The
+  plant/animal/building highlight-on-hover while a tool is selected (§11)
+  is also terrain-aware, so a player only sees a tile light up if it can
+  actually accept what they're about to place.
+
+**Not in this pass — deliberately deferred (§17):** lakes powering
+irrigation/watering-can refills, and mountains/quarries yielding a stone or
+mineral resource that feeds into building costs. Both are real, separate
+systems (a new resource type and its own economy hooks; a new watering
+mechanic) rather than an extension of this placement-and-visuals layer, and
+are listed as future extensibility so this pass stays a scoped, shippable
+step rather than growing into a second economy mid-implementation.
+
+## 11. Input & controls
 
 - Tool belt is a right-hand side rail (large DOM buttons, thumb-reachable
   in landscape, per §11): Seeds
@@ -499,7 +581,7 @@ what's on screen) rather than just raising this number further.
   box. Both methods key off the same canvas-to-grid transform, so they're
   recomputed together on resize/orientation change and never drift apart.
 
-## 11. UI structure
+## 12. UI structure
 
 - `index.html`: canvas + a thin DOM chrome — a left-hand rail (coins,
   market, full screen, settings), a right-hand tool belt rail, and a
@@ -541,7 +623,7 @@ what's on screen) rather than just raising this number further.
   than the child player, so it's allowed plainer, longer text than the
   rest of the UI.
 
-## 12. Missions & "what you learned" loop
+## 13. Missions & "what you learned" loop
 
 - `missions.js` subscribes to the event bus; each `data-missions.js` entry
   declares a trigger event + match/count condition. On completion: award
@@ -565,11 +647,11 @@ what's on screen) rather than just raising this number further.
   same object hit-testing as §10) that re-shows its `educational` string
   in a lightweight, non-modal tooltip any time a curious kid wants it.
 
-## 13. MVP content checklist (mapped to the brief's MVP list)
+## 14. MVP content checklist (mapped to the brief's MVP list)
 
 | Brief requirement | Plan |
 |---|---|
-| One farm | Single 60×60 plot grid (spans many screens, panned/scrolled — §9), expandable via `economy.js` unlock cost |
+| One farm | Single 60×60 plot grid (spans many screens, panned/scrolled — §9). Every plot starts unlocked *for now* (see §10's note below) rather than expanding via `economy.js` unlock cost |
 | 4–6 crops | 6 crops in `data-crops.js` (§5) |
 | 2–3 animal types | Chicken, cow, sheep in `data-animals.js` |
 | Planting/watering/growing/harvesting | `farm-rules.js` + `simulation.js` (§8) |
@@ -577,14 +659,14 @@ what's on screen) rather than just raising this number further.
 | Inventory | `state.inventory` map, shown in shop/processing modals |
 | ≥3 processing chains | 4 recipes shipped (§5) |
 | Simple currency | `state.coins`, mutated only via `economy.js` |
-| Farm expansion | Buy-more-plots / unlock-building actions in `economy.js` |
+| Farm expansion | Buy-more-plots / unlock-building actions exist in `farm-rules.js`/`input.js`/`modals.js`, but are switched off *for now* — every plot starts unlocked (see §10) |
 | 5–10 educational missions | `data-missions.js` seeded with ~8 entries from the brief's examples |
 | Basic tutorial | `tutorial.js` first-run sequence |
 | Local save/load | `persistence.js`, autosave + reset |
 | English + Portuguese UI | `i18n.js` + `locale-en.js`/`locale-pt.js` (§6) |
 | Responsive smartphone UI | Landscape-only side rails + rotate overlay (§11) |
 
-## 14. Testing
+## 15. Testing
 
 - `test-farm-rules.js` at the repo root of `games/farm/`, run with `node
   test-farm-rules.js` exactly like `last-little-farm`'s existing test file:
@@ -603,7 +685,7 @@ what's on screen) rather than just raising this number further.
   `locale-en.js` or a `data-*.js` entry) — catches typos in translation
   keys before they silently fall back to the wrong text.
 
-## 15. Phased build order
+## 16. Phased build order
 
 1. **Skeleton** — `index.html`/`style.css` shell, canvas boots, empty grid
    renders, save/load round-trips an empty state, reset button works,
@@ -628,7 +710,7 @@ what's on screen) rather than just raising this number further.
    filled out, full `locale-pt.js` translation pass reviewed by a
    Portuguese speaker, add the game card to root `index.html`.
 
-## 16. Future extensibility (explicitly not MVP)
+## 17. Future extensibility (explicitly not MVP)
 
 Because content is data-driven, later additions are additive, not rewrites:
 more crops/animals (goat, pig, apple orchard as a longer-cycle "tree"
@@ -636,4 +718,10 @@ type), longer production chains (wool → yarn → clothing), a second farm
 plot/biome, harder seasonal challenges, additional languages beyond
 English/Portuguese (§6), and (optionally, later) swapping the emoji/shape
 placeholder art for a commissioned isometric sprite sheet behind the same
-`render.js` drawing calls.
+`render.js` drawing calls. Also deferred from §10's terrain pass
+specifically: lakes as a refillable water source powering an irrigation
+mechanic (a new watering flow, not just a visual), and mountains/quarries
+yielding a stone/mineral resource that feeds into building costs (a new
+resource type and its own economy hooks) — both real enough in scope to be
+their own follow-on features rather than an extension of the placement
+rules §10 ships with.

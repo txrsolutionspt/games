@@ -1,4 +1,4 @@
-// First-run guided sequence — PLAN.md §12. Reuses the same event bus as
+// First-run guided sequence — PLAN.md §13. Reuses the same event bus as
 // missions.js; gates which tool-belt buttons are visible so a first-time
 // player can't wander into a menu before understanding the core loop.
 

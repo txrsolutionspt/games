@@ -1,4 +1,4 @@
-// DOM HUD — PLAN.md §11: left rail (coins, market/fullscreen/settings),
+// DOM HUD — PLAN.md §12: left rail (coins, market/fullscreen/settings),
 // a day/season/weather bar and mission tracker chip stacked across the
 // top of the stage, tool belt, and toast feedback. Pure DOM manipulation;
 // game state is only ever read here, never mutated.

@@ -45,16 +45,89 @@ function makePlot(overrides) {
 
 // ---- Plots ------------------------------------------------------------------
 
-test('canPlaceOnPlot: unlocked + empty is placeable', function () {
-  assert.strictEqual(FarmRules.canPlaceOnPlot(makePlot()), true);
+test('canPlaceOnPlot: unlocked + empty + matching terrain is placeable', function () {
+  assert.strictEqual(FarmRules.canPlaceOnPlot(makePlot(), 'soil', 'crop'), true);
 });
 
 test('canPlaceOnPlot: locked plot is not placeable', function () {
-  assert.strictEqual(FarmRules.canPlaceOnPlot(makePlot({ unlocked: false })), false);
+  assert.strictEqual(FarmRules.canPlaceOnPlot(makePlot({ unlocked: false }), 'soil', 'crop'), false);
 });
 
 test('canPlaceOnPlot: occupied plot is not placeable', function () {
-  assert.strictEqual(FarmRules.canPlaceOnPlot(makePlot({ occupant: { kind: 'crop' } })), false);
+  assert.strictEqual(FarmRules.canPlaceOnPlot(makePlot({ occupant: { kind: 'crop' } }), 'soil', 'crop'), false);
+});
+
+test('canPlaceOnPlot: unlocked + empty but wrong terrain is not placeable', function () {
+  assert.strictEqual(FarmRules.canPlaceOnPlot(makePlot(), 'lake', 'crop'), false);
+  assert.strictEqual(FarmRules.canPlaceOnPlot(makePlot(), 'pasture', 'crop'), false);
+  assert.strictEqual(FarmRules.canPlaceOnPlot(makePlot(), 'soil', 'animal'), false);
+});
+
+// ---- Terrain (PLAN.md §10) ---------------------------------------------------
+
+test('terrainForPlot: deterministic — same (col,row) always gives the same terrain', function () {
+  const a = FarmRules.terrainForPlot(23, 17, 4, 1);
+  const b = FarmRules.terrainForPlot(23, 17, 4, 1);
+  assert.strictEqual(a, b);
+});
+
+test('terrainForPlot: the starting cluster (row 0, col < safeCols) is always soil', function () {
+  for (let col = 0; col < 8; col++) {
+    assert.strictEqual(FarmRules.terrainForPlot(col, 0, 4, 8), 'soil');
+  }
+});
+
+test('terrainForPlot: row 0 beyond the safe cluster is not forced soil — a real terrain type follows the hash', function () {
+  const known = ['soil', 'pasture', 'lake', 'mountain'];
+  for (let col = 8; col < 60; col++) {
+    assert.ok(known.indexOf(FarmRules.terrainForPlot(col, 0, 4, 8)) !== -1);
+  }
+});
+
+test('terrainForPlot: every plot in the same block gets the same terrain', function () {
+  // blockSize 4: cols 8-11, row 8-11 are all one block.
+  const terrains = [];
+  for (let col = 8; col < 12; col++) {
+    for (let row = 8; row < 12; row++) {
+      terrains.push(FarmRules.terrainForPlot(col, row, 4, 0));
+    }
+  }
+  assert.ok(terrains.every(function (t) { return t === terrains[0]; }));
+});
+
+test('terrainForPlot: only ever returns one of the four known terrain types', function () {
+  const known = ['soil', 'pasture', 'lake', 'mountain'];
+  for (let col = 0; col < 60; col += 3) {
+    for (let row = 0; row < 60; row += 3) {
+      assert.ok(known.indexOf(FarmRules.terrainForPlot(col, row, 4, 0)) !== -1);
+    }
+  }
+});
+
+test('terrainForPlot: a 60x60 field produces at least some of every terrain type beyond row 0', function () {
+  const seen = {};
+  for (let col = 0; col < 60; col++) {
+    for (let row = 1; row < 60; row++) {
+      seen[FarmRules.terrainForPlot(col, row, 4, 8)] = true;
+    }
+  }
+  assert.ok(seen.soil && seen.pasture && seen.lake && seen.mountain, 'expected all 4 terrain types to appear, got: ' + JSON.stringify(seen));
+});
+
+test('canPlaceKindOnTerrain: crops and buildings need soil, animals need pasture', function () {
+  assert.strictEqual(FarmRules.canPlaceKindOnTerrain('crop', 'soil'), true);
+  assert.strictEqual(FarmRules.canPlaceKindOnTerrain('crop', 'pasture'), false);
+  assert.strictEqual(FarmRules.canPlaceKindOnTerrain('building', 'soil'), true);
+  assert.strictEqual(FarmRules.canPlaceKindOnTerrain('building', 'lake'), false);
+  assert.strictEqual(FarmRules.canPlaceKindOnTerrain('animal', 'pasture'), true);
+  assert.strictEqual(FarmRules.canPlaceKindOnTerrain('animal', 'soil'), false);
+});
+
+test('canPlaceKindOnTerrain: nothing can be placed on lake or mountain', function () {
+  ['crop', 'building', 'animal'].forEach(function (kind) {
+    assert.strictEqual(FarmRules.canPlaceKindOnTerrain(kind, 'lake'), false);
+    assert.strictEqual(FarmRules.canPlaceKindOnTerrain(kind, 'mountain'), false);
+  });
 });
 
 test('canUnlockPlot: enough coins allows unlocking a locked plot', function () {

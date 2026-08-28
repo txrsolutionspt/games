@@ -1,4 +1,4 @@
-// Pointer/touch handling, tool selection, tile picking — PLAN.md §10.
+// Pointer/touch handling, tool selection, tile picking — PLAN.md §11.
 // Pointer events (not separate touch/mouse handlers) so the same code path
 // serves touch and mouse. Ground-tile hit-testing uses the exact
 // screenToGrid math from render.js; this file only decides *what an action
@@ -35,9 +35,20 @@ const Input = (function () {
     });
   }
 
+  // Terrain (PLAN.md §10) is a pure function of a plot's position, never
+  // stored in the save — see farm-rules.js's terrainForPlot.
+  function terrainOf(plot) {
+    const col = plot.index % CONFIG.gridCols;
+    const row = Math.floor(plot.index / CONFIG.gridCols);
+    return FarmRules.terrainForPlot(col, row, CONFIG.terrainBlockSize, CONFIG.terrainSafeCols);
+  }
+
   function placeCrop(state, plot, cropId) {
     const def = CROPS_BY_ID[cropId];
-    if (!FarmRules.canPlaceOnPlot(plot)) return;
+    if (!FarmRules.canPlaceOnPlot(plot, terrainOf(plot), 'crop')) {
+      Hud.toast(I18N.t('ui.toast.needsFarmland', '🌾 Needs farmland soil!'));
+      return;
+    }
     if (!Economy.spendCoins(state, def.seedCost)) {
       Hud.toast(I18N.t('ui.toast.notEnoughCoins', 'Not enough coins yet!'));
       return;
@@ -51,7 +62,10 @@ const Input = (function () {
 
   function placeAnimal(state, plot, animalId) {
     const def = ANIMALS_BY_ID[animalId];
-    if (!FarmRules.canPlaceOnPlot(plot)) return;
+    if (!FarmRules.canPlaceOnPlot(plot, terrainOf(plot), 'animal')) {
+      Hud.toast(I18N.t('ui.toast.needsPasture', '🐄 Animals need pasture!'));
+      return;
+    }
     if (!Economy.spendCoins(state, def.cost)) {
       Hud.toast(I18N.t('ui.toast.notEnoughCoins', 'Not enough coins yet!'));
       return;
@@ -64,7 +78,10 @@ const Input = (function () {
 
   function placeBuilding(state, plot, buildingId) {
     const def = BUILDINGS_BY_ID[buildingId];
-    if (!FarmRules.canPlaceOnPlot(plot)) return;
+    if (!FarmRules.canPlaceOnPlot(plot, terrainOf(plot), 'building')) {
+      Hud.toast(I18N.t('ui.toast.needsFarmland', '🌾 Needs farmland soil!'));
+      return;
+    }
     if (!Economy.spendCoins(state, def.cost)) {
       Hud.toast(I18N.t('ui.toast.notEnoughCoins', 'Not enough coins yet!'));
       return;
@@ -184,7 +201,7 @@ const Input = (function () {
     if (!plot) return;
 
     if (!plot.unlocked) {
-      Modals.showUnlockPlot(state, plot, function () { unlockPlot(state, plot); });
+      Modals.showUnlockPlot(state, plot, terrainOf(plot), function () { unlockPlot(state, plot); });
       return;
     }
 
@@ -192,7 +209,9 @@ const Input = (function () {
       if (ui.tool && ui.tool.type === 'plant-crop') { placeCrop(state, plot, ui.tool.id); return; }
       if (ui.tool && ui.tool.type === 'place-animal') { placeAnimal(state, plot, ui.tool.id); return; }
       if (ui.tool && ui.tool.type === 'place-building') { placeBuilding(state, plot, ui.tool.id); return; }
-      Hud.toast(I18N.t('ui.plot.empty.hint', 'Tap Plant to grow something here!'));
+      const emptyHintKey = { soil: 'ui.plot.empty.hint', pasture: 'ui.plot.empty.pasture', lake: 'ui.plot.empty.lake', mountain: 'ui.plot.empty.mountain' };
+      const terrain = terrainOf(plot);
+      Hud.toast(I18N.t(emptyHintKey[terrain], 'Tap Plant to grow something here!'));
       return;
     }
 

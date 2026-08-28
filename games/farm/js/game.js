@@ -73,7 +73,7 @@
     Missions.init(state);
     Tutorial.init(state);
 
-    // First-time educational popups (PLAN.md §12): a fact is shown once,
+    // First-time educational popups (PLAN.md §13): a fact is shown once,
     // the first time it becomes relevant, never on every repeat action.
     // Anyone curious afterward can re-open it via the "i" info tooltip on
     // the tile itself (input.js showCropInfo) or the recipe/animal cards.
