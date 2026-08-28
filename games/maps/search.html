@@ -15,7 +15,7 @@
        third-party CDN is one more thing that can be slow or blocked on a given network. -->
   <script src="vendor/maplibre-gl/maplibre-gl.js" onerror="window.__mapEditorScriptError='vendor/maplibre-gl/maplibre-gl.js failed to load'"></script>
   <link href="vendor/maplibre-gl/maplibre-gl.css" rel="stylesheet" />
-  <link href="css/map-editor.css?v=2026-08-26.15" rel="stylesheet" />
+  <link href="css/map-editor.css?v=2026-08-26.16" rel="stylesheet" />
   <style>
     body { margin: 0; padding: 0; }
   </style>
@@ -136,7 +136,7 @@
         <input id="editor-name" name="name" required />
       </label>
       <label>Category
-        <select id="editor-category" name="category"></select>
+        <div id="editor-category-grid" class="category-grid"></div>
       </label>
       <label>Description
         <textarea id="editor-description" name="description" rows="3"></textarea>
@@ -161,7 +161,7 @@
   <div id="about-overlay" class="overlay hidden">
     <div class="dialog">
       <h3>About</h3>
-      <p id="about-version">map-editor build 2026-08-26.15</p>
+      <p id="about-version">map-editor build 2026-08-26.16</p>
       <div class="dialog-actions">
         <button type="button" id="about-close">Close</button>
       </div>
@@ -214,6 +214,6 @@
       }, 8000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=2026-08-26.15" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
+  <script type="module" src="js/app.js?v=2026-08-26.16" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
 </body>
 </html>

@@ -426,6 +426,44 @@ html, body {
   font-family: inherit;
 }
 
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.category-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 2px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+  color: #374151;
+  text-transform: none;
+}
+
+.category-option:hover {
+  background: #f3f4f6;
+}
+
+.category-option.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.category-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;

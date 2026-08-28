@@ -1,10 +1,10 @@
-import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.15";
+import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.16";
 
 const editorOverlay = document.getElementById("editor-overlay");
 const editorForm = document.getElementById("editor-form");
 const editorTitle = document.getElementById("editor-title");
 const editorName = document.getElementById("editor-name");
-const editorCategory = document.getElementById("editor-category");
+const editorCategoryGrid = document.getElementById("editor-category-grid");
 const editorDescription = document.getElementById("editor-description");
 const editorCancel = document.getElementById("editor-cancel");
 
@@ -25,14 +25,28 @@ export function openEditorDialog(geometryType, { isNew, properties }) {
     editorName.value = properties.name || "";
     editorDescription.value = properties.description || "";
 
-    editorCategory.innerHTML = "";
-    for (const option of categoriesFor(geometryType)) {
-      const el = document.createElement("option");
-      el.value = option.value;
-      el.textContent = option.label;
-      editorCategory.appendChild(el);
+    const categories = categoriesFor(geometryType);
+    let selectedCategory = properties.category || categories[0]?.value || "";
+
+    editorCategoryGrid.innerHTML = "";
+    for (const option of categories) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "category-option";
+      button.dataset.category = option.value;
+      button.classList.toggle("selected", option.value === selectedCategory);
+      button.innerHTML = `
+        <span class="category-icon">${option.icon || ""}</span>
+        <span class="category-label">${option.label}</span>
+      `;
+      button.addEventListener("click", () => {
+        selectedCategory = option.value;
+        for (const sibling of editorCategoryGrid.children) {
+          sibling.classList.toggle("selected", sibling === button);
+        }
+      });
+      editorCategoryGrid.appendChild(button);
     }
-    editorCategory.value = properties.category || "";
 
     editorOverlay.classList.remove("hidden");
     editorName.focus();
@@ -48,7 +62,7 @@ export function openEditorDialog(geometryType, { isNew, properties }) {
       cleanup();
       resolve({
         name: editorName.value.trim(),
-        category: editorCategory.value,
+        category: selectedCategory,
         description: editorDescription.value.trim(),
       });
     }

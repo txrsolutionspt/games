@@ -4,7 +4,8 @@ import {
   formatDistance,
   formatArea,
   formatCoordinate,
-} from "../geo/measure.js?v=2026-08-26.15";
+} from "../geo/measure.js?v=2026-08-26.16";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.16";
 
 const summaryEl = document.getElementById("object-summary");
 const listEl = document.getElementById("object-list");
@@ -36,7 +37,7 @@ export function renderSidebar(objects, selectedId, onSelect) {
     item.className = "object-list-item" + (feature.id === selectedId ? " selected" : "");
     item.innerHTML = `
       <span class="name">${escapeHtml(feature.properties.name || "(unnamed)")}</span>
-      <span class="category">${escapeHtml(feature.properties.category || "")}</span>
+      <span class="category">${categoryLabel(feature.geometry.type, feature.properties.category)}</span>
     `;
     item.addEventListener("click", () => onSelect(feature.id));
     listEl.appendChild(item);
@@ -55,7 +56,7 @@ export function showFeaturePopup(map, feature, handlers) {
   container.className = "feature-popup";
   container.innerHTML = `
     <h4>${escapeHtml(feature.properties.name || "(unnamed)")}</h4>
-    <p class="category">${escapeHtml(feature.properties.category || "")}</p>
+    <p class="category">${categoryLabel(feature.geometry.type, feature.properties.category)}</p>
     ${geometryMeta(feature.geometry)}
     <p>${escapeHtml(feature.properties.description || "")}</p>
     <div class="actions">
@@ -106,6 +107,12 @@ function geometryMeta(geometry) {
   }
 
   return "";
+}
+
+function categoryLabel(geometryType, value) {
+  const category = categoryInfo(geometryType, value);
+  if (!category) return escapeHtml(value || "");
+  return `${category.icon ? escapeHtml(category.icon) + " " : ""}${escapeHtml(category.label)}`;
 }
 
 function popupAnchor(geometry) {
