@@ -4,6 +4,7 @@ export const MODES = Object.freeze({
   DRAW_LINE: "draw-line",
   DRAW_POLYGON: "draw-polygon",
   EDIT_SHAPE: "edit-shape",
+  MEASURE: "measure",
 });
 
 export const CATEGORIES = Object.freeze({

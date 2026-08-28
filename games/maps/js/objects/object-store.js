@@ -1,5 +1,5 @@
-import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.17";
-import { MODES, touch } from "./object-model.js?v=2026-08-26.17";
+import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.18";
+import { MODES, touch } from "./object-model.js?v=2026-08-26.18";
 
 const state = {
   objects: loadObjects(),
@@ -32,7 +32,7 @@ function persist() {
 export function setMode(mode) {
   state.mode = mode;
 
-  if (mode !== MODES.DRAW_LINE && mode !== MODES.DRAW_POLYGON) {
+  if (mode !== MODES.DRAW_LINE && mode !== MODES.DRAW_POLYGON && mode !== MODES.MEASURE) {
     state.drawing = { geometryType: null, coordinates: [] };
   }
 
