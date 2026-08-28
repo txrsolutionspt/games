@@ -3,6 +3,12 @@
 // time scale, save key) never require touching crops/animals/recipes.
 
 const CONFIG = {
+  // Shown in Settings so a player (or whoever's checking a deployment) can
+  // tell which build they're looking at. No build tooling here to stamp
+  // this automatically — bump it by hand alongside any notable change,
+  // same manual discipline as schemaVersion just below.
+  appVersion: '1.0.0',
+
   // Prefix for a per-slot save (persistence.js appends ":<slotId>"); the
   // slots themselves — name, which one is active, last-played preview —
   // live under slotsKey. Both still 100% localStorage, no accounts.

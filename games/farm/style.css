@@ -385,6 +385,13 @@ button.btn-danger { background: var(--danger); color: #fff; }
   margin: 8px 0;
 }
 
+.settings-version {
+  text-align: center;
+  font-size: 11px;
+  opacity: 0.5;
+  margin: 10px 0 0;
+}
+
 /* ---- Toasts ---- */
 
 #toast-root {

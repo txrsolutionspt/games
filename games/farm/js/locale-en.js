@@ -68,6 +68,7 @@ const LOCALE_EN = {
   'ui.settings.language': 'Language',
   'ui.settings.privacy': 'Privacy for Parents',
   'ui.settings.reset': 'Reset Game Data',
+  'ui.settings.version': 'Version',
 
   'ui.farms.settingsEntry': 'My Farms',
   'ui.farms.title': 'My Farms',
