@@ -622,12 +622,17 @@ step rather than growing into a second economy mid-implementation.
   gameplay" rule. It's the one screen in the game aimed at a parent rather
   than the child player, so it's allowed plainer, longer text than the
   rest of the UI.
-- Settings also shows a small, muted **Version** line (`CONFIG.appVersion`)
-  below the Close button — there's no build tooling to stamp this
-  automatically, so it's bumped by hand alongside any notable change, the
-  same manual discipline `schemaVersion` (§7) already uses. Purely
-  informational (confirming which deployment a player/tester is looking
-  at), not tied to save compatibility.
+- Settings also shows a small, muted **Version** line (`APP_VERSION`, its
+  own `js/version.js` rather than a `config.js` field — same reasoning as
+  `games/tower-defense/version.js`, so a CI check can unambiguously tell
+  whether a PR touched it) below the Close button. Purely informational
+  (confirming which deployment a player/tester is looking at), not tied to
+  save compatibility — unrelated to `schemaVersion` (§7).
+  `games/farm/bump-version.sh` auto-increments the patch number with no
+  arguments (no semver judgment call, unlike tower-defense's version bump);
+  `.github/workflows/farm-check-version-bump.yml` fails a PR that changes
+  release-facing farm files without also bumping it. See
+  `games/farm/CLAUDE.md` for the full rule.
 
 ## 13. Missions & "what you learned" loop
 
