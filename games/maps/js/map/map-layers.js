@@ -1,9 +1,13 @@
+import { CATEGORIES } from "../objects/object-model.js?v=2026-08-26.16";
+import { registerCategoryIcons, categoryIconExpression } from "./map-icons.js?v=2026-08-26.16";
+
 const SOURCE_ID = "user-objects";
 
 export const OBJECT_LAYER_IDS = ["user-points", "user-lines", "user-polygons"];
 
 export function setupObjectLayers(map, initialData) {
   map.addSource(SOURCE_ID, { type: "geojson", data: initialData });
+  registerCategoryIcons(map, CATEGORIES.Point);
 
   map.addLayer({
     id: "user-polygons",
@@ -35,7 +39,7 @@ export function setupObjectLayers(map, initialData) {
     source: SOURCE_ID,
     filter: ["==", ["geometry-type"], "Point"],
     paint: {
-      "circle-radius": 7,
+      "circle-radius": 11,
       "circle-color": "#3b82f6",
       "circle-stroke-width": 2,
       "circle-stroke-color": "#ffffff",
@@ -48,10 +52,25 @@ export function setupObjectLayers(map, initialData) {
     source: SOURCE_ID,
     filter: ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], "__none__"]],
     paint: {
-      "circle-radius": 10,
+      "circle-radius": 14,
       "circle-color": "#facc15",
       "circle-stroke-width": 3,
       "circle-stroke-color": "#ffffff",
+    },
+  });
+
+  // The category icon sits on top of whichever circle above is showing
+  // (plain or selected), so each object reads as a colored badge with its
+  // own symbol rather than a generic dot.
+  map.addLayer({
+    id: "user-points-icons",
+    type: "symbol",
+    source: SOURCE_ID,
+    filter: ["==", ["geometry-type"], "Point"],
+    layout: {
+      "icon-image": categoryIconExpression(CATEGORIES.Point),
+      "icon-size": 0.6,
+      "icon-allow-overlap": true,
     },
   });
 
@@ -133,7 +152,7 @@ function addLabelLayers(map) {
 }
 
 const GROUP_LAYER_IDS = {
-  Point: ["user-points", "user-points-selected"],
+  Point: ["user-points", "user-points-selected", "user-points-icons"],
   LineString: ["user-lines", "user-lines-selected"],
   Polygon: ["user-polygons", "user-polygon-outline", "user-polygon-selected-outline"],
 };

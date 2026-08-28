@@ -8,19 +8,26 @@ export const MODES = Object.freeze({
 
 export const CATEGORIES = Object.freeze({
   Point: [
-    { value: "place", label: "Place" },
-    { value: "farm", label: "Farm" },
-    { value: "landmark", label: "Landmark" },
+    { value: "place", label: "Other", icon: "📍" },
+    { value: "house", label: "House", icon: "🏠" },
+    { value: "farm", label: "Farm", icon: "🚜" },
+    { value: "water", label: "Water", icon: "💧" },
+    { value: "landmark", label: "Landmark", icon: "🏛️" },
+    { value: "park", label: "Park", icon: "🌳" },
+    { value: "incident", label: "Incident", icon: "⚠️" },
+    { value: "parking", label: "Parking", icon: "🅿️" },
   ],
   LineString: [
-    { value: "route", label: "Route" },
-    { value: "road", label: "Road" },
-    { value: "river", label: "River" },
+    { value: "route", label: "Route", icon: "🧭" },
+    { value: "road", label: "Road", icon: "🛣️" },
+    { value: "trail", label: "Trail", icon: "🥾" },
+    { value: "river", label: "River", icon: "🌊" },
   ],
   Polygon: [
-    { value: "area", label: "Area" },
-    { value: "field", label: "Field" },
-    { value: "forest", label: "Forest" },
+    { value: "area", label: "Area", icon: "▱" },
+    { value: "field", label: "Field", icon: "🌾" },
+    { value: "forest", label: "Forest", icon: "🌳" },
+    { value: "water", label: "Water", icon: "💧" },
   ],
 });
 
@@ -98,4 +105,11 @@ export function touch(feature) {
 
 export function categoriesFor(geometryType) {
   return CATEGORIES[geometryType] || [];
+}
+
+// null for a value that isn't in the list — covers legacy/imported data
+// saved before a category existed, or from a category set that has since
+// changed.
+export function categoryInfo(geometryType, value) {
+  return categoriesFor(geometryType).find((category) => category.value === value) || null;
 }

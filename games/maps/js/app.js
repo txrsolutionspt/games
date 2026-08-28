@@ -1,24 +1,24 @@
-import { createMap } from "./map/map-init.js?v=2026-08-26.15";
+import { createMap } from "./map/map-init.js?v=2026-08-26.16";
 import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
   applyLayerVisibility,
-} from "./map/map-layers.js?v=2026-08-26.15";
-import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.15";
-import { setupSelection } from "./map/map-selection.js?v=2026-08-26.15";
+} from "./map/map-layers.js?v=2026-08-26.16";
+import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.16";
+import { setupSelection } from "./map/map-selection.js?v=2026-08-26.16";
 import {
   setupEditLayers,
   showEditVertices,
   clearEditVertices,
   enableVertexDragging,
-} from "./map/map-edit.js?v=2026-08-26.15";
+} from "./map/map-edit.js?v=2026-08-26.16";
 import {
   MODES,
   createPoint,
   createLine,
   createPolygon,
-} from "./objects/object-model.js?v=2026-08-26.15";
+} from "./objects/object-model.js?v=2026-08-26.16";
 import {
   getState,
   subscribe,
@@ -33,16 +33,16 @@ import {
   getObject,
   toFeatureCollection,
   replaceAll,
-} from "./objects/object-store.js?v=2026-08-26.15";
-import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.15";
-import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.15";
-import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.15";
-import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.15";
-import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.15";
-import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.15";
-import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.15";
-import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.15";
-import { geometryBounds, featureCollectionBounds } from "./geo/measure.js?v=2026-08-26.15";
+} from "./objects/object-store.js?v=2026-08-26.16";
+import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.16";
+import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.16";
+import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.16";
+import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.16";
+import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.16";
+import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.16";
+import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.16";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.16";
+import { geometryBounds, featureCollectionBounds } from "./geo/measure.js?v=2026-08-26.16";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
