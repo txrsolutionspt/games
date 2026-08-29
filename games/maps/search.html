@@ -10,12 +10,15 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>MapLibre 3D Terrain & Globe</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1f2937" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <!-- Vendored locally (see vendor/maplibre-gl/README.md) instead of loaded from a CDN:
        @latest on unpkg silently broke once MapLibre v6 dropped this UMD bundle, and a
        third-party CDN is one more thing that can be slow or blocked on a given network. -->
   <script src="vendor/maplibre-gl/maplibre-gl.js" onerror="window.__mapEditorScriptError='vendor/maplibre-gl/maplibre-gl.js failed to load'"></script>
   <link href="vendor/maplibre-gl/maplibre-gl.css" rel="stylesheet" />
-  <link href="css/map-editor.css?v=2026-08-26.19" rel="stylesheet" />
+  <link href="css/map-editor.css?v=2026-08-26.20" rel="stylesheet" />
   <style>
     body { margin: 0; padding: 0; }
   </style>
@@ -176,7 +179,7 @@
   <div id="about-overlay" class="overlay hidden">
     <div class="dialog">
       <h3>About</h3>
-      <p id="about-version">map-editor build 2026-08-26.19</p>
+      <p id="about-version">map-editor build 2026-08-26.20</p>
       <div class="dialog-actions">
         <button type="button" id="about-close">Close</button>
       </div>
@@ -229,6 +232,17 @@
       }, 8000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=2026-08-26.19" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
+  <script type="module" src="js/app.js?v=2026-08-26.20" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
+  <script>
+    // Progressive enhancement only (installability + offline shell caching)
+    // — never treated as fatal if it fails, unlike the diagnostics above.
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js").catch(function (error) {
+          console.warn("Service worker registration failed", error);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
