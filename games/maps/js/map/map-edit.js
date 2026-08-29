@@ -1,4 +1,4 @@
-import { updateObjectGeometry, getObject } from "../objects/object-store.js?v=2026-08-26.20";
+import { updateObjectGeometry, getObject } from "../objects/object-store.js?v=2026-08-26.21";
 
 const EDIT_SOURCE_ID = "edit-vertices";
 const MIDPOINT_SOURCE_ID = "edit-midpoints";
@@ -8,6 +8,23 @@ const MIDPOINT_SOURCE_ID = "edit-midpoints";
 const TAP_MOVE_THRESHOLD_PX = 6;
 
 let dragState = null;
+
+// After a real touch interaction, browsers replay it as a synthetic
+// mousedown/mouseup/click sequence a moment later (for compatibility with
+// mouse-only code). Without this guard that replay re-runs the same
+// start/end handlers a second time, deleting a second vertex for a single
+// finger tap. Every real touch event pushes this window forward; any mouse
+// event landing inside it is treated as that synthetic replay and ignored.
+let ignoreMouseUntil = 0;
+const MOUSE_REPLAY_SUPPRESS_MS = 800;
+
+function markRealTouch() {
+  ignoreMouseUntil = Date.now() + MOUSE_REPLAY_SUPPRESS_MS;
+}
+
+function isSuppressedMouseEvent(pointerKind) {
+  return pointerKind === "mouse" && Date.now() < ignoreMouseUntil;
+}
 
 export function setupEditLayers(map) {
   map.addSource(EDIT_SOURCE_ID, {
@@ -145,7 +162,10 @@ export function enableVertexDragging(map, getEditingFeatureId) {
   // continuously for an actual mouse, not for a finger drag, so touchstart/
   // touchmove/touchend are required for this to work on a real phone at all
   // — it isn't just a UX nicety on top of the mouse handlers.
-  function startVertexDrag(event) {
+  function startVertexDrag(event, pointerKind) {
+    if (isSuppressedMouseEvent(pointerKind)) return;
+    if (pointerKind === "touch") markRealTouch();
+
     const featureId = getEditingFeatureId();
     if (!featureId) return;
 
@@ -164,7 +184,10 @@ export function enableVertexDragging(map, getEditingFeatureId) {
   // Dragging a midpoint handle inserts a real vertex there and immediately
   // continues as a normal vertex drag, so one finger motion both adds the
   // point and places it.
-  function startMidpointDrag(event) {
+  function startMidpointDrag(event, pointerKind) {
+    if (isSuppressedMouseEvent(pointerKind)) return;
+    if (pointerKind === "touch") markRealTouch();
+
     const featureId = getEditingFeatureId();
     if (!featureId) return;
 
@@ -185,7 +208,9 @@ export function enableVertexDragging(map, getEditingFeatureId) {
     map.getCanvas().style.cursor = "grabbing";
   }
 
-  function moveDrag(event) {
+  function moveDrag(event, pointerKind) {
+    if (isSuppressedMouseEvent(pointerKind)) return;
+    if (pointerKind === "touch") markRealTouch();
     if (!dragState) return;
 
     const dx = event.point.x - dragState.startPoint.x;
@@ -212,7 +237,9 @@ export function enableVertexDragging(map, getEditingFeatureId) {
     });
   }
 
-  function endDrag() {
+  function endDrag(event, pointerKind) {
+    if (isSuppressedMouseEvent(pointerKind)) return;
+    if (pointerKind === "touch") markRealTouch();
     if (!dragState) return;
 
     // A tap (no real movement) on an existing vertex handle deletes that
@@ -227,18 +254,18 @@ export function enableVertexDragging(map, getEditingFeatureId) {
     map.getCanvas().style.cursor = "";
   }
 
-  map.on("mousedown", "edit-vertices", startVertexDrag);
-  map.on("touchstart", "edit-vertices", startVertexDrag);
+  map.on("mousedown", "edit-vertices", (event) => startVertexDrag(event, "mouse"));
+  map.on("touchstart", "edit-vertices", (event) => startVertexDrag(event, "touch"));
 
-  map.on("mousedown", "edit-midpoints", startMidpointDrag);
-  map.on("touchstart", "edit-midpoints", startMidpointDrag);
+  map.on("mousedown", "edit-midpoints", (event) => startMidpointDrag(event, "mouse"));
+  map.on("touchstart", "edit-midpoints", (event) => startMidpointDrag(event, "touch"));
 
-  map.on("mousemove", moveDrag);
-  map.on("touchmove", moveDrag);
+  map.on("mousemove", (event) => moveDrag(event, "mouse"));
+  map.on("touchmove", (event) => moveDrag(event, "touch"));
 
-  map.on("mouseup", endDrag);
-  map.on("touchend", endDrag);
-  map.on("touchcancel", endDrag);
+  map.on("mouseup", (event) => endDrag(event, "mouse"));
+  map.on("touchend", (event) => endDrag(event, "touch"));
+  map.on("touchcancel", (event) => endDrag(event, "touch"));
 
   map.on("mouseenter", "edit-vertices", () => {
     if (!dragState) map.getCanvas().style.cursor = "grab";
