@@ -91,6 +91,12 @@
       const def = RECIPES_BY_ID[payload.recipe];
       Modals.showFact(I18N.t('recipe.' + def.id + '.name', def.name), '✨', I18N.t('recipe.' + def.id + '.fact', def.educational));
     });
+    Events.on('mine', function () {
+      const key = 'quarry.stone';
+      if (state.seenFacts[key]) return;
+      state.seenFacts[key] = true;
+      Modals.showFact(I18N.t('quarry.stone.name', QUARRY.name), QUARRY.icon, I18N.t('quarry.stone.fact', QUARRY.educational));
+    });
     Events.on('missionCompleted', function (payload) {
       Modals.showMissionComplete(payload.mission);
       Hud.refresh(state, ui);

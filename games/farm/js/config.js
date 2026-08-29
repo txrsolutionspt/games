@@ -56,6 +56,13 @@ const CONFIG = {
   // planting step always lands on usable ground.
   terrainBlockSize: 4,
 
+  // Lake irrigation (PLAN.md §10/§17): a growing crop within this many
+  // tiles of any lake gets a free daily watering, the same free-watering
+  // pattern rainy weather already uses (see simulation.js
+  // applyLakeIrrigation). A square neighborhood (like the terrain blocks
+  // themselves), not a circle, to keep the check cheap.
+  lakeIrrigationRadius: 2,
+
   // 1 tick = 1 real second at timeScale 1. Raising timeScale speeds up the
   // whole game (growth, animal cycles, day length) uniformly for tuning
   // without touching any content data.

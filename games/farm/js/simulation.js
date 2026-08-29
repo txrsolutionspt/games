@@ -2,8 +2,8 @@
 // day/season/weather. Growth/produce/job progress are pure functions of
 // elapsed ticks (see farm-rules.js), so advancing the clock is *itself*
 // the offline catch-up — no per-tick replay loop is needed for those. Only
-// day-boundary side effects (rainy-day auto-watering) need to walk each
-// day that passed, which the bounded catch-up keeps cheap.
+// day-boundary side effects (rainy-day and lake-irrigation auto-watering)
+// need to walk each day that passed, which the bounded catch-up keeps cheap.
 
 const Simulation = (function () {
   // A stable hash of the day index in [0, 1) — deterministic, so the same
@@ -50,15 +50,32 @@ const Simulation = (function () {
     });
   }
 
+  // Lakes (PLAN.md §10/§17) auto-water nearby crops once per day, for
+  // free — the same free-watering pattern as rain, but gated by proximity
+  // to a lake instead of weather, and unconditional (happens every day,
+  // rain or not).
+  function applyLakeIrrigation(state) {
+    state.plots.forEach(function (plot) {
+      if (!plot.occupant || plot.occupant.kind !== 'crop') return;
+      if (plot.occupant.state === 'ready') return;
+      const col = plot.index % CONFIG.gridCols;
+      const row = Math.floor(plot.index / CONFIG.gridCols);
+      if (!FarmRules.isNearLake(col, row, CONFIG.terrainBlockSize, CONFIG.terrainSafeCols, CONFIG.lakeIrrigationRadius)) return;
+      const def = CROPS_BY_ID[plot.occupant.id];
+      if (plot.occupant.waterGiven < def.waterRequired) plot.occupant.waterGiven += 1;
+    });
+  }
+
   // Walks every in-game day boundary crossed between oldDay (exclusive) and
-  // newDay (inclusive), applying rain and emitting season-change events.
-  // Bounded by CONFIG.maxOfflineCatchUpSec upstream, so this never loops
-  // more than a small, predictable number of times.
+  // newDay (inclusive), applying rain/irrigation and emitting season-change
+  // events. Bounded by CONFIG.maxOfflineCatchUpSec upstream, so this never
+  // loops more than a small, predictable number of times.
   function processDayBoundaries(state, oldDay, newDay) {
     for (let day = oldDay + 1; day <= newDay; day++) {
       const prevSeason = seasonForDay(day - 1);
       const season = seasonForDay(day);
       if (weatherForDay(day) === 'rainy') applyRainAutoWater(state);
+      applyLakeIrrigation(state);
       if (season !== prevSeason) Events.emit('seasonChanged', { season: season });
       Events.emit('dayChanged', { day: day, season: season, weather: weatherForDay(day) });
     }

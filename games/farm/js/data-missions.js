@@ -85,6 +85,16 @@ const MISSIONS = [
     count: 1,
     reward: { coins: 10 },
     learned: 'Planting a crop in its right season gives it the weather it grows best in.'
+  },
+  {
+    id: 'quarry-work',
+    title: 'Quarry Work',
+    description: 'Mine 1 stone from a mountain.',
+    trigger: 'mine',
+    match: {},
+    count: 1,
+    reward: { coins: 10 },
+    learned: 'Quarries dig stone and minerals out of mountainsides — real builders use it for walls and foundations.'
   }
 ];
 

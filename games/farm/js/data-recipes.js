@@ -2,11 +2,15 @@
 // Each recipe belongs to a building type; a building can only run one job
 // at a time (a queue depth of 1), started by spending the inputs up front.
 
+// stoneCost (PLAN.md §10/§17): buildings need quarried stone in addition
+// to coins, mined from mountain tiles (see js/data-quarry.js) — this is
+// the "feeds into building costs" hook the terrain pass originally
+// deferred.
 const BUILDINGS = [
-  { id: 'mill', name: 'Mill', icon: '⚙️', cost: 40 },
-  { id: 'bakery', name: 'Bakery', icon: '🍞', cost: 70 },
-  { id: 'churn', name: 'Butter Churn', icon: '🧈', cost: 60 },
-  { id: 'kitchen', name: 'Kitchen', icon: '🍲', cost: 65 }
+  { id: 'mill', name: 'Mill', icon: '⚙️', cost: 40, stoneCost: 4 },
+  { id: 'bakery', name: 'Bakery', icon: '🍞', cost: 70, stoneCost: 6 },
+  { id: 'churn', name: 'Butter Churn', icon: '🧈', cost: 60, stoneCost: 5 },
+  { id: 'kitchen', name: 'Kitchen', icon: '🍲', cost: 65, stoneCost: 5 }
 ];
 
 const BUILDINGS_BY_ID = {};
