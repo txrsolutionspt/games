@@ -1,5 +1,5 @@
-import { CATEGORIES } from "../objects/object-model.js?v=2026-08-26.18";
-import { registerCategoryIcons, categoryIconExpression } from "./map-icons.js?v=2026-08-26.18";
+import { CATEGORIES } from "../objects/object-model.js?v=2026-08-26.19";
+import { registerCategoryIcons, categoryIconExpression } from "./map-icons.js?v=2026-08-26.19";
 
 const SOURCE_ID = "user-objects";
 

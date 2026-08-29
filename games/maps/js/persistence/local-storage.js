@@ -1,7 +1,11 @@
-const STORAGE_KEY = "map-editor-data-v1";
+const STORAGE_KEY_PREFIX = "map-editor-data-v1";
 
-export function loadObjects() {
-  const raw = localStorage.getItem(STORAGE_KEY);
+function keyFor(mapId) {
+  return `${STORAGE_KEY_PREFIX}:${mapId}`;
+}
+
+export function loadObjects(mapId) {
+  const raw = localStorage.getItem(keyFor(mapId));
 
   if (!raw) {
     return [];
@@ -16,9 +20,9 @@ export function loadObjects() {
   }
 }
 
-export function saveObjects(objects) {
+export function saveObjects(mapId, objects) {
   localStorage.setItem(
-    STORAGE_KEY,
+    keyFor(mapId),
     JSON.stringify({ version: 1, objects })
   );
 }

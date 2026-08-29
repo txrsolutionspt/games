@@ -15,7 +15,7 @@
        third-party CDN is one more thing that can be slow or blocked on a given network. -->
   <script src="vendor/maplibre-gl/maplibre-gl.js" onerror="window.__mapEditorScriptError='vendor/maplibre-gl/maplibre-gl.js failed to load'"></script>
   <link href="vendor/maplibre-gl/maplibre-gl.css" rel="stylesheet" />
-  <link href="css/map-editor.css?v=2026-08-26.18" rel="stylesheet" />
+  <link href="css/map-editor.css?v=2026-08-26.19" rel="stylesheet" />
   <style>
     body { margin: 0; padding: 0; }
   </style>
@@ -101,6 +101,8 @@
             <span class="nav-icon">⋯</span><span class="nav-label">Menu</span>
           </button>
           <div id="more-dropdown" class="dropdown hidden">
+            <button type="button" data-action="my-maps">🗺️ My Maps</button>
+            <div class="dropdown-divider"></div>
             <button type="button" data-action="import">⬆ Import data</button>
             <button type="button" data-action="export">⬇ Export data</button>
             <div class="dropdown-divider"></div>
@@ -114,7 +116,7 @@
     <div id="body">
       <aside id="sidebar">
         <div class="sheet-handle"></div>
-        <h2>Map objects</h2>
+        <h2 id="sidebar-title">My Map</h2>
         <ul id="object-summary"></ul>
         <div id="object-list"></div>
       </aside>
@@ -150,6 +152,17 @@
     </form>
   </div>
 
+  <div id="maps-overlay" class="overlay hidden">
+    <div class="dialog maps-dialog">
+      <h3>My Maps</h3>
+      <div id="maps-list"></div>
+      <div class="dialog-actions">
+        <button type="button" id="maps-new">+ New map</button>
+        <button type="button" id="maps-close">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div id="confirm-overlay" class="overlay hidden">
     <div class="dialog">
       <p id="confirm-message"></p>
@@ -163,7 +176,7 @@
   <div id="about-overlay" class="overlay hidden">
     <div class="dialog">
       <h3>About</h3>
-      <p id="about-version">map-editor build 2026-08-26.18</p>
+      <p id="about-version">map-editor build 2026-08-26.19</p>
       <div class="dialog-actions">
         <button type="button" id="about-close">Close</button>
       </div>
@@ -216,6 +229,6 @@
       }, 8000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=2026-08-26.18" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
+  <script type="module" src="js/app.js?v=2026-08-26.19" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
 </body>
 </html>
