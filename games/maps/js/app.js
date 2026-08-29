@@ -1,24 +1,24 @@
-import { createMap } from "./map/map-init.js?v=2026-08-26.18";
+import { createMap } from "./map/map-init.js?v=2026-08-26.19";
 import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
   applyLayerVisibility,
-} from "./map/map-layers.js?v=2026-08-26.18";
-import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.18";
-import { setupSelection } from "./map/map-selection.js?v=2026-08-26.18";
+} from "./map/map-layers.js?v=2026-08-26.19";
+import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.19";
+import { setupSelection } from "./map/map-selection.js?v=2026-08-26.19";
 import {
   setupEditLayers,
   showEditVertices,
   clearEditVertices,
   enableVertexDragging,
-} from "./map/map-edit.js?v=2026-08-26.18";
+} from "./map/map-edit.js?v=2026-08-26.19";
 import {
   MODES,
   createPoint,
   createLine,
   createPolygon,
-} from "./objects/object-model.js?v=2026-08-26.18";
+} from "./objects/object-model.js?v=2026-08-26.19";
 import {
   getState,
   subscribe,
@@ -33,15 +33,29 @@ import {
   getObject,
   toFeatureCollection,
   replaceAll,
-} from "./objects/object-store.js?v=2026-08-26.18";
-import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.18";
-import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.18";
-import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.18";
-import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.18";
-import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.18";
-import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.18";
-import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.18";
-import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.18";
+  switchMap,
+  getCurrentMapId,
+} from "./objects/object-store.js?v=2026-08-26.19";
+import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.19";
+import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.19";
+import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.19";
+import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.19";
+import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.19";
+import { setupMapsDialog } from "./ui/maps-menu.js?v=2026-08-26.19";
+import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.19";
+import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.19";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.19";
+import { loadObjects } from "./persistence/local-storage.js?v=2026-08-26.19";
+import {
+  ensureMapsIndex,
+  takeNeedsSeedingFlag,
+  listMaps,
+  getActiveMapId,
+  setActiveMapId,
+  createMap as createMapEntry,
+  renameMap,
+  deleteMap,
+} from "./persistence/maps-index.js?v=2026-08-26.19";
 import {
   geometryBounds,
   featureCollectionBounds,
@@ -49,7 +63,7 @@ import {
   polygonAreaMeters,
   formatDistance,
   formatArea,
-} from "./geo/measure.js?v=2026-08-26.18";
+} from "./geo/measure.js?v=2026-08-26.19";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
@@ -58,8 +72,16 @@ const hintFinish = document.getElementById("drawing-finish");
 const sidebarToggleButton = document.getElementById("sidebar-toggle-button");
 const sidebarScrim = document.getElementById("sidebar-scrim");
 const sidebarEl = document.getElementById("sidebar");
+const sidebarTitleEl = document.getElementById("sidebar-title");
 
-let mapSettings = loadMapSettings();
+// Migrates any pre-"My Maps" flat localStorage data into the new per-map
+// keys the first time this runs against it — see maps-index.js. object-store
+// already resolved the active map id at its own module load time (imports
+// run before this file's top-level code), so this is just making sure the
+// index itself exists before anything else here touches localStorage.
+ensureMapsIndex();
+
+let mapSettings = loadMapSettings(getCurrentMapId());
 const map = createMap(mapSettings);
 
 // The map style (base imagery, terrain) is swappable independently of the
@@ -78,14 +100,14 @@ function addOverlayLayers() {
 
 function applyLabelsToggle() {
   mapSettings = { ...mapSettings, labelsVisible: !mapSettings.labelsVisible };
-  saveMapSettings(mapSettings);
+  saveMapSettings(getCurrentMapId(), mapSettings);
   applyLayerVisibility(map, { groupVisibility: mapSettings.layers, labelsVisible: mapSettings.labelsVisible });
 }
 
 function toggleLayerGroup(geometryType) {
   const currentlyOn = mapSettings.layers[geometryType] !== false;
   mapSettings = { ...mapSettings, layers: { ...mapSettings.layers, [geometryType]: !currentlyOn } };
-  saveMapSettings(mapSettings);
+  saveMapSettings(getCurrentMapId(), mapSettings);
   applyLayerVisibility(map, { groupVisibility: mapSettings.layers, labelsVisible: mapSettings.labelsVisible });
 }
 
@@ -112,13 +134,13 @@ function toggleSidebarSheet() {
 
 function applyStyleChange(styleId) {
   mapSettings = { ...mapSettings, style: styleId };
-  saveMapSettings(mapSettings);
+  saveMapSettings(getCurrentMapId(), mapSettings);
   map.setStyle(buildBaseStyle(mapSettings.style, mapSettings.projection));
 }
 
 function applyProjectionChange(projection) {
   mapSettings = { ...mapSettings, projection };
-  saveMapSettings(mapSettings);
+  saveMapSettings(getCurrentMapId(), mapSettings);
   map.setProjection({ type: projection });
   map.easeTo({ pitch: projection === "globe" ? 65 : 0, duration: 500 });
 }
@@ -153,9 +175,10 @@ function fitAllObjects() {
   });
 }
 
-async function seedIfEmpty() {
-  if (getState().objects.length > 0) return;
-
+// Only for a genuinely fresh install (see maps-index.js's
+// takeNeedsSeedingFlag) — a deliberately-created new map should start
+// blank, not surprise the user with demo pins.
+async function seedInitialMap() {
   try {
     const response = await fetch("data/default-objects.json");
     const data = await response.json();
@@ -165,6 +188,51 @@ async function seedIfEmpty() {
   } catch (error) {
     console.warn("No default map data loaded", error);
   }
+}
+
+function updateSidebarTitle() {
+  const activeMap = listMaps().find((entry) => entry.id === getCurrentMapId());
+  sidebarTitleEl.textContent = activeMap ? activeMap.name : "My Map";
+}
+
+// Switching maps is a bigger jump than panning to a place, so the camera
+// snaps straight to the other map's saved view (jumpTo) instead of flying.
+function switchToMap(mapId) {
+  if (mapId === getCurrentMapId()) return;
+
+  closeFeaturePopup();
+  closeSidebarSheet();
+
+  setActiveMapId(mapId);
+  switchMap(mapId);
+
+  mapSettings = loadMapSettings(mapId);
+  map.setProjection({ type: mapSettings.projection });
+  map.jumpTo({
+    center: mapSettings.view.center,
+    zoom: mapSettings.view.zoom,
+    pitch: mapSettings.projection === "globe" ? 65 : 0,
+  });
+  map.setStyle(buildBaseStyle(mapSettings.style, mapSettings.projection));
+
+  updateSidebarTitle();
+}
+
+function handleCreateMap() {
+  const id = createMapEntry("New Map");
+  switchToMap(id);
+}
+
+async function handleDeleteMap(id, name) {
+  const confirmed = await openConfirmDialog(`Delete "${name}" and everything on it? This cannot be undone.`);
+  if (!confirmed) return false;
+
+  const wasActive = id === getCurrentMapId();
+  const deleted = deleteMap(id);
+  if (deleted && wasActive) {
+    switchToMap(getActiveMapId());
+  }
+  return deleted;
 }
 
 // Use "style.load" rather than "load": "load" waits for the first visually
@@ -192,7 +260,9 @@ map.on("style.load", async () => {
 
   map.addControl(createFitAllControl(fitAllObjects));
 
-  await seedIfEmpty();
+  if (takeNeedsSeedingFlag()) {
+    await seedInitialMap();
+  }
   addOverlayLayers();
 
   setupSelection(map, {
@@ -207,6 +277,19 @@ map.on("style.load", async () => {
   map.on("click", handleMapClick);
   map.on("dblclick", handleMapDoubleClick);
 
+  const mapsDialog = setupMapsDialog({
+    getMaps: listMaps,
+    getActiveMapId: getCurrentMapId,
+    getObjectCount: (id) => loadObjects(id).length,
+    onSwitch: switchToMap,
+    onCreate: handleCreateMap,
+    onRename: (id, name) => {
+      renameMap(id, name);
+      updateSidebarTitle();
+    },
+    onDelete: handleDeleteMap,
+  });
+
   setupToolbar({
     onAdd: handleAdd,
     onFlyTo: (center) => map.flyTo({ center, zoom: 12, pitch: mapSettings.projection === "globe" ? 65 : 0 }),
@@ -216,6 +299,7 @@ map.on("style.load", async () => {
       const feature = getObject(id);
       if (feature) flyToFeature(feature);
     },
+    onOpenMyMaps: () => mapsDialog.open(),
   });
 
   setupViewMenu({
@@ -230,6 +314,8 @@ map.on("style.load", async () => {
     onToggleLabels: applyLabelsToggle,
   });
 
+  updateSidebarTitle();
+
   sidebarToggleButton.addEventListener("click", toggleSidebarSheet);
   sidebarScrim.addEventListener("click", closeSidebarSheet);
 
@@ -241,7 +327,7 @@ map.on("style.load", async () => {
   map.on("moveend", () => {
     const center = map.getCenter();
     mapSettings = { ...mapSettings, view: { center: [center.lng, center.lat], zoom: map.getZoom() } };
-    saveMapSettings(mapSettings);
+    saveMapSettings(getCurrentMapId(), mapSettings);
   });
 
   subscribe(render);

@@ -1,4 +1,8 @@
-const SETTINGS_KEY = "map-settings-v1";
+const SETTINGS_KEY_PREFIX = "map-settings-v1";
+
+function keyFor(mapId) {
+  return `${SETTINGS_KEY_PREFIX}:${mapId}`;
+}
 
 const DEFAULT_SETTINGS = Object.freeze({
   style: "satellite",
@@ -11,8 +15,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   view: Object.freeze({ center: Object.freeze([-8.0, 39.5]), zoom: 6 }),
 });
 
-export function loadMapSettings() {
-  const raw = localStorage.getItem(SETTINGS_KEY);
+export function loadMapSettings(mapId) {
+  const raw = localStorage.getItem(keyFor(mapId));
   if (!raw) return cloneDefaults();
 
   try {
@@ -29,8 +33,8 @@ export function loadMapSettings() {
   }
 }
 
-export function saveMapSettings(settings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+export function saveMapSettings(mapId, settings) {
+  localStorage.setItem(keyFor(mapId), JSON.stringify(settings));
 }
 
 function cloneDefaults() {

@@ -1,4 +1,4 @@
-import { OBJECT_LAYER_IDS } from "./map-layers.js?v=2026-08-26.18";
+import { OBJECT_LAYER_IDS } from "./map-layers.js?v=2026-08-26.19";
 
 export function setupSelection(map, { onSelect, isSelectable }) {
   map.on("click", OBJECT_LAYER_IDS, (event) => {

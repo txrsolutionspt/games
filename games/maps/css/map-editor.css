@@ -496,6 +496,103 @@ html, body {
   line-height: 1;
 }
 
+.maps-dialog {
+  width: 360px;
+}
+
+.maps-dialog .dialog-actions {
+  justify-content: space-between;
+}
+
+#maps-list {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.maps-list-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.maps-list-item.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.maps-list-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.maps-list-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.maps-list-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.maps-list-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.maps-list-count {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.maps-list-rename-input {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid #2563eb;
+  width: 100%;
+}
+
+.maps-list-action {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+.maps-list-action:hover {
+  background: #f3f4f6;
+}
+
+.maps-list-action:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;

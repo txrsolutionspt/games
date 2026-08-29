@@ -1,5 +1,5 @@
-import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.18";
-import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.18";
+import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.19";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.19";
 
 const addButton = document.getElementById("add-button");
 const addDropdown = document.getElementById("add-dropdown");
@@ -12,7 +12,7 @@ const searchResults = document.getElementById("search-results");
 const aboutOverlay = document.getElementById("about-overlay");
 const aboutClose = document.getElementById("about-close");
 
-export function setupToolbar({ onAdd, onFlyTo, onSelectObject }) {
+export function setupToolbar({ onAdd, onFlyTo, onSelectObject, onOpenMyMaps }) {
   setupDropdown(addButton, addDropdown, "[data-add]", (button) => onAdd(button.dataset.add));
 
   setupDropdown(moreButton, moreDropdown, "[data-action]", (button) => {
@@ -20,6 +20,7 @@ export function setupToolbar({ onAdd, onFlyTo, onSelectObject }) {
     if (action === "import") importInput.click();
     else if (action === "export") exportData();
     else if (action === "about") openAboutDialog();
+    else if (action === "my-maps") onOpenMyMaps();
   });
 
   aboutClose.addEventListener("click", () => aboutOverlay.classList.add("hidden"));

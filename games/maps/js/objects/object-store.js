@@ -1,8 +1,11 @@
-import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.18";
-import { MODES, touch } from "./object-model.js?v=2026-08-26.18";
+import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.19";
+import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.19";
+import { MODES, touch } from "./object-model.js?v=2026-08-26.19";
+
+let currentMapId = getActiveMapId();
 
 const state = {
-  objects: loadObjects(),
+  objects: loadObjects(currentMapId),
   selectedId: null,
   mode: MODES.VIEW,
   drawing: { geometryType: null, coordinates: [] },
@@ -26,7 +29,23 @@ export function getState() {
 }
 
 function persist() {
-  saveObjects(state.objects);
+  saveObjects(currentMapId, state.objects);
+}
+
+export function getCurrentMapId() {
+  return currentMapId;
+}
+
+// Switching maps is conceptually "close this world, open another one": the
+// object list, selection, and any in-progress drawing/measuring all reset,
+// same as a fresh load would for that map.
+export function switchMap(mapId) {
+  currentMapId = mapId;
+  state.objects = loadObjects(currentMapId);
+  state.selectedId = null;
+  state.mode = MODES.VIEW;
+  state.drawing = { geometryType: null, coordinates: [] };
+  emit();
 }
 
 export function setMode(mode) {
