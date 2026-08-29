@@ -125,6 +125,7 @@ games/farm/
     data-crops.js            crop definitions (data-driven)
     data-animals.js          animal definitions
     data-recipes.js          processing-chain definitions
+    data-quarry.js           quarry (mountain resource) definition
     data-seasons.js          season + weather tables
     data-missions.js         mission/tutorial step definitions
     events.js                tiny pub/sub event bus
@@ -237,6 +238,25 @@ MVP ships four, satisfying the "at least 3" requirement with headroom:
 Each recipe carries an `educational` string. It's shown as a popup only the
 *first* time that product completes, and is otherwise available on demand —
 see §12 for why every completion doesn't launch a modal.
+
+Each entry in `data-recipes.js`'s `BUILDINGS` array (the building itself,
+not the recipe) also carries a `stoneCost` alongside its coin `cost` — mill
+4, bakery 6, churn 5, kitchen 5 — spent from `state.inventory.stone` on
+placement, mined from mountain quarries (see §10).
+
+**Quarry** (`data-quarry.js`): one shared definition, not a list, since
+there's only one kind of quarry — every mountain tile already is one, so
+there's nothing to choose between:
+
+```js
+{
+  icon: '⛏️',
+  cycleSec: 60,
+  produces: { item: 'stone', qty: 1, sellPrice: 4 },
+  name: 'Stone',
+  educational: 'Quarries dig stone out of mountainsides — real builders use quarried stone for walls and foundations.'
+}
+```
 
 **Season/weather** (`data-seasons.js`): 4 seasons cycling on a fixed in-game
 day counter; each day rolls a simple weather state (`sunny | rainy | cloudy`)
@@ -465,10 +485,12 @@ leaves out).
   placed here; it exists specifically so a farm reads as having a
   dedicated area for livestock, not livestock scattered arbitrarily
   wherever.
-- **Lake** — nothing can be placed here. Pure scenery/future-hook for now
-  (see below).
-- **Mountain** — nothing can be placed here either. Same reasoning as
-  Lake.
+- **Lake** — nothing can be placed here, but it isn't inert: every growing
+  crop within `CONFIG.lakeIrrigationRadius` (default 2) tiles gets a free
+  daily watering, no watering-can trip required (see "Lake irrigation and
+  quarries" below).
+- **Mountain** — nothing can be placed here either, but tapping one mines
+  stone over time — the resource buildings are priced in (see below).
 
 **Generation is a pure function of position, not saved state.** Rather than
 adding a `terrain` field to every one of the 3,600 saved plot objects
@@ -524,13 +546,47 @@ like the rest of `farm-rules.js`.
   is also terrain-aware, so a player only sees a tile light up if it can
   actually accept what they're about to place.
 
-**Not in this pass — deliberately deferred (§17):** lakes powering
-irrigation/watering-can refills, and mountains/quarries yielding a stone or
-mineral resource that feeds into building costs. Both are real, separate
-systems (a new resource type and its own economy hooks; a new watering
-mechanic) rather than an extension of this placement-and-visuals layer, and
-are listed as future extensibility so this pass stays a scoped, shippable
-step rather than growing into a second economy mid-implementation.
+**Lake irrigation and quarries.** Lakes and mountains were originally pure
+scenery (deliberately deferred, see the old note this replaces); both now
+have a real mechanic, each reusing an existing pattern rather than
+inventing a new one:
+
+- **Lake irrigation** is free automatic watering, not a new watering-can
+  flow. `simulation.js`'s `applyLakeIrrigation` runs once per in-game day
+  (inside the same `processDayBoundaries` walk that already does rainy-day
+  auto-watering), and for every still-growing crop checks
+  `FarmRules.isNearLake(col, row, terrainBlockSize, terrainSafeCols,
+  CONFIG.lakeIrrigationRadius)` — a pure function scanning a
+  `lakeIrrigationRadius`-tile square neighborhood (same block-shaped check
+  terrain generation itself uses) for any lake tile. A crop within range
+  gets `waterGiven` bumped by 1 (capped at the crop's own
+  `waterRequired`, same as rain), unconditionally — it doesn't need to be
+  raining, and it stacks with rain on the same day rather than replacing
+  it. Tapping a lake tile shows the mechanic explained in-game: the first
+  tap opens the full educational fact modal (`terrain.lake.irrigationFact`),
+  every tap after that shows a short reminder tooltip
+  (`terrain.lake.irrigationHint`) — the same "full fact once, short
+  reminder after" pattern a crop's own info tooltip already uses.
+- **Quarries** are a new resource (stone) that feeds into building costs,
+  using the animal/crop "occupant with a progress cycle" pattern rather
+  than a new subsystem. A mountain tile needs no buying or placing —
+  every mountain *is* a quarry — so its occupant (`{kind: 'quarry',
+  lastCollectedAt}`) is created lazily the first time a player taps it
+  (`input.js` `mineQuarry`), then mines on a fixed cycle
+  (`QUARRY.cycleSec`, in the new `data-quarry.js`) exactly like an
+  animal's produce cycle: `FarmRules.quarryProgress`/`canCollectQuarry`
+  mirror `animalProgress`/`canCollectAnimal` one-for-one. A tap while
+  mining is in progress shows a percentage tooltip; a tap once ready
+  collects 1 stone and shows the same first-time-fact-then-toast pattern
+  every other harvest uses. All four buildings (`data-recipes.js`
+  `BUILDINGS`) now carry a `stoneCost` alongside their coin `cost`
+  (mill 4, bakery 6, churn 5, kitchen 5); `input.js`'s `placeBuilding`
+  checks and deducts `state.inventory.stone` the same way it already
+  checks and deducts coins, and the building shop (`modals.js`
+  `showBuildingShop`) shows the stone cost on every card plus a "need
+  more stone" note when the player can't yet afford it. A `quarry-work`
+  mission (`data-missions.js`) rewards the first stone ever mined, same
+  as every other resource's first-time mission.
 
 ## 11. Input & controls
 
@@ -729,10 +785,6 @@ type), longer production chains (wool → yarn → clothing), a second farm
 plot/biome, harder seasonal challenges, additional languages beyond
 English/Portuguese (§6), and (optionally, later) swapping the emoji/shape
 placeholder art for a commissioned isometric sprite sheet behind the same
-`render.js` drawing calls. Also deferred from §10's terrain pass
-specifically: lakes as a refillable water source powering an irrigation
-mechanic (a new watering flow, not just a visual), and mountains/quarries
-yielding a stone/mineral resource that feeds into building costs (a new
-resource type and its own economy hooks) — both real enough in scope to be
-their own follow-on features rather than an extension of the placement
-rules §10 ships with.
+`render.js` drawing calls. Lake irrigation and mountain quarries (§10) have
+since shipped; no further extension of either is currently planned beyond
+what §10 describes.

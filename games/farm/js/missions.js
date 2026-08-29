@@ -32,7 +32,7 @@ const Missions = (function () {
   }
 
   function init(state) {
-    ['plant', 'harvest', 'feedAnimal', 'collectAnimal', 'process'].forEach(function (trigger) {
+    ['plant', 'harvest', 'feedAnimal', 'collectAnimal', 'process', 'mine'].forEach(function (trigger) {
       Events.on(trigger, function (payload) { handleEvent(state, trigger, payload); });
     });
   }

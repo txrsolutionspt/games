@@ -222,6 +222,44 @@ const Render = (function () {
     }
   }
 
+  // Quarries (PLAN.md §10/§17): a mountain tile's occupant, created lazily
+  // on first tap (see input.js mineQuarry). Readiness is always computed
+  // live from FarmRules.quarryProgress rather than a stored 'ready' state
+  // field the way crop/animal occupants use — there's nothing to flip at
+  // tick-time or notify the player about proactively, since a quarry is
+  // never examined until the player taps it anyway.
+  function drawQuarry(ctx, plot, geom, cx, cy, t, tick) {
+    const occ = plot.occupant;
+    const progress = FarmRules.quarryProgress(occ, QUARRY, tick);
+    const bounce = bounceOffset(t, progress.ready);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // The mountain itself, same as the empty-tile decoration, so a tapped
+    // quarry still reads as "mountain" at a glance, not just a pickaxe.
+    ctx.globalAlpha = 0.55;
+    ctx.font = (geom.tileH * 0.55) + 'px sans-serif';
+    ctx.fillText('⛰️', cx, cy);
+    ctx.globalAlpha = 1;
+
+    const size = geom.tileH * 0.75;
+    ctx.font = size + 'px sans-serif';
+    ctx.fillText(QUARRY.icon, cx + geom.tileW * 0.16, cy - size * 0.2 + bounce);
+
+    if (progress.ready) {
+      ctx.font = (geom.tileH * 0.3) + 'px sans-serif';
+      ctx.fillText('✨', cx + geom.tileW * 0.36, cy - size * 0.45 + bounce);
+    } else {
+      const barW = geom.tileW * 0.55;
+      const barX = cx - barW / 2;
+      const barY = cy + geom.tileH * 0.42;
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fillRect(barX, barY, barW, 4);
+      ctx.fillStyle = '#8a7a5c';
+      ctx.fillRect(barX, barY, barW * progress.frac, 4);
+    }
+  }
+
   const BUILDING_COLOR = { mill: '#c9a86a', bakery: '#e0a45c', churn: '#e8d99a', kitchen: '#e2846a' };
 
   function drawBuilding(ctx, plot, geom, cx, cy, t, tick) {
@@ -339,6 +377,7 @@ const Render = (function () {
         if (plot.occupant.kind === 'crop') drawCrop(ctx, plot, geom, cx, cy, t, state.clock.tick);
         else if (plot.occupant.kind === 'animal') drawAnimal(ctx, plot, geom, cx, cy, t, state.clock.tick);
         else if (plot.occupant.kind === 'building') drawBuilding(ctx, plot, geom, cx, cy, t, state.clock.tick);
+        else if (plot.occupant.kind === 'quarry') drawQuarry(ctx, plot, geom, cx, cy, t, state.clock.tick);
       }
     });
   }

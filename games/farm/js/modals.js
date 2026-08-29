@@ -114,14 +114,17 @@ const Modals = (function () {
     });
   }
 
-  function showBuildingShop(onPick) {
+  function showBuildingShop(state, onPick) {
     enqueueOrRun(function () {
+      const haveStone = state.inventory.stone || 0;
       const cards = BUILDINGS.map(function (b) {
         const name = I18N.t('building.' + b.id + '.name', b.name);
+        const enoughStone = haveStone >= (b.stoneCost || 0);
         return '<button class="shop-card" data-id="' + b.id + '">' +
           '<div class="shop-icon">' + b.icon + '</div>' +
           '<div class="shop-name">' + name + '</div>' +
-          '<div class="shop-cost">🪙 ' + b.cost + '</div>' +
+          '<div class="shop-cost">🪙 ' + b.cost + (b.stoneCost ? ' · ⛏️ ' + b.stoneCost : '') + '</div>' +
+          (enoughStone ? '' : '<div class="shop-note">' + I18N.t('ui.shop.needsStone', 'Need more stone from a quarry') + '</div>') +
           '</button>';
       }).join('');
       open('<h2>' + I18N.t('ui.shop.build.title', 'Choose a Building') + '</h2><div class="shop-grid">' + cards + '</div>' +
@@ -141,8 +144,8 @@ const Modals = (function () {
   const TERRAIN_INFO = {
     soil: { icon: '🌾', nameKey: 'terrain.soil.name', nameFallback: 'Farmland', hintKey: 'terrain.soil.hint', hintFallback: 'Grow crops and build here' },
     pasture: { icon: '🐄', nameKey: 'terrain.pasture.name', nameFallback: 'Pasture', hintKey: 'terrain.pasture.hint', hintFallback: 'Perfect for animals' },
-    lake: { icon: '🌊', nameKey: 'terrain.lake.name', nameFallback: 'Lake', hintKey: 'terrain.lake.hint', hintFallback: 'No farming here (yet)' },
-    mountain: { icon: '⛰️', nameKey: 'terrain.mountain.name', nameFallback: 'Mountain', hintKey: 'terrain.mountain.hint', hintFallback: 'No farming here (yet)' }
+    lake: { icon: '🌊', nameKey: 'terrain.lake.name', nameFallback: 'Lake', hintKey: 'terrain.lake.hint', hintFallback: 'Waters nearby crops for free' },
+    mountain: { icon: '⛰️', nameKey: 'terrain.mountain.name', nameFallback: 'Mountain', hintKey: 'terrain.mountain.hint', hintFallback: 'Tap to mine stone' }
   };
 
   function showUnlockPlot(state, plot, terrain, onUnlock) {

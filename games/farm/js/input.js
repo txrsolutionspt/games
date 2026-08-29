@@ -22,7 +22,7 @@ const Input = (function () {
         return;
       }
       if (tool === 'build') {
-        Modals.showBuildingShop(function (buildingId) {
+        Modals.showBuildingShop(state, function (buildingId) {
           ui.tool = { type: 'place-building', id: buildingId };
           Hud.refresh(state, ui);
         });
@@ -82,10 +82,18 @@ const Input = (function () {
       Hud.toast(I18N.t('ui.toast.needsFarmland', '🌾 Needs farmland soil!'));
       return;
     }
+    // Stone (PLAN.md §10/§17), mined from mountain quarries, alongside
+    // coins — checked before spending either, so a shortfall never leaves
+    // the player partially charged.
+    if ((state.inventory.stone || 0) < (def.stoneCost || 0)) {
+      Hud.toast(I18N.t('ui.toast.needsStone', '⛏️ Needs more stone from a quarry!'));
+      return;
+    }
     if (!Economy.spendCoins(state, def.cost)) {
       Hud.toast(I18N.t('ui.toast.notEnoughCoins', 'Not enough coins yet!'));
       return;
     }
+    if (def.stoneCost) Economy.removeItem(state, 'stone', def.stoneCost);
     plot.occupant = { kind: 'building', id: buildingId, job: null };
     Hud.toast(def.icon + ' ' + I18N.t('ui.toast.built', 'Built!'));
     Persistence.scheduleSave(state);
@@ -180,6 +188,51 @@ const Input = (function () {
     Persistence.scheduleSave(state);
   }
 
+  // Quarries (PLAN.md §10/§17): a mountain tile needs no buying/placing —
+  // every mountain is already a quarry, so its occupant is created lazily
+  // right here on first tap rather than through a shop/tool like
+  // crops/animals/buildings. Tapping again either collects (if ready) or
+  // shows mining progress, mirroring how a building's job-in-progress tap
+  // behaves in handlePlotTap below.
+  function mineQuarry(state, plot, screenX, screenY) {
+    if (!plot.occupant) {
+      plot.occupant = { kind: 'quarry', lastCollectedAt: state.clock.tick };
+      Persistence.scheduleSave(state);
+    }
+    const progress = FarmRules.quarryProgress(plot.occupant, QUARRY, state.clock.tick);
+    if (!progress.ready) {
+      Modals.showTooltip(screenX, screenY, [QUARRY.icon + ' ' + I18N.t('ui.building.inProgress', 'Working...') + ' ' + Math.round(progress.frac * 100) + '%']);
+      return;
+    }
+    Economy.addItem(state, QUARRY.produces.item, QUARRY.produces.qty);
+    plot.occupant.lastCollectedAt = state.clock.tick;
+    Events.emit('mine', { item: QUARRY.produces.item, qty: QUARRY.produces.qty });
+    Hud.toast(QUARRY.icon + ' ' + I18N.t('ui.toast.collected', 'Collected!') + ' +' + QUARRY.produces.qty);
+    Persistence.scheduleSave(state);
+  }
+
+  // Lakes (PLAN.md §10/§17) are pure scenery with one automatic benefit
+  // (free daily watering for nearby crops — see simulation.js
+  // applyLakeIrrigation) rather than something to tap-and-collect, so
+  // tapping one just explains that: the first tap shows the full
+  // educational fact (like a crop's first harvest), every tap after that a
+  // short reminder tooltip — the same "full fact once, short reminder
+  // after" pattern showCropInfo's "i" tooltip already establishes.
+  function showLakeInfo(state, plot, screenX, screenY) {
+    const factKey = 'terrain.lake';
+    if (!state.seenFacts[factKey]) {
+      state.seenFacts[factKey] = true;
+      Persistence.scheduleSave(state);
+      Modals.showFact(
+        I18N.t('terrain.lake.name', 'Lake'),
+        '🌊',
+        I18N.t('terrain.lake.irrigationFact', 'Lakes send water to nearby fields — crops planted close to a lake get watered automatically, every day, for free!')
+      );
+      return;
+    }
+    Modals.showTooltip(screenX, screenY, ['🌊 ' + I18N.t('terrain.lake.irrigationHint', 'Waters nearby crops every day, for free!')]);
+  }
+
   function showCropInfo(state, plot, screenX, screenY) {
     const def = CROPS_BY_ID[plot.occupant.id];
     const progress = FarmRules.cropProgress(plot.occupant, def, state.clock.tick);
@@ -205,12 +258,19 @@ const Input = (function () {
       return;
     }
 
+    // Mountains and lakes (PLAN.md §10/§17) are tapped directly — mining/
+    // info, not "select a tool then tap" like crops/animals/buildings —
+    // so both take priority over whatever tool happens to be selected,
+    // the same way an occupied plot's own interaction (below) does.
+    const terrain = terrainOf(plot);
+    if (terrain === 'mountain') { mineQuarry(state, plot, screenX, screenY); return; }
+    if (terrain === 'lake') { showLakeInfo(state, plot, screenX, screenY); return; }
+
     if (!plot.occupant) {
       if (ui.tool && ui.tool.type === 'plant-crop') { placeCrop(state, plot, ui.tool.id); return; }
       if (ui.tool && ui.tool.type === 'place-animal') { placeAnimal(state, plot, ui.tool.id); return; }
       if (ui.tool && ui.tool.type === 'place-building') { placeBuilding(state, plot, ui.tool.id); return; }
-      const emptyHintKey = { soil: 'ui.plot.empty.hint', pasture: 'ui.plot.empty.pasture', lake: 'ui.plot.empty.lake', mountain: 'ui.plot.empty.mountain' };
-      const terrain = terrainOf(plot);
+      const emptyHintKey = { soil: 'ui.plot.empty.hint', pasture: 'ui.plot.empty.pasture' };
       Hud.toast(I18N.t(emptyHintKey[terrain], 'Tap Plant to grow something here!'));
       return;
     }

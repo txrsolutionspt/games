@@ -266,6 +266,64 @@ test('canCollectRecipe: false with no job, true once the job is ready', function
   assert.strictEqual(FarmRules.canCollectRecipe(workingPlot, flourRecipe, flourRecipe.timeSec), true);
 });
 
+// ---- Quarries (mountain resource) --------------------------------------------------
+
+const quarry = { icon: '⛏️', cycleSec: 60, produces: { item: 'stone', qty: 1, sellPrice: 4 } };
+
+test('quarryProgress: not ready before cycleSec has elapsed', function () {
+  const occ = { kind: 'quarry', lastCollectedAt: 0 };
+  const progress = FarmRules.quarryProgress(occ, quarry, 30);
+  assert.strictEqual(progress.ready, false);
+  assert.ok(Math.abs(progress.frac - 0.5) < 1e-9);
+});
+
+test('quarryProgress: ready once cycleSec has elapsed, frac capped at 1', function () {
+  const occ = { kind: 'quarry', lastCollectedAt: 0 };
+  const progress = FarmRules.quarryProgress(occ, quarry, quarry.cycleSec * 2);
+  assert.strictEqual(progress.ready, true);
+  assert.strictEqual(progress.frac, 1);
+});
+
+test('canCollectQuarry: false for a non-quarry occupant or before ready', function () {
+  assert.strictEqual(FarmRules.canCollectQuarry(null, quarry, 1000), false);
+  assert.strictEqual(FarmRules.canCollectQuarry({ kind: 'crop' }, quarry, 1000), false);
+  assert.strictEqual(FarmRules.canCollectQuarry({ kind: 'quarry', lastCollectedAt: 0 }, quarry, 1), false);
+});
+
+test('canCollectQuarry: true once the mining cycle completes', function () {
+  const occ = { kind: 'quarry', lastCollectedAt: 0 };
+  assert.strictEqual(FarmRules.canCollectQuarry(occ, quarry, quarry.cycleSec), true);
+});
+
+// ---- Lake irrigation ----------------------------------------------------------------
+
+test('isNearLake: true when a lake tile is within radius', function () {
+  let found = false;
+  for (let col = 0; col < 60 && !found; col++) {
+    for (let row = 1; row < 60 && !found; row++) {
+      if (FarmRules.terrainForPlot(col, row, 4, 8) === 'lake') found = { col: col, row: row };
+    }
+  }
+  assert.ok(found, 'expected to find at least one lake tile to test against');
+  assert.strictEqual(FarmRules.isNearLake(found.col, found.row, 4, 8, 0), true);
+});
+
+test('isNearLake: false far away from any lake with radius 0', function () {
+  // The safe starting cluster itself is always soil, and has no lake
+  // within it, so radius 0 on one of its own tiles is never near a lake.
+  assert.strictEqual(FarmRules.isNearLake(0, 0, 4, 8, 0), false);
+});
+
+test('isNearLake: a larger radius only ever finds lakes a smaller radius also would, or more', function () {
+  for (let col = 0; col < 40; col += 5) {
+    for (let row = 1; row < 40; row += 5) {
+      const near0 = FarmRules.isNearLake(col, row, 4, 8, 0);
+      const near2 = FarmRules.isNearLake(col, row, 4, 8, 2);
+      if (near0) assert.strictEqual(near2, true);
+    }
+  }
+});
+
 // ---- Device orientation -------------------------------------------------------------
 
 test('shouldLockLandscape: touch device in portrait is locked to landscape', function () {

@@ -61,9 +61,10 @@
     return 'soil';
   }
 
-  // What kind of occupant (if any) a terrain type accepts. Lake and
-  // mountain accept nothing in this pass (pure scenery — see PLAN.md §10's
-  // "not in this pass" note on future irrigation/quarry mechanics).
+  // What kind of occupant (if any) a terrain type accepts for the normal
+  // crop/building/animal placement flow. Lake and mountain never accept
+  // any of these — their own mechanics (free irrigation, tap-to-mine
+  // quarry) are handled separately in input.js, not through placement.
   function canPlaceKindOnTerrain(kind, terrain) {
     if (kind === 'crop') return terrain === 'soil';
     if (kind === 'building') return terrain === 'soil';
@@ -177,6 +178,42 @@
     return recipeProgress(plot.occupant.job, recipeDef, currentTick).ready;
   }
 
+  // ---- Quarries (mountain resource) ------------------------------------------
+
+  // Mountains need no purchase/placement -- every mountain tile is already
+  // a quarry. Its occupant is lazily created the first time a player taps
+  // one (see input.js mineQuarry), so a fresh mountain tile has no
+  // occupant yet and this is never called before that first tap.
+  function quarryProgress(occupant, quarryDef, currentTick) {
+    var elapsed = Math.max(0, currentTick - occupant.lastCollectedAt);
+    var frac = Math.min(1, elapsed / quarryDef.cycleSec);
+    return { frac: frac, ready: frac >= 1 };
+  }
+
+  function canCollectQuarry(occupant, quarryDef, currentTick) {
+    if (!occupant || occupant.kind !== 'quarry') return false;
+    return quarryProgress(occupant, quarryDef, currentTick).ready;
+  }
+
+  // ---- Lake irrigation --------------------------------------------------------
+
+  // True if any tile within `radius` (a square neighborhood, matching the
+  // block shape terrain generation itself uses) of (col,row) is a lake.
+  // Pure function of position, like terrainForPlot itself -- no saved
+  // state needed. Called at day-boundary time to auto-water nearby crops
+  // for free (see simulation.js applyLakeIrrigation), the same
+  // free-watering pattern rain already uses.
+  function isNearLake(col, row, blockSize, safeCols, radius) {
+    for (var dr = -radius; dr <= radius; dr++) {
+      for (var dc = -radius; dc <= radius; dc++) {
+        var c = col + dc, r = row + dr;
+        if (c < 0 || r < 0) continue;
+        if (terrainForPlot(c, r, blockSize, safeCols) === 'lake') return true;
+      }
+    }
+    return false;
+  }
+
   // ---- Device orientation ----------------------------------------------------
 
   // The farm grid and tool belt are laid out for landscape (see PLAN.md
@@ -206,6 +243,9 @@
     canStartRecipe: canStartRecipe,
     recipeProgress: recipeProgress,
     canCollectRecipe: canCollectRecipe,
+    quarryProgress: quarryProgress,
+    canCollectQuarry: canCollectQuarry,
+    isNearLake: isNearLake,
     shouldLockLandscape: shouldLockLandscape
   };
 });
