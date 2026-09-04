@@ -6,7 +6,7 @@
   --accent: #f4a53a;
   --danger: #d9534f;
   --text: #3a2e22;
-  --radius: 14px;
+  --radius: 16px;
   color-scheme: light;
 }
 
@@ -64,28 +64,60 @@ html, body {
 
 .hud-chip {
   background: var(--bg-panel);
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 3px solid rgba(0, 0, 0, 0.08);
   border-radius: 999px;
-  padding: 5px 6px;
+  padding: 6px 6px;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 13px;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: transform 0.1s ease;
 }
 
+/* A young reader can't infer a bare emoji button, so every HUD icon
+   carries a short visible word underneath it (see hud.js
+   refreshHudButtons) — the same icon-over-label shape the tool belt
+   already uses, just narrower. min-height (not a fixed height) keeps a
+   comfortable ~52px touch target even with a two-line label. */
 .hud-icon-btn {
   width: 100%;
-  height: 38px;
-  border-radius: 10px;
-  border: none;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-radius: 12px;
+  border: 3px solid rgba(0, 0, 0, 0.08);
   background: var(--bg-panel);
-  font-size: 18px;
+  font-family: inherit;
+  padding: 4px 2px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease;
 }
 
+.hud-icon-btn .hud-icon { font-size: 20px; line-height: 1; }
+.hud-icon-btn .hud-label { font-size: 10px; font-weight: 700; line-height: 1.15; }
+
 .hud-icon-btn + .hud-icon-btn { margin-top: 4px; }
+
+.hud-icon-btn:active, .tool-btn:active, .shop-card:active,
+button.btn-primary:active, button.btn-secondary:active, button.btn-danger:active,
+.farm-slot-actions button:active {
+  transform: scale(0.93);
+}
+
+/* A little bounce + gold flash whenever the coin count changes (see
+   hud.js pulseCoins) so earning or spending coins reads as an event, not
+   a number silently ticking over. */
+@keyframes coin-pop {
+  0% { transform: scale(1); border-radius: 999px; }
+  35% { transform: scale(1.28); background: #ffe9b3; border-radius: 8px; }
+  100% { transform: scale(1); border-radius: 999px; }
+}
+.coin-pop { animation: coin-pop 0.4s ease; }
 
 /* ---- Top info: day/season/weather bar + mission chip, stacked ---- */
 /* Both are grouped under one positioned container (rather than each
@@ -116,20 +148,20 @@ html, body {
   column-gap: 14px;
   padding: 6px 14px;
   background: var(--bg-panel);
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 3px solid rgba(0, 0, 0, 0.08);
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
 }
 
 #day-bar span { white-space: nowrap; }
 
 #mission-chip {
-  padding: 7px 12px;
+  padding: 8px 12px;
   background: #fff3d6;
-  border: 2px solid #f0d78c;
+  border: 3px solid #f0d78c;
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -175,21 +207,33 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  min-height: 56px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  min-height: 58px;
+  border: 3px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius);
   background: var(--bg-panel);
   font-family: inherit;
   padding: 6px 4px;
+  transition: transform 0.1s ease;
 }
 
-.tool-btn .tool-icon { font-size: 24px; }
-.tool-btn .tool-label { font-size: 11px; font-weight: 700; }
+.tool-btn .tool-icon { font-size: 26px; }
+.tool-btn .tool-label { font-size: 12px; font-weight: 700; }
 
+/* A quick pop when a tool is newly selected. Safe against
+   Hud.refreshToolBelt's per-tick classList.toggle('active', ...): the
+   animation only (re)starts when the class attribute actually changes,
+   not on every toggle call that leaves it in the same state. */
 .tool-btn.active {
   background: var(--accent);
   border-color: #c9791a;
   color: #402a00;
+  animation: tool-select-pop 0.2s ease;
+}
+
+@keyframes tool-select-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 /* ---- Tooltip (non-modal "i" info) ---- */
@@ -228,6 +272,16 @@ html, body {
   background: var(--bg-panel);
   border-radius: 20px 20px 0 0;
   padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  animation: modal-pop-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* A newly-created .modal-card (modals.js's open() rebuilds it fresh every
+   time) always starts this animation from scratch, so every modal —
+   shop, mission-complete, educational fact — pops in with a friendly
+   bounce instead of just appearing. */
+@keyframes modal-pop-in {
+  0% { transform: scale(0.85) translateY(12px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
 @media (min-width: 640px) {
@@ -237,10 +291,10 @@ html, body {
 
 .modal-card h2 {
   margin: 0 0 10px;
-  font-size: 19px;
+  font-size: 21px;
 }
 
-.modal-card p { margin: 6px 0; font-size: 14px; line-height: 1.5; }
+.modal-card p { margin: 6px 0; font-size: 15px; line-height: 1.5; }
 .modal-card .fact { background: #eef6e6; border-radius: 10px; padding: 8px 10px; }
 .modal-card .ready-label { font-weight: 700; color: var(--green); }
 
@@ -256,9 +310,10 @@ button.btn-primary, button.btn-secondary, button.btn-danger {
   border: none;
   border-radius: 12px;
   padding: 10px 16px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  min-height: 44px;
+  min-height: 48px;
+  transition: transform 0.1s ease;
 }
 
 button.btn-primary { background: var(--accent); color: #402a00; }
@@ -275,18 +330,19 @@ button.btn-danger { background: var(--danger); color: #fff; }
 
 .shop-card {
   font-family: inherit;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 3px solid rgba(0, 0, 0, 0.08);
   background: #fff;
   border-radius: var(--radius);
   padding: 10px 6px;
   text-align: center;
   min-height: 96px;
+  transition: transform 0.1s ease;
 }
 
-.shop-icon { font-size: 30px; }
-.shop-name { font-size: 13px; font-weight: 700; margin-top: 4px; }
-.shop-cost { font-size: 12px; margin-top: 2px; }
-.shop-note { font-size: 10px; color: #8a6d20; margin-top: 2px; }
+.shop-icon { font-size: 32px; }
+.shop-name { font-size: 14px; font-weight: 700; margin-top: 4px; }
+.shop-cost { font-size: 13px; margin-top: 2px; }
+.shop-note { font-size: 11px; color: #8a6d20; margin-top: 2px; }
 
 .recipe-card {
   border: 2px solid rgba(0, 0, 0, 0.08);
@@ -410,12 +466,18 @@ button.btn-danger { background: var(--danger); color: #fff; }
 .toast {
   background: rgba(30, 24, 16, 0.92);
   color: #fff;
-  padding: 8px 16px;
+  padding: 9px 18px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   opacity: 1;
   transition: opacity 0.3s ease, transform 0.3s ease;
+  animation: toast-pop-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes toast-pop-in {
+  0% { transform: scale(0.7) translateY(6px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
 .toast-out { opacity: 0; transform: translateY(-8px); }

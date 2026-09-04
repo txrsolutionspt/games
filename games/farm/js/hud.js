@@ -5,8 +5,46 @@
 
 const Hud = (function () {
   let toastTimer = null;
+  let lastCoins = null;
 
   function el(id) { return document.getElementById(id); }
+
+  const HUD_BUTTON_LABELS = {
+    'btn-market': { key: 'ui.hud.market', fallback: 'Shop' },
+    'btn-save': { key: 'ui.hud.save', fallback: 'Save' },
+    'btn-fullscreen': { key: 'ui.hud.fullscreen', fallback: 'Full screen' },
+    'btn-settings': { key: 'ui.hud.settings', fallback: 'Settings' }
+  };
+
+  // A young reader can't infer what a bare emoji button does, so every
+  // icon in the left rail carries a short visible word underneath it too
+  // (same icon+label shape the tool belt already uses) — refreshed here
+  // so it re-localizes on a language switch, same as everything else in
+  // this function.
+  function refreshHudButtons() {
+    Object.keys(HUD_BUTTON_LABELS).forEach(function (id) {
+      const label = I18N.t(HUD_BUTTON_LABELS[id].key, HUD_BUTTON_LABELS[id].fallback);
+      const btn = el(id);
+      btn.querySelector('.hud-label').textContent = label;
+      btn.setAttribute('aria-label', label);
+    });
+  }
+
+  // A little bounce + color flash whenever the coin count actually
+  // changes, so earning (or spending) coins reads as an event instead of
+  // a number silently updating — the same "give feedback" instinct the
+  // rest of the HUD already follows for toasts. Restarting the CSS
+  // animation on repeat triggers needs the class removed and its layout
+  // re-read (a forced reflow) before re-adding it, since re-adding a class
+  // that's already present is a no-op and would skip the animation.
+  function pulseCoins() {
+    ['hud-coins', 'coins-val-top'].forEach(function (id) {
+      const chip = el(id);
+      chip.classList.remove('coin-pop');
+      void chip.offsetWidth;
+      chip.classList.add('coin-pop');
+    });
+  }
 
   const TOOL_LABELS = {
     plant: { icon: '🌱', key: 'ui.tool.plant', fallback: 'Plant' },
@@ -62,6 +100,9 @@ const Hud = (function () {
   };
 
   function refreshTop(state) {
+    if (lastCoins !== null && state.coins !== lastCoins) pulseCoins();
+    lastCoins = state.coins;
+
     el('coins-val').textContent = state.coins;
     // Coins are shown twice: the left rail chip, and again here in the top
     // bar — in fullscreen on some devices the left rail chip can end up
@@ -100,6 +141,7 @@ const Hud = (function () {
     refreshTop(state);
     refreshMissionChip(state);
     refreshToolBelt(state, ui);
+    refreshHudButtons();
   }
 
   function toast(message) {
