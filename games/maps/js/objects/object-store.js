@@ -1,6 +1,6 @@
-import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.22";
-import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.22";
-import { MODES, touch } from "./object-model.js?v=2026-08-26.22";
+import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.23";
+import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.23";
+import { MODES, touch } from "./object-model.js?v=2026-08-26.23";
 
 let currentMapId = getActiveMapId();
 
