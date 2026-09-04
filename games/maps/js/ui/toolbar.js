@@ -1,5 +1,5 @@
-import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.22";
-import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.22";
+import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.23";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.23";
 
 const addButton = document.getElementById("add-button");
 const addDropdown = document.getElementById("add-dropdown");
