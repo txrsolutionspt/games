@@ -1,9 +1,11 @@
 # Map editor — what's next
 
 Status snapshot of `games/maps`, for picking this back up later. The app
-(object editor, map styles, layers, mobile layout) is functional and
-deployed. This file tracks what's deliberately left undone and why, plus
-known rough edges.
+(object editor, map styles, layers, mobile layout, multiple maps, PWA
+install, file attachments) is functional and deployed. This file tracks
+what's deliberately left undone and why, plus known rough edges. See
+`CHANGELOG.md` for what's already shipped, and `CLAUDE.md` for the rule
+that keeps both of these current.
 
 ## Deferred features (need assets/APIs this pass didn't have)
 
@@ -12,10 +14,16 @@ known rough edges.
   preview image) would match the "visual selector" design discussed, but
   needs actual preview images generated/sourced per style — text rows work
   fine functionally in the meantime.
-- **"My location" map control.** Needs `navigator.geolocation` wired to a
-  button + a marker layer. Not started.
-- **Compass / reset-north control.** Small addition once "my location" exists
-  — same control cluster, low effort, just not done yet.
+- **Undo/redo.** Not started. Biggest remaining trust-builder for an editor
+  where drawing/deleting shapes is otherwise final.
+- **Presentation / share mode.** A clean read-only view of a map (no edit
+  chrome) for showing it to someone else. Not started.
+- **Attachments in Export/Import.** Files added via the "Files" section on
+  an object (see Changelog 2026-09-05) are stored in IndexedDB and are
+  deliberately NOT included when exporting/importing a map's data —
+  embedding them as base64 would bloat the exported JSON. Revisit only if
+  actually needed; until then, attachments don't survive export/import or
+  moving to a different browser/device.
 - **Base-map layer toggles** (Roads / Buildings / Land use, from the original
   Layers mockup). Not implemented on purpose, not just deferred: the base
   styles (`js/map/map-styles.js`) are single flattened raster images — there
@@ -46,28 +54,32 @@ known rough edges.
   at low/moderate traffic. Fine for a hobby/personal site; if this ever gets
   meaningful traffic, it should move to a paid tile provider or a self-hosted
   tile server instead of leaning on OSM's free tiles indefinitely.
-- **No automated test suite in the repo.** Every regression check done while
-  building this (CRUD flow, style-switch/data-survival, responsive layout,
-  layer toggles) was a throwaway Playwright script against a hand-rolled
-  MapLibre stub, run from a scratch directory outside the repo — none of it
-  is committed. If this project keeps growing, it's worth landing a real
-  `tests/` setup (the stub in these sessions is a reasonable starting point:
-  a minimal fake `maplibregl.Map`/`Popup` covering `addSource`/`addLayer`/
-  `setStyle`/`setLayoutProperty`/event dispatch, enough to drive the app
-  logic without a real WebGL context).
+- **No automated test suite in the repo.** Every feature and bug fix shipped
+  so far (well over a dozen now) was regression-tested with throwaway
+  Playwright scripts — both a hand-rolled MapLibre stub and the real
+  vendored library — run from a scratch directory outside the repo; none of
+  it is committed. This has caught real regressions repeatedly, so the
+  practice works, but it's re-created from scratch every session. Worth
+  landing a real committed `tests/` setup at this point — the stub
+  (a minimal fake `maplibregl.Map`/`Popup` covering `addSource`/`addLayer`/
+  `setStyle`/`setLayoutProperty`/event dispatch) is a reasonable starting
+  point.
 
 ## Architecture notes for later
 
 - **Data model is intentionally simple** (see `js/objects/object-model.js`):
   a GeoJSON Feature with `id`, `geometry`, `properties` (name/category/
-  description), and `metadata` (createdAt/updatedAt). No elevation, no
-  photos/attachments, no GPS accuracy, no address/reverse-geocoding. Fine
-  for the current scope; would need explicit schema additions (and a
-  migration path for existing `localStorage` data) if any of that becomes
-  wanted.
-- **Persistence is `localStorage` only** (`js/persistence/`). Works for a
-  single browser/device. Multi-device sync or sharing between users would
-  need a real backend — the domain layer (`object-store.js`'s
+  description/attachments), and `metadata` (createdAt/updatedAt). No
+  elevation, no GPS accuracy, no address/reverse-geocoding. Fine for the
+  current scope; would need explicit schema additions (and a migration path
+  for existing `localStorage` data) if any of that becomes wanted.
+- **Persistence is browser-local, no backend.** Object/settings data lives
+  in `localStorage` (`js/persistence/`), namespaced per map via the "My
+  Maps" registry (`maps-index.js`). File attachments live separately in
+  IndexedDB (`persistence/attachments.js`), since localStorage is
+  string-only and far too small for binary files. All of it is
+  single-browser/single-device only — multi-device sync or sharing between
+  users would need a real backend. The domain layer (`object-store.js`'s
   load/save/subscribe shape) was deliberately kept separate from the
   MapLibre rendering code specifically so that swap is contained to the
   `persistence/` module rather than touching the map/UI code.
@@ -81,16 +93,16 @@ known rough edges.
   `?v=<date>.<n>` query string (see `search.html` and the `import` lines
   across `js/`). Bump this string on every deploy that touches JS/CSS —
   it's what stops browsers/CDN from serving a stale file mixed with fresh
-  ones. The build badge in the bottom-right corner shows the current value;
-  keep the two in sync.
+  ones. The About screen (Menu → About) shows the current value; keep the
+  two in sync.
 
 ## Suggested next pick-up order
 
-1. Visual style thumbnails (self-contained, no architecture changes).
-2. "My location" + compass controls (self-contained, standard Geolocation
-   API).
-3. Decide if/when to move the base map to a vector style — this is the one
+1. Undo/redo (self-contained, biggest remaining trust-builder).
+2. Visual style thumbnails (self-contained, no architecture changes).
+3. Presentation/share mode.
+4. Decide if/when to move the base map to a vector style — this is the one
    that unlocks both the real base-map layer toggles and a proper Dark
    style, so it's worth doing those two together rather than separately.
-4. Land a committed test setup once the app has more logic worth protecting
-   against regressions.
+5. Land a committed test setup — worth doing soon given how much surface
+   area the app now has.
