@@ -106,6 +106,34 @@ const { check, section, report } = makeReporter("e2e-app-shell");
     await page.close();
   }
 
+  section("map style picker (visual thumbnails)");
+  {
+    const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+    await page.goto(URL, { waitUntil: "load" });
+    await page.waitForTimeout(1200);
+
+    await page.click("#view-button");
+    await page.waitForTimeout(150);
+    check("all four map styles are offered", (await page.locator(".style-option").count()) === 4);
+    check(
+      "each style option renders a real SVG thumbnail, not just an emoji",
+      await page.evaluate(() => document.querySelectorAll(".style-option .style-thumb").length === 4)
+    );
+    check("satellite is the active style by default", await page.locator('[data-style="satellite"]').evaluate((el) => el.classList.contains("active")));
+
+    await page.click('[data-style="dark"]');
+    await page.waitForTimeout(250);
+    check("clicking a style marks it active", await page.locator('[data-style="dark"]').evaluate((el) => el.classList.contains("active")));
+    check("the previously active style is no longer marked active", !(await page.locator('[data-style="satellite"]').evaluate((el) => el.classList.contains("active"))));
+
+    const settings = await page.evaluate(() => {
+      const mapId = JSON.parse(localStorage.getItem("maps-v1")).activeMapId;
+      return JSON.parse(localStorage.getItem(`map-settings-v1:${mapId}`));
+    });
+    check("picking a style persists it", settings.style === "dark", JSON.stringify(settings));
+    await page.close();
+  }
+
   section("full-bleed desktop layout + on-map controls");
   {
     const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();

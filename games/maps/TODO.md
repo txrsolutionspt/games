@@ -9,11 +9,6 @@ that keeps both of these current.
 
 ## Deferred features (need assets/APIs this pass didn't have)
 
-- **Visual style thumbnails in the View menu.** Street/Satellite/Terrain/Dark
-  are currently text+emoji rows. A real thumbnail per style (small static
-  preview image) would match the "visual selector" design discussed, but
-  needs actual preview images generated/sourced per style — text rows work
-  fine functionally in the meantime.
 - **Undo/redo.** Not started. Biggest remaining trust-builder for an editor
   where drawing/deleting shapes is otherwise final.
 - **Presentation / share mode.** A clean read-only view of a map (no edit
@@ -94,8 +89,7 @@ that keeps both of these current.
 ## Suggested next pick-up order
 
 1. Undo/redo (self-contained, biggest remaining trust-builder).
-2. Visual style thumbnails (self-contained, no architecture changes).
-3. Presentation/share mode.
-4. Decide if/when to move the base map to a vector style — this is the one
+2. Presentation/share mode.
+3. Decide if/when to move the base map to a vector style — this is the one
    that unlocks both the real base-map layer toggles and a proper Dark
    style, so it's worth doing those two together rather than separately.
