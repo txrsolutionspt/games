@@ -1,24 +1,24 @@
-import { createMap } from "./map/map-init.js?v=2026-08-26.25";
+import { createMap } from "./map/map-init.js?v=2026-08-26.26";
 import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
   applyLayerVisibility,
-} from "./map/map-layers.js?v=2026-08-26.25";
-import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.25";
-import { setupSelection } from "./map/map-selection.js?v=2026-08-26.25";
+} from "./map/map-layers.js?v=2026-08-26.26";
+import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.26";
+import { setupSelection } from "./map/map-selection.js?v=2026-08-26.26";
 import {
   setupEditLayers,
   showEditVertices,
   clearEditVertices,
   enableVertexDragging,
-} from "./map/map-edit.js?v=2026-08-26.25";
+} from "./map/map-edit.js?v=2026-08-26.26";
 import {
   MODES,
   createPoint,
   createLine,
   createPolygon,
-} from "./objects/object-model.js?v=2026-08-26.25";
+} from "./objects/object-model.js?v=2026-08-26.26";
 import {
   getState,
   subscribe,
@@ -28,6 +28,7 @@ import {
   cancelDrawing,
   addObject,
   updateObjectProperties,
+  duplicateObject,
   deleteObject,
   selectObject,
   getObject,
@@ -35,17 +36,17 @@ import {
   replaceAll,
   switchMap,
   getCurrentMapId,
-} from "./objects/object-store.js?v=2026-08-26.25";
-import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.25";
-import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.25";
-import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.25";
-import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.25";
-import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.25";
-import { setupMapsDialog } from "./ui/maps-menu.js?v=2026-08-26.25";
-import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.25";
-import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.25";
-import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.25";
-import { loadObjects } from "./persistence/local-storage.js?v=2026-08-26.25";
+} from "./objects/object-store.js?v=2026-08-26.26";
+import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.26";
+import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.26";
+import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.26";
+import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.26";
+import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.26";
+import { setupMapsDialog } from "./ui/maps-menu.js?v=2026-08-26.26";
+import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.26";
+import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.26";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.26";
+import { loadObjects } from "./persistence/local-storage.js?v=2026-08-26.26";
 import {
   ensureMapsIndex,
   takeNeedsSeedingFlag,
@@ -55,7 +56,7 @@ import {
   createMap as createMapEntry,
   renameMap,
   deleteMap,
-} from "./persistence/maps-index.js?v=2026-08-26.25";
+} from "./persistence/maps-index.js?v=2026-08-26.26";
 import {
   geometryBounds,
   featureCollectionBounds,
@@ -63,7 +64,7 @@ import {
   polygonAreaMeters,
   formatDistance,
   formatArea,
-} from "./geo/measure.js?v=2026-08-26.25";
+} from "./geo/measure.js?v=2026-08-26.26";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
@@ -446,6 +447,11 @@ async function handleEditInfo(id) {
   }
 }
 
+function handleDuplicate(id) {
+  const newId = duplicateObject(id);
+  if (newId) selectObject(newId);
+}
+
 async function handleDelete(id) {
   const feature = getObject(id);
   if (!feature) return;
@@ -554,6 +560,7 @@ function render(state) {
       showFeaturePopup(map, feature, {
         onEditInfo: () => handleEditInfo(feature.id),
         onEditShape: () => setMode(MODES.EDIT_SHAPE),
+        onDuplicate: () => handleDuplicate(feature.id),
         onDelete: () => handleDelete(feature.id),
       });
     } else {

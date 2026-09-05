@@ -33,7 +33,6 @@ Brainstormed, not scoped or committed to — pick from here when picking up
 new work.
 
 **Quick, self-contained wins:**
-- Duplicate object (copy a pin/route/area instead of redrawing it).
 - Keyboard shortcuts on desktop (e.g. Delete to remove the selected object).
 - Distance/area units toggle (metric vs. imperial) — currently always metric.
 - Custom color/icon per object, not just the fixed category set.

@@ -2,7 +2,7 @@
 // under their own namespaced keys (see local-storage.js / map-settings.js);
 // this module only tracks which maps exist, their names, and which one is
 // active.
-import { deleteFilesForMap } from "./attachments.js?v=2026-08-26.25";
+import { deleteFilesForMap } from "./attachments.js?v=2026-08-26.26";
 
 const INDEX_KEY = "maps-v1";
 const LEGACY_OBJECTS_KEY = "map-editor-data-v1";

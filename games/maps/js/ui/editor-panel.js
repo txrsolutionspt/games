@@ -4,9 +4,9 @@ import {
   formatDistance,
   formatArea,
   formatCoordinate,
-} from "../geo/measure.js?v=2026-08-26.25";
-import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.25";
-import { getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.25";
+} from "../geo/measure.js?v=2026-08-26.26";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.26";
+import { getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.26";
 
 const summaryEl = document.getElementById("object-summary");
 const listEl = document.getElementById("object-list");
@@ -65,6 +65,7 @@ export function showFeaturePopup(map, feature, handlers) {
     <div class="actions">
       <button data-action="edit-info">✏ Edit</button>
       <button data-action="edit-shape">⌖ Shape</button>
+      <button data-action="duplicate">⧉ Copy</button>
     </div>
     <div class="actions-danger">
       <button data-action="delete">🗑 Delete</button>
@@ -73,6 +74,7 @@ export function showFeaturePopup(map, feature, handlers) {
 
   container.querySelector('[data-action="edit-info"]').addEventListener("click", handlers.onEditInfo);
   container.querySelector('[data-action="edit-shape"]').addEventListener("click", handlers.onEditShape);
+  container.querySelector('[data-action="duplicate"]').addEventListener("click", handlers.onDuplicate);
   container.querySelector('[data-action="delete"]').addEventListener("click", handlers.onDelete);
 
   renderPopupAttachments(container.querySelector(".popup-attachments"), feature.properties.attachments || []);

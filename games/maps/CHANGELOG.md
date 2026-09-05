@@ -6,6 +6,10 @@ file updated.
 
 ## 2026-09-05
 
+- **Duplicate an object.** The feature popup now has a "Copy" button
+  alongside Edit and Shape — makes a copy of the same place/route/area
+  (named "... (copy)") and selects it, ready to reposition or edit.
+  Attached files aren't copied along with it.
 - **Visual map style picker.** The View menu's Street/Satellite/Terrain/Dark
   choices now show a small visual thumbnail for each style instead of
   plain text, laid out as a 2×2 grid — easier to recognize at a glance,
