@@ -6,6 +6,10 @@ file updated.
 
 ## 2026-09-05
 
+- **Visual map style picker.** The View menu's Street/Satellite/Terrain/Dark
+  choices now show a small visual thumbnail for each style instead of
+  plain text, laid out as a 2×2 grid — easier to recognize at a glance,
+  especially on mobile.
 - **File attachments.** Any point, line, or area can now have files
   attached to it — photos, PDFs, documents, anything. Images show a
   thumbnail preview; other file types show a name and size. Attached files

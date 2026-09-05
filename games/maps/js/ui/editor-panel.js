@@ -4,9 +4,9 @@ import {
   formatDistance,
   formatArea,
   formatCoordinate,
-} from "../geo/measure.js?v=2026-08-26.24";
-import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.24";
-import { getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.24";
+} from "../geo/measure.js?v=2026-08-26.25";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.25";
+import { getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.25";
 
 const summaryEl = document.getElementById("object-summary");
 const listEl = document.getElementById("object-list");
