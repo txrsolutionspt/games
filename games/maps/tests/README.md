@@ -28,10 +28,11 @@ Or run a single file directly, e.g. `node games/maps/tests/e2e-vertex-editing.js
   - `e2e-app-shell.js` — boot, About screen, default view + last-view
     persistence, the full-bleed layout and its on-map controls, the
     mobile search pill's clearance from those controls, the sidebar
-    drawer, the Layers panel, fly-to-on-select.
+    drawer, the Layers panel, fly-to-on-select, the visual style picker,
+    and the metric/imperial units toggle.
   - `e2e-core-objects.js` — drawing a point/line/area through the real
     UI, the category icon-grid, the popup's coordinate/length/area
-    readout, editing properties, deleting.
+    readout, editing properties, duplicating, deleting.
   - `e2e-vertex-editing.js` — inserting a vertex via a midpoint drag,
     mouse tap-to-delete, and (the important one) a **real touch** tap
     correctly deleting exactly one vertex — a regression test for a bug

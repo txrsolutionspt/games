@@ -72,20 +72,50 @@ export function polygonAreaMeters(rings) {
   return total;
 }
 
-export function formatDistance(meters) {
+const FEET_PER_METER = 3.28084;
+const MILE_IN_METERS = 1609.344;
+const SQFT_PER_SQM = 10.7639;
+const ACRE_IN_SQM = 4046.8564224;
+
+function formatDistanceMetric(meters) {
   if (meters >= 1000) {
     return `${(meters / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} km`;
   }
   return `${Math.round(meters).toLocaleString()} m`;
 }
 
-export function formatArea(squareMeters) {
+function formatDistanceImperial(meters) {
+  const feet = meters * FEET_PER_METER;
+  if (feet >= 5280) {
+    return `${(meters / MILE_IN_METERS).toLocaleString(undefined, { maximumFractionDigits: 2 })} mi`;
+  }
+  return `${Math.round(feet).toLocaleString()} ft`;
+}
+
+export function formatDistance(meters, unitSystem = "metric") {
+  return unitSystem === "imperial" ? formatDistanceImperial(meters) : formatDistanceMetric(meters);
+}
+
+function formatAreaMetric(squareMeters) {
   const base = `${Math.round(squareMeters).toLocaleString()} m²`;
   if (squareMeters >= 10000) {
     const hectares = (squareMeters / 10000).toLocaleString(undefined, { maximumFractionDigits: 2 });
     return `${base} (${hectares} ha)`;
   }
   return base;
+}
+
+function formatAreaImperial(squareMeters) {
+  const base = `${Math.round(squareMeters * SQFT_PER_SQM).toLocaleString()} sq ft`;
+  if (squareMeters >= ACRE_IN_SQM) {
+    const acres = (squareMeters / ACRE_IN_SQM).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    return `${base} (${acres} ac)`;
+  }
+  return base;
+}
+
+export function formatArea(squareMeters, unitSystem = "metric") {
+  return unitSystem === "imperial" ? formatAreaImperial(squareMeters) : formatAreaMetric(squareMeters);
 }
 
 export function formatCoordinate([lng, lat]) {

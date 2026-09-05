@@ -4,9 +4,9 @@ import {
   formatDistance,
   formatArea,
   formatCoordinate,
-} from "../geo/measure.js?v=2026-08-26.27";
-import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.27";
-import { getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.27";
+} from "../geo/measure.js?v=2026-08-26.28";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.28";
+import { getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.28";
 
 const summaryEl = document.getElementById("object-summary");
 const listEl = document.getElementById("object-list");
@@ -48,7 +48,7 @@ export function renderSidebar(objects, selectedId, onSelect) {
 let activePopup = null;
 let popupObjectUrls = [];
 
-export function showFeaturePopup(map, feature, handlers) {
+export function showFeaturePopup(map, feature, handlers, unitSystem = "metric") {
   closeFeaturePopup();
 
   const coordinates = popupAnchor(feature.geometry);
@@ -59,7 +59,7 @@ export function showFeaturePopup(map, feature, handlers) {
   container.innerHTML = `
     <h4>${escapeHtml(feature.properties.name || "(unnamed)")}</h4>
     <p class="category">${categoryLabel(feature.geometry.type, feature.properties.category)}</p>
-    ${geometryMeta(feature.geometry)}
+    ${geometryMeta(feature.geometry, unitSystem)}
     <p>${escapeHtml(feature.properties.description || "")}</p>
     <div class="popup-attachments"></div>
     <div class="actions">
@@ -135,7 +135,7 @@ export function closeFeaturePopup() {
   }
 }
 
-function geometryMeta(geometry) {
+function geometryMeta(geometry, unitSystem) {
   if (geometry.type === "Point") {
     return `<p class="meta">📍 ${formatCoordinate(geometry.coordinates)}</p>`;
   }
@@ -144,7 +144,7 @@ function geometryMeta(geometry) {
     const length = lineLengthMeters(geometry.coordinates);
     return `
       <p class="meta">📍 ${formatCoordinate(geometry.coordinates[0])}</p>
-      <p class="meta">📏 ${formatDistance(length)}</p>
+      <p class="meta">📏 ${formatDistance(length, unitSystem)}</p>
     `;
   }
 
@@ -152,7 +152,7 @@ function geometryMeta(geometry) {
     const area = polygonAreaMeters(geometry.coordinates);
     return `
       <p class="meta">📍 ${formatCoordinate(geometry.coordinates[0][0])}</p>
-      <p class="meta">▦ ${formatArea(area)}</p>
+      <p class="meta">▦ ${formatArea(area, unitSystem)}</p>
     `;
   }
 

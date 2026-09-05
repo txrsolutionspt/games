@@ -134,6 +134,53 @@ const { check, section, report } = makeReporter("e2e-app-shell");
     await page.close();
   }
 
+  section("units toggle (metric/imperial)");
+  {
+    const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+    await page.goto(URL, { waitUntil: "load" });
+    await page.waitForTimeout(1200);
+    const mapBox = await page.locator("#map").boundingBox();
+
+    check("defaults to metric", (await page.locator("#units-label").innerText()) === "Units: Metric");
+
+    // Draw a line so there's a live distance readout to watch update.
+    await page.click("#add-button");
+    await page.click('[data-add="line"]');
+    await page.mouse.click(mapBox.x + 200, mapBox.y + 400);
+    await page.waitForTimeout(120);
+    await page.mouse.click(mapBox.x + 500, mapBox.y + 400);
+    await page.waitForTimeout(120);
+    await page.mouse.dblclick(mapBox.x + 500, mapBox.y + 400);
+    await page.waitForTimeout(150);
+    await page.fill("#editor-name", "UnitsTest Line");
+    await page.click("#editor-save");
+    await page.waitForTimeout(250);
+
+    const metricText = await page.locator(".feature-popup .meta").nth(1).innerText();
+    check("popup shows a metric (m/km) distance", /\d+(\.\d+)? (m|km)$/.test(metricText.replace("📏 ", "")), metricText);
+
+    // On desktop the More menu unwraps into inline buttons — no #more-button to open first.
+    await page.click('[data-action="units"]');
+    await page.waitForTimeout(250);
+
+    check("the toolbar label flips to Imperial", (await page.locator("#units-label").innerText()) === "Units: Imperial");
+    const imperialText = await page.locator(".feature-popup .meta").nth(1).innerText();
+    check(
+      "the already-open popup updates to imperial without being reopened",
+      /\d+(\.\d+)? (ft|mi)$/.test(imperialText.replace("📏 ", "")),
+      imperialText
+    );
+
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("map-editor-preferences-v1")));
+    check("the preference is persisted", stored.units === "imperial", JSON.stringify(stored));
+
+    await page.reload({ waitUntil: "load" });
+    await page.waitForTimeout(1200);
+    check("the preference survives a reload", (await page.locator("#units-label").innerText()) === "Units: Imperial");
+
+    await page.close();
+  }
+
   section("full-bleed desktop layout + on-map controls");
   {
     const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
