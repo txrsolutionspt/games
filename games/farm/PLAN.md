@@ -474,9 +474,8 @@ what's on screen) rather than just raising this number further.
 
 The field is no longer visually/functionally uniform farmland — every
 unlocked plot has one of four terrain types, each restricting what can be
-placed there. This is a placement-and-visuals layer only for now (see the
-"not in this pass" note below for the bigger follow-on ideas it deliberately
-leaves out).
+placed there (see "Lake irrigation and quarries" below for what lake and
+mountain tiles actually do).
 
 - **Farmland (soil)** — the default; plantable. Crops and processing
   buildings (mill/bakery/churn/kitchen) can both go here, same as every
@@ -527,17 +526,22 @@ like the rest of `farm-rules.js`.
   player can't actually reach yet. The unlock-plot modal *does* show the
   terrain (icon + name + one-line hint) before the player spends coins, so
   "why can't I plant here" is answered before the purchase, not after.
-- **Every plot starts unlocked, for now.** `state.js`'s `createInitialState`
-  sets `unlocked: true` on every plot rather than gating it behind
-  `initialUnlockedPlots`/coins, so the whole 60×60 terrain patchwork is
-  visible immediately instead of being revealed plot-by-plot as a player
-  buys their way outward. The buy-to-expand machinery this bypasses
-  (`farm-rules.js` `canUnlockPlot`, `input.js` `unlockPlot`, `Modals.
-  showUnlockPlot`, the locked-tile padlock rendering) is left fully in
-  place, just unreachable — reverting is a one-line change back to
-  `unlocked: i < CONFIG.initialUnlockedPlots`. `initialUnlockedPlots` itself
-  stays in `CONFIG` regardless, since it still anchors the starting camera
-  focus and sizes the terrain safe zone above.
+- **Buy-to-expand is live.** Only the starting cluster (row 0, `col <
+  CONFIG.initialUnlockedPlots`, the same span `terrainSafeCols` forces to
+  soil) starts unlocked; every other plot renders as the uniform gray
+  padlock tile above until a player spends coins on it. Tapping *any*
+  locked plot — not just the nearest one — opens `Modals.showUnlockPlot`
+  showing its terrain and `Economy.plotUnlockCost(index)` (`20 +
+  index*2`, tuned so even the far edge of the 3,600-plot field costs low
+  thousands of coins, not tens of thousands — see `config.js`); paying it
+  calls `input.js`'s `unlockPlot`, which flips that one plot's `unlocked`
+  flag via `farm-rules.js`'s `canUnlockPlot`. There's no adjacency
+  requirement and no fixed order — a player can save up and unlock a
+  distant lake or mountain directly, skipping everything closer in. This
+  was originally shipped disabled (every plot pre-unlocked) while the
+  60×60 field size was still being tuned; `plotUnlockCost` above already
+  reflects that tuning, so turning it back on was a one-line change in
+  `state.js`'s `createInitialState`.
 - Attempting to plant/build on non-soil or place an animal on non-pasture
   shows a specific toast (e.g. "Crops need farmland soil!") rather than
   silently doing nothing — the same "always give feedback" rule the rest of
@@ -718,7 +722,7 @@ inventing a new one:
 
 | Brief requirement | Plan |
 |---|---|
-| One farm | Single 60×60 plot grid (spans many screens, panned/scrolled — §9). Every plot starts unlocked *for now* (see §10's note below) rather than expanding via `economy.js` unlock cost |
+| One farm | Single 60×60 plot grid (spans many screens, panned/scrolled — §9). Only the starting cluster is unlocked at first; the rest expands via `economy.js` unlock cost (see §10) |
 | 4–6 crops | 6 crops in `data-crops.js` (§5) |
 | 2–3 animal types | Chicken, cow, sheep in `data-animals.js` |
 | Planting/watering/growing/harvesting | `farm-rules.js` + `simulation.js` (§8) |
@@ -726,7 +730,7 @@ inventing a new one:
 | Inventory | `state.inventory` map, shown in shop/processing modals |
 | ≥3 processing chains | 4 recipes shipped (§5) |
 | Simple currency | `state.coins`, mutated only via `economy.js` |
-| Farm expansion | Buy-more-plots / unlock-building actions exist in `farm-rules.js`/`input.js`/`modals.js`, but are switched off *for now* — every plot starts unlocked (see §10) |
+| Farm expansion | Buy-a-plot economy in `farm-rules.js`/`input.js`/`modals.js`/`economy.js` — tap any locked plot to unlock it for coins (see §10) |
 | 5–10 educational missions | `data-missions.js` seeded with ~8 entries from the brief's examples |
 | Basic tutorial | `tutorial.js` first-run sequence |
 | Local save/load | `persistence.js`, autosave + reset |
