@@ -120,6 +120,7 @@ games/farm/
   Initial-prompt.md        (existing brief)
   PLAN.md                  (this file)
   CHANGELOG.md             player-facing summary of what changed per released version
+  ROADMAP.md               feature backlog: what's proposed/planned next, with status and priority
   PRIVACY.md               plain-language privacy notice (source text for the in-game Settings > Privacy panel)
   js/
     config.js               constants: save key, tick rate, time scale, tool ids
@@ -825,12 +826,12 @@ inventing a new one:
 
 ## 17. Future extensibility (explicitly not MVP)
 
-Because content is data-driven, later additions are additive, not rewrites:
-more crops/animals (goat, pig, apple orchard as a longer-cycle "tree"
-type), longer production chains (wool → yarn → clothing), a second farm
-plot/biome, harder seasonal challenges, additional languages beyond
-English/Portuguese (§6), and (optionally, later) swapping the emoji/shape
-placeholder art for a commissioned isometric sprite sheet behind the same
-`render.js` drawing calls. Lake irrigation and mountain quarries (§10) have
-since shipped; no further extension of either is currently planned beyond
-what §10 describes.
+Because content is data-driven, later additions are additive, not
+rewrites — no architectural change is needed to add more crops/animals,
+another recipe tier, or another locale. **The actual backlog of proposed
+features, with status and priority, lives in `ROADMAP.md`, not here** —
+this section only speaks to *why* the architecture accommodates that kind
+of growth, not *which* features are planned. Lake irrigation and mountain
+quarries (§10) shipped from that backlog; buy-to-expand plots (§10) is
+built but currently switched off pending a deliberate re-enable — see
+`ROADMAP.md` for both its status and everything else under consideration.
