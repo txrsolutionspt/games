@@ -129,19 +129,47 @@ const { check, section, report } = makeReporter("e2e-core-objects");
     check("editing properties persists the new name", renamed !== undefined);
   }
 
+  section("duplicate");
+  {
+    const before = await page.evaluate(() => {
+      const mapId = JSON.parse(localStorage.getItem("maps-v1")).activeMapId;
+      return JSON.parse(localStorage.getItem(`map-editor-data-v1:${mapId}`)).objects;
+    });
+    const original = before.find((f) => f.properties.name === "Renamed Well");
+
+    await page.click('.feature-popup [data-action="duplicate"]');
+    await page.waitForTimeout(250);
+
+    const after = await page.evaluate(() => {
+      const mapId = JSON.parse(localStorage.getItem("maps-v1")).activeMapId;
+      return JSON.parse(localStorage.getItem(`map-editor-data-v1:${mapId}`)).objects;
+    });
+    const copy = after.find((f) => f.properties.name === "Renamed Well (copy)");
+
+    check("duplicating adds one more object", after.length === before.length + 1, `before=${before.length} after=${after.length}`);
+    check("the copy has a distinct id from the original", Boolean(copy) && copy.id !== original.id);
+    check("the copy keeps the same geometry", JSON.stringify(copy?.geometry) === JSON.stringify(original.geometry));
+    check("the copy keeps the same category", copy?.properties.category === original.properties.category);
+    check("the copy starts with no attachments of its own", Array.isArray(copy?.properties.attachments) && copy.properties.attachments.length === 0);
+    check("the popup switches to show the new copy", (await page.locator(".feature-popup h4").innerText()) === "Renamed Well (copy)");
+  }
+
   section("delete");
   {
+    // The duplicate section above left the popup open on the copy it just
+    // created, so that's what this deletes.
     await page.click('.feature-popup [data-action="delete"]');
     await page.waitForTimeout(150);
     await page.click("#confirm-delete");
     await page.waitForTimeout(200);
 
-    const stillThere = await page.evaluate(() => {
+    const objects = await page.evaluate(() => {
       const mapId = JSON.parse(localStorage.getItem("maps-v1")).activeMapId;
       const stored = JSON.parse(localStorage.getItem(`map-editor-data-v1:${mapId}`));
-      return stored.objects.some((f) => f.properties.name === "Renamed Well");
+      return stored.objects.map((f) => f.properties.name);
     });
-    check("confirming delete removes the object", !stillThere);
+    check("confirming delete removes the copy", !objects.includes("Renamed Well (copy)"), JSON.stringify(objects));
+    check("...but leaves the original untouched", objects.includes("Renamed Well"), JSON.stringify(objects));
   }
 
   check("no unexpected console/page errors across the whole flow", errors.relevant().length === 0, errors.relevant().join(" | "));

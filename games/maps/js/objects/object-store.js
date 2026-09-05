@@ -1,7 +1,7 @@
-import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.25";
-import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.25";
-import { deleteFilesForFeature } from "../persistence/attachments.js?v=2026-08-26.25";
-import { MODES, touch } from "./object-model.js?v=2026-08-26.25";
+import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.26";
+import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.26";
+import { deleteFilesForFeature } from "../persistence/attachments.js?v=2026-08-26.26";
+import { MODES, touch, duplicateFeature } from "./object-model.js?v=2026-08-26.26";
 
 let currentMapId = getActiveMapId();
 
@@ -79,6 +79,19 @@ export function addObject(feature) {
   state.objects.push(feature);
   persist();
   emit();
+}
+
+// Returns the new feature's id (selected by the caller), or null if the
+// source object no longer exists.
+export function duplicateObject(id) {
+  const source = state.objects.find((object) => object.id === id);
+  if (!source) return null;
+
+  const copy = duplicateFeature(source);
+  state.objects.push(copy);
+  persist();
+  emit();
+  return copy.id;
 }
 
 export function updateObjectProperties(id, properties) {

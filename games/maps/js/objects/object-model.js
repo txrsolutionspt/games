@@ -71,6 +71,31 @@ function createFeature(geometry) {
   };
 }
 
+// A deep copy with a new id/timestamps and " (copy)" appended to the name.
+// Attachments are deliberately NOT carried over — they're files that live
+// in IndexedDB keyed by the original feature's id, and copying the
+// pointers without copying the underlying blobs would leave the
+// duplicate's "files" pointing at another object's data.
+export function duplicateFeature(feature) {
+  const id = makeId();
+  const timestamp = nowISO();
+  const properties = structuredClone(feature.properties);
+  properties.id = id;
+  properties.attachments = [];
+  properties.name = properties.name ? `${properties.name} (copy)` : "";
+
+  return {
+    id,
+    type: "Feature",
+    geometry: structuredClone(feature.geometry),
+    properties,
+    metadata: {
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+  };
+}
+
 export function createPoint(coordinates) {
   return createFeature({ type: "Point", coordinates });
 }
