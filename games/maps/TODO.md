@@ -54,16 +54,11 @@ that keeps both of these current.
   at low/moderate traffic. Fine for a hobby/personal site; if this ever gets
   meaningful traffic, it should move to a paid tile provider or a self-hosted
   tile server instead of leaning on OSM's free tiles indefinitely.
-- **No automated test suite in the repo.** Every feature and bug fix shipped
-  so far (well over a dozen now) was regression-tested with throwaway
-  Playwright scripts — both a hand-rolled MapLibre stub and the real
-  vendored library — run from a scratch directory outside the repo; none of
-  it is committed. This has caught real regressions repeatedly, so the
-  practice works, but it's re-created from scratch every session. Worth
-  landing a real committed `tests/` setup at this point — the stub
-  (a minimal fake `maplibregl.Map`/`Popup` covering `addSource`/`addLayer`/
-  `setStyle`/`setLayoutProperty`/event dispatch) is a reasonable starting
-  point.
+- ~~No automated test suite in the repo.~~ **Done** — see `tests/` (unit
+  tests for pure logic + Playwright e2e against the real vendored MapLibre
+  library, no stub) and `tests/README.md`. Wired into CI via
+  `.github/workflows/maps-tests.yml`. New features should add coverage
+  there rather than reverting to throwaway scratch scripts.
 
 ## Architecture notes for later
 
@@ -104,5 +99,3 @@ that keeps both of these current.
 4. Decide if/when to move the base map to a vector style — this is the one
    that unlocks both the real base-map layer toggles and a proper Dark
    style, so it's worth doing those two together rather than separately.
-5. Land a committed test setup — worth doing soon given how much surface
-   area the app now has.
