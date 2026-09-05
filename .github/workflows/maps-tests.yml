@@ -45,6 +45,7 @@ jobs:
           - e2e-multi-map.js
           - e2e-attachments.js
           - e2e-pwa.js
+          - e2e-keyboard-shortcuts.js
     steps:
       - name: Checkout
         uses: actions/checkout@v4

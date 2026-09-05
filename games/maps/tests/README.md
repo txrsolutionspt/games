@@ -46,6 +46,9 @@ Or run a single file directly, e.g. `node games/maps/tests/e2e-vertex-editing.js
     brand-new object rolls back any files it was given.
   - `e2e-pwa.js` — manifest/icons, service worker registration, and that
     the app shell still renders when the network goes down.
+  - `e2e-keyboard-shortcuts.js` — desktop Delete/Backspace-to-delete and
+    Ctrl/Cmd+D-to-duplicate, and that neither fires while typing in a
+    text field.
 - **`helpers.js`** — shared plumbing: a static file server (serves the
   whole repo root, matching how GitHub Pages serves it), a `check()`/
   `report()` pass-fail counter, Chromium launch options (software
