@@ -4,8 +4,9 @@ import {
   formatDistance,
   formatArea,
   formatCoordinate,
-} from "../geo/measure.js?v=2026-08-26.23";
-import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.23";
+} from "../geo/measure.js?v=2026-08-26.24";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.24";
+import { getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.24";
 
 const summaryEl = document.getElementById("object-summary");
 const listEl = document.getElementById("object-list");
@@ -45,6 +46,7 @@ export function renderSidebar(objects, selectedId, onSelect) {
 }
 
 let activePopup = null;
+let popupObjectUrls = [];
 
 export function showFeaturePopup(map, feature, handlers) {
   closeFeaturePopup();
@@ -59,6 +61,7 @@ export function showFeaturePopup(map, feature, handlers) {
     <p class="category">${categoryLabel(feature.geometry.type, feature.properties.category)}</p>
     ${geometryMeta(feature.geometry)}
     <p>${escapeHtml(feature.properties.description || "")}</p>
+    <div class="popup-attachments"></div>
     <div class="actions">
       <button data-action="edit-info">✏ Edit</button>
       <button data-action="edit-shape">⌖ Shape</button>
@@ -72,13 +75,58 @@ export function showFeaturePopup(map, feature, handlers) {
   container.querySelector('[data-action="edit-shape"]').addEventListener("click", handlers.onEditShape);
   container.querySelector('[data-action="delete"]').addEventListener("click", handlers.onDelete);
 
+  renderPopupAttachments(container.querySelector(".popup-attachments"), feature.properties.attachments || []);
+
   activePopup = new maplibregl.Popup({ closeOnClick: false, closeButton: false })
     .setLngLat(coordinates)
     .setDOMContent(container)
     .addTo(map);
 }
 
+function renderPopupAttachments(container, attachments) {
+  if (!attachments.length) return;
+
+  for (const attachment of attachments) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "popup-attachment";
+    item.title = attachment.name;
+
+    const thumb = document.createElement("span");
+    thumb.className = "popup-attachment-thumb";
+    thumb.textContent = "📄";
+    item.appendChild(thumb);
+
+    async function open() {
+      const blob = await getFileBlob(attachment.id).catch(() => null);
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      popupObjectUrls.push(url);
+      window.open(url, "_blank");
+    }
+    item.addEventListener("click", open);
+
+    if (isImageType(attachment.type)) {
+      getFileBlob(attachment.id)
+        .then((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          popupObjectUrls.push(url);
+          thumb.textContent = "";
+          thumb.classList.add("popup-attachment-thumb-image");
+          thumb.style.backgroundImage = `url("${url}")`;
+        })
+        .catch(() => {});
+    }
+
+    container.appendChild(item);
+  }
+}
+
 export function closeFeaturePopup() {
+  for (const url of popupObjectUrls) URL.revokeObjectURL(url);
+  popupObjectUrls = [];
+
   if (activePopup) {
     activePopup.remove();
     activePopup = null;

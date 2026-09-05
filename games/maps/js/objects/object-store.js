@@ -1,6 +1,7 @@
-import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.23";
-import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.23";
-import { MODES, touch } from "./object-model.js?v=2026-08-26.23";
+import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.24";
+import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.24";
+import { deleteFilesForFeature } from "../persistence/attachments.js?v=2026-08-26.24";
+import { MODES, touch } from "./object-model.js?v=2026-08-26.24";
 
 let currentMapId = getActiveMapId();
 
@@ -102,6 +103,33 @@ export function updateObjectGeometry(id, mutator) {
   return feature;
 }
 
+// Attachments already exist in IndexedDB (see persistence/attachments.js) by
+// the time these are called — this just records/removes the {id, name,
+// type, size} pointer on the feature itself and persists that.
+export function addAttachmentMeta(id, meta) {
+  const feature = state.objects.find((object) => object.id === id);
+  if (!feature) return null;
+
+  feature.properties.attachments = [...(feature.properties.attachments || []), meta];
+  touch(feature);
+  persist();
+  emit();
+  return feature;
+}
+
+export function removeAttachmentMeta(id, attachmentId) {
+  const feature = state.objects.find((object) => object.id === id);
+  if (!feature) return null;
+
+  feature.properties.attachments = (feature.properties.attachments || []).filter(
+    (attachment) => attachment.id !== attachmentId
+  );
+  touch(feature);
+  persist();
+  emit();
+  return feature;
+}
+
 export function deleteObject(id) {
   state.objects = state.objects.filter((object) => object.id !== id);
   if (state.selectedId === id) {
@@ -109,6 +137,8 @@ export function deleteObject(id) {
   }
   persist();
   emit();
+  // Best-effort: garbage-collect any files attached to the deleted object.
+  deleteFilesForFeature(id).catch((error) => console.error("Failed to delete attachments for object", error));
 }
 
 export function selectObject(id) {

@@ -2,6 +2,8 @@
 // under their own namespaced keys (see local-storage.js / map-settings.js);
 // this module only tracks which maps exist, their names, and which one is
 // active.
+import { deleteFilesForMap } from "./attachments.js?v=2026-08-26.24";
+
 const INDEX_KEY = "maps-v1";
 const LEGACY_OBJECTS_KEY = "map-editor-data-v1";
 const LEGACY_SETTINGS_KEY = "map-settings-v1";
@@ -136,5 +138,7 @@ export function deleteMap(id) {
 
   localStorage.removeItem(`${LEGACY_OBJECTS_KEY}:${id}`);
   localStorage.removeItem(`${LEGACY_SETTINGS_KEY}:${id}`);
+  // Best-effort: garbage-collect every file attached to any object on this map.
+  deleteFilesForMap(id).catch((error) => console.error("Failed to delete attachments for map", error));
   return true;
 }
