@@ -82,6 +82,7 @@ html, body {
    already uses, just narrower. min-height (not a fixed height) keeps a
    comfortable ~52px touch target even with a two-line label. */
 .hud-icon-btn {
+  position: relative;
   width: 100%;
   min-height: 52px;
   display: flex;
@@ -100,6 +101,20 @@ html, body {
 
 .hud-icon-btn .hud-icon { font-size: 20px; line-height: 1; }
 .hud-icon-btn .hud-label { font-size: 10px; font-weight: 700; line-height: 1.15; }
+
+/* Small "there's something new" dot (Settings > What's New) -- a quiet
+   nudge, not a popup, so it never interrupts play the way a forced modal
+   would (see js/data-whatsnew.js). */
+.hud-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 0 2px var(--bg-panel);
+}
 
 .hud-icon-btn + .hud-icon-btn { margin-top: 4px; }
 

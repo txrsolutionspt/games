@@ -6,6 +6,10 @@ scripts, an in-progress change that got reverted before ever shipping) is
 left out — this is a record of what changed for someone actually playing,
 not a full commit log (see git history / `PLAN.md` for that).
 
+## 1.0.7
+- Added a "What's New" screen in Settings, with a small dot on the
+  Settings button when there's something you haven't seen yet.
+
 ## 1.0.6
 - Added a "Welcome back!" popup on reopening the game: if crops finished
   growing, animal products became ready, or a recipe completed while you

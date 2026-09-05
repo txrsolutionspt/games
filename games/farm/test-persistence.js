@@ -25,6 +25,7 @@ function makeLocalStorage() {
 
 global.localStorage = makeLocalStorage();
 global.CONFIG = require('./js/config.js');
+global.APP_VERSION = require('./js/version.js');
 
 const createInitialState = require('./js/state.js').createInitialState;
 const Persistence = require('./js/persistence.js');

@@ -224,6 +224,24 @@
     return !!(isTouch && height > width);
   }
 
+  // ---- Version comparison (What's New) ---------------------------------------
+
+  // Compares two "X.Y.Z" version strings numerically, part-by-part, like an
+  // Array.sort comparator (negative if a < b, 0 if equal, positive if
+  // a > b) -- a plain string compare would put '1.0.10' before '1.0.9'.
+  // Used to find js/data-whatsnew.js entries newer than a player's
+  // state.settings.lastSeenVersion (see modals.js showWhatsNew / hud.js).
+  function compareVersions(a, b) {
+    const pa = String(a).split('.').map(Number);
+    const pb = String(b).split('.').map(Number);
+    const len = Math.max(pa.length, pb.length);
+    for (let i = 0; i < len; i++) {
+      const na = pa[i] || 0, nb = pb[i] || 0;
+      if (na !== nb) return na - nb;
+    }
+    return 0;
+  }
+
   return {
     terrainForPlot: terrainForPlot,
     canPlaceKindOnTerrain: canPlaceKindOnTerrain,
@@ -246,6 +264,7 @@
     quarryProgress: quarryProgress,
     canCollectQuarry: canCollectQuarry,
     isNearLake: isNearLake,
-    shouldLockLandscape: shouldLockLandscape
+    shouldLockLandscape: shouldLockLandscape,
+    compareVersions: compareVersions
   };
 });

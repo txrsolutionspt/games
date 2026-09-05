@@ -177,6 +177,11 @@
           SoundFx.setMuted(value);
           Persistence.scheduleSave(state);
         },
+        markWhatsNewSeen: function () {
+          state.settings.lastSeenVersion = APP_VERSION;
+          Hud.refresh(state, ui);
+          Persistence.scheduleSave(state);
+        },
         reset: function () {
           Persistence.reset();
           window.location.reload();

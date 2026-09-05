@@ -119,6 +119,7 @@ games/farm/
   style.css
   Initial-prompt.md        (existing brief)
   PLAN.md                  (this file)
+  CHANGELOG.md             player-facing summary of what changed per released version
   PRIVACY.md               plain-language privacy notice (source text for the in-game Settings > Privacy panel)
   js/
     config.js               constants: save key, tick rate, time scale, tool ids
@@ -128,7 +129,9 @@ games/farm/
     data-quarry.js           quarry (mountain resource) definition
     data-seasons.js          season + weather tables
     data-missions.js         mission/tutorial step definitions
+    data-whatsnew.js         curated "What's New" entries per version, shown in Settings
     events.js                tiny pub/sub event bus
+    audio.js                 synthesized sound cues (SoundFx), no audio files
     farm-rules.js            pure simulation rules (DOM-free, Node-testable)
     state.js                 initial-state factory + accessors, schema version
     persistence.js           localStorage load/save/reset, autosave
@@ -717,6 +720,21 @@ inventing a new one:
   (browsers block audio before any user gesture) and toggleable anytime
   via a Sound On/Off button in Settings, persisted in
   `state.settings.muted`.
+- **What's New** (`js/data-whatsnew.js` + `Modals.showWhatsNew`): a
+  curated, player-facing subset of `CHANGELOG.md` — short, one-icon-plus-
+  one-line entries per version, not every changelog line (a change like
+  "added a version number" isn't worth surfacing to a kid). Reachable via
+  a "What's New" button in Settings; a small dot badge on the Settings
+  icon itself (`#settings-badge`, toggled in `hud.js` `refreshHudButtons`)
+  signals unseen entries without forcing a popup, using
+  `FarmRules.compareVersions` to compare every entry's `version` against
+  `state.settings.lastSeenVersion`. Opening the What's New view is itself
+  what clears the badge (`markWhatsNewSeen` sets `lastSeenVersion =
+  APP_VERSION`), not closing it. A brand-new farm starts with
+  `lastSeenVersion` already equal to the current `APP_VERSION` (nothing to
+  catch up on); an existing save from before this feature simply lacks
+  the field, which `compareVersions` treats as older than everything,
+  correctly surfacing the badge for a returning player.
 
 ## 13. Missions & "what you learned" loop
 

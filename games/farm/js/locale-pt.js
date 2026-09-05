@@ -81,6 +81,8 @@ const LOCALE_PT = {
   'ui.settings.sound': 'Som',
   'ui.settings.soundOn': 'Ligado',
   'ui.settings.soundOff': 'Desligado',
+  'ui.settings.whatsnew': 'Novidades',
+  'ui.whatsnew.title': 'Novidades',
   'ui.settings.privacy': 'Privacidade para os Pais',
   'ui.settings.reset': 'Repor Dados do Jogo',
   'ui.settings.version': 'Versão',
@@ -203,6 +205,13 @@ const LOCALE_PT = {
   'mission.quarry-work.title': 'Trabalho na Pedreira',
   'mission.quarry-work.description': 'Extraia pedra de uma montanha.',
   'mission.quarry-work.learned': 'As pedreiras extraem pedra das montanhas para usar em construções.',
+
+  'whatsnew.1.0.7.0': 'Este ecrã de "Novidades"! Volta aqui depois de uma atualização para ver o que mudou.',
+  'whatsnew.1.0.6.0': 'Uma mensagem de "Bem-vindo de volta!" agora mostra o que cresceu ou terminou enquanto estavas fora.',
+  'whatsnew.1.0.5.0': 'Adicionámos som! Pequenos toques ao plantar, regar, colher e mais — desliga a qualquer momento nas Definições.',
+  'whatsnew.1.0.3.0': 'Um visual mais claro e colorido: botões com etiquetas, alvos maiores para tocar, e animações mais divertidas.',
+  'whatsnew.1.0.2.0': 'Os lagos agora regam as plantações vizinhas automaticamente, todos os dias, de graça.',
+  'whatsnew.1.0.2.1': 'As montanhas podem ser exploradas para obter pedra — as construções agora precisam de pedra além de moedas.',
 
   'ui.rotate.title': 'Rode o seu dispositivo',
   'ui.rotate.body': 'O Little Farm School joga-se na horizontal.<br>Rode o telemóvel de lado para continuar.',

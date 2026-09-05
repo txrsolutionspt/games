@@ -319,6 +319,7 @@ const Modals = (function () {
       '<button class="btn-secondary" id="sound-btn">' + (state.settings.muted ? '🔇 ' : '🔊 ') +
       I18N.t('ui.settings.sound', 'Sound') + ': ' +
       (state.settings.muted ? I18N.t('ui.settings.soundOff', 'Off') : I18N.t('ui.settings.soundOn', 'On')) + '</button>' +
+      '<button class="btn-secondary" id="whatsnew-btn">🆕 ' + I18N.t('ui.settings.whatsnew', "What's New") + '</button>' +
       '<button class="btn-secondary" id="farms-btn">🚜 ' + I18N.t('ui.farms.settingsEntry', 'My Farms') + '</button>' +
       '<button class="btn-secondary" id="privacy-btn">🛡️ ' + I18N.t('ui.settings.privacy', 'Privacy for Parents') + '</button>' +
       '<button class="btn-danger" id="reset-btn">🗑️ ' + I18N.t('ui.settings.reset', 'Reset Game Data') + '</button>' +
@@ -331,6 +332,10 @@ const Modals = (function () {
       actions.setMuted(!state.settings.muted);
       renderSettings(state, actions);
     });
+    document.getElementById('whatsnew-btn').addEventListener('click', function () {
+      actions.markWhatsNewSeen();
+      renderWhatsNew();
+    });
     document.getElementById('farms-btn').addEventListener('click', function () { renderFarmSlots(actions.farms); });
     document.getElementById('privacy-btn').addEventListener('click', function () { showPrivacy(); });
     document.getElementById('reset-btn').addEventListener('click', function () { showResetConfirm(actions); });
@@ -338,6 +343,24 @@ const Modals = (function () {
 
   function showSettings(state, actions) {
     enqueueOrRun(function () { renderSettings(state, actions); });
+  }
+
+  // Only ever reached as in-place navigation from the already-open
+  // Settings modal (same reasoning as renderFarmSlots/showPrivacy below),
+  // listing every js/data-whatsnew.js entry regardless of whether it's
+  // been seen — the HUD badge (see hud.js), not this list, is what's
+  // filtered to "unseen only". Opening this view is itself what clears
+  // the badge (actions.markWhatsNewSeen(), called by the button handler
+  // above before this renders), not closing it.
+  function renderWhatsNew() {
+    const body = WHATS_NEW.map(function (entry) {
+      const items = entry.items.map(function (item) {
+        return '<p>' + item.icon + ' ' + I18N.t(item.key, item.fallback) + '</p>';
+      }).join('');
+      return '<p class="shop-cost">v' + entry.version + '</p>' + items;
+    }).join('');
+    open('<h2>🆕 ' + I18N.t('ui.whatsnew.title', "What's New") + '</h2>' + body +
+      '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
   }
 
   // showPrivacy/showResetConfirm are only ever invoked as in-place
