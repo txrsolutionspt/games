@@ -1,0 +1,63 @@
+name: Maps (map editor) tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'games/maps/**'
+      - '.github/workflows/maps-tests.yml'
+  pull_request:
+    paths:
+      - 'games/maps/**'
+      - '.github/workflows/maps-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: Unit tests (Node, no browser)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run unit tests
+        run: |
+          node games/maps/tests/unit-measure.mjs
+          node games/maps/tests/unit-object-model.mjs
+          node games/maps/tests/unit-maps-index.mjs
+
+  e2e:
+    name: E2E (Playwright, headless Chromium)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        file:
+          - e2e-app-shell.js
+          - e2e-core-objects.js
+          - e2e-vertex-editing.js
+          - e2e-selection-and-search.js
+          - e2e-multi-map.js
+          - e2e-attachments.js
+          - e2e-pwa.js
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: |
+          npm install playwright@1.62.1
+          npx playwright install --with-deps chromium
+
+      - name: Run ${{ matrix.file }}
+        run: node games/maps/tests/${{ matrix.file }}
