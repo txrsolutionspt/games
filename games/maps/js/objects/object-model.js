@@ -62,6 +62,7 @@ function createFeature(geometry) {
       name: "",
       category: DEFAULT_CATEGORY[geometry.type] || "",
       description: "",
+      attachments: [],
     },
     metadata: {
       createdAt: timestamp,
