@@ -196,5 +196,8 @@ const LOCALE_PT = {
 
   'ui.rotate.title': 'Rode o seu dispositivo',
   'ui.rotate.body': 'O Little Farm School joga-se na horizontal.<br>Rode o telemóvel de lado para continuar.',
+  'ui.hud.market': 'Loja',
+  'ui.hud.save': 'Guardar',
+  'ui.hud.settings': 'Definições',
   'ui.hud.fullscreen': 'Ecrã inteiro'
 };

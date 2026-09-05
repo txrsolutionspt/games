@@ -125,5 +125,8 @@ const LOCALE_EN = {
 
   'ui.rotate.title': 'Rotate your device',
   'ui.rotate.body': 'Little Farm School plays in landscape mode.<br>Turn your phone sideways to continue.',
+  'ui.hud.market': 'Shop',
+  'ui.hud.save': 'Save',
+  'ui.hud.settings': 'Settings',
   'ui.hud.fullscreen': 'Full screen'
 };
