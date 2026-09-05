@@ -27,7 +27,7 @@ touching `js/version.js`. Test files and docs (`.md`) are exempt, as is
 ## Documentation is part of every change, not a follow-up
 
 **Rule: every change that adds or changes a feature also updates
-documentation in the same commit — both of these, whichever apply:**
+documentation in the same commit — all of these that apply:**
 
 - **`CHANGELOG.md`** — a one-line, player-facing entry under the new
   version number, written for someone playing the game, not reading the
@@ -39,7 +39,12 @@ documentation in the same commit — both of these, whichever apply:**
   works; don't leave it describing removed/changed behavior. This is the
   project's "for developers" documentation — treat it as required, not
   optional polish tacked on at the end.
+- **`ROADMAP.md`** — the feature backlog (what's proposed/planned, with
+  status and priority — a product-owner view, not an architecture one).
+  Update it whenever a feature idea is raised (add it), a priority or
+  status changes (update it), or a backlog item ships (delete its entry
+  here — it belongs in `CHANGELOG.md` now, not both places).
 
-A version bump with no matching `CHANGELOG.md`/`PLAN.md` update is an
-incomplete change, the same way a version bump is incomplete without the
-code change it's meant to track.
+A version bump with no matching documentation update is an incomplete
+change, the same way a version bump is incomplete without the code change
+it's meant to track.
