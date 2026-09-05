@@ -23,7 +23,16 @@ function createInitialState() {
     missions: {},       // id -> { progress, completed }
     seenFacts: {},       // key -> true; which first-time educational popups have shown
     tutorialStep: 0,
-    settings: { locale: null, muted: false } // locale: null = not chosen yet, auto-detect from browser
+    settings: {
+      locale: null,   // null = not chosen yet, auto-detect from browser
+      muted: false,
+      // A brand-new farm starts "caught up" on What's New (see
+      // modals.js showWhatsNew / hud.js) -- a first-time player has no
+      // history to catch up on. An existing save predating this field
+      // simply loads without it, which FarmRules.compareVersions treats
+      // as older than everything, correctly surfacing what they've missed.
+      lastSeenVersion: APP_VERSION
+    }
   };
 }
 

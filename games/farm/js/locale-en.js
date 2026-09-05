@@ -80,6 +80,8 @@ const LOCALE_EN = {
   'ui.settings.sound': 'Sound',
   'ui.settings.soundOn': 'On',
   'ui.settings.soundOff': 'Off',
+  'ui.settings.whatsnew': "What's New",
+  'ui.whatsnew.title': "What's New",
   'ui.settings.privacy': 'Privacy for Parents',
   'ui.settings.reset': 'Reset Game Data',
   'ui.settings.version': 'Version',

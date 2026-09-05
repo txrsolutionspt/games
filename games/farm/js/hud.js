@@ -21,13 +21,20 @@ const Hud = (function () {
   // (same icon+label shape the tool belt already uses) — refreshed here
   // so it re-localizes on a language switch, same as everything else in
   // this function.
-  function refreshHudButtons() {
+  function refreshHudButtons(state) {
     Object.keys(HUD_BUTTON_LABELS).forEach(function (id) {
       const label = I18N.t(HUD_BUTTON_LABELS[id].key, HUD_BUTTON_LABELS[id].fallback);
       const btn = el(id);
       btn.querySelector('.hud-label').textContent = label;
       btn.setAttribute('aria-label', label);
     });
+    // A quiet dot on Settings when there's What's New content the player
+    // hasn't opened yet (js/data-whatsnew.js) — never a forced popup, see
+    // modals.js showWhatsNew for where it's actually read and cleared.
+    const hasUnseen = WHATS_NEW.some(function (entry) {
+      return FarmRules.compareVersions(entry.version, state.settings.lastSeenVersion) > 0;
+    });
+    el('settings-badge').classList.toggle('hidden', !hasUnseen);
   }
 
   // A little bounce + color flash whenever the coin count actually
@@ -144,7 +151,7 @@ const Hud = (function () {
     refreshTop(state);
     refreshMissionChip(state);
     refreshToolBelt(state, ui);
-    refreshHudButtons();
+    refreshHudButtons(state);
   }
 
   function toast(message) {

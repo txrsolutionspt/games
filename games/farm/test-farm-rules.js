@@ -324,6 +324,32 @@ test('isNearLake: a larger radius only ever finds lakes a smaller radius also wo
   }
 });
 
+// ---- Version comparison (What's New) -------------------------------------------------
+
+test('compareVersions: equal versions compare as 0', function () {
+  assert.strictEqual(FarmRules.compareVersions('1.0.6', '1.0.6'), 0);
+});
+
+test('compareVersions: a lower patch version is negative', function () {
+  assert.ok(FarmRules.compareVersions('1.0.5', '1.0.6') < 0);
+});
+
+test('compareVersions: a higher patch version is positive', function () {
+  assert.ok(FarmRules.compareVersions('1.0.7', '1.0.6') > 0);
+});
+
+test('compareVersions: compares numerically, not lexically (1.0.10 > 1.0.9)', function () {
+  assert.ok(FarmRules.compareVersions('1.0.10', '1.0.9') > 0);
+});
+
+test('compareVersions: a missing/older baseline compares as very old', function () {
+  assert.ok(FarmRules.compareVersions('1.0.0', '0.0.0') > 0);
+});
+
+test('compareVersions: an undefined baseline (a save predating lastSeenVersion) compares as very old, not a crash', function () {
+  assert.ok(FarmRules.compareVersions('1.0.2', undefined) > 0);
+});
+
 // ---- Device orientation -------------------------------------------------------------
 
 test('shouldLockLandscape: touch device in portrait is locked to landscape', function () {
