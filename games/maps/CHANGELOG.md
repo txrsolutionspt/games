@@ -6,6 +6,11 @@ file updated.
 
 ## 2026-09-05
 
+- **Keyboard shortcuts on desktop.** With an object selected: Delete or
+  Backspace removes it (with the same confirmation as the popup's Delete
+  button), and Ctrl/Cmd+D duplicates it. Both are ignored while typing in
+  a text field, so editing a description doesn't accidentally delete the
+  object.
 - **Duplicate an object.** The feature popup now has a "Copy" button
   alongside Edit and Shape — makes a copy of the same place/route/area
   (named "... (copy)") and selects it, ready to reposition or edit.

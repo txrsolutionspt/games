@@ -1,7 +1,7 @@
-import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.26";
-import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.26";
-import { deleteFilesForFeature } from "../persistence/attachments.js?v=2026-08-26.26";
-import { MODES, touch, duplicateFeature } from "./object-model.js?v=2026-08-26.26";
+import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.27";
+import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.27";
+import { deleteFilesForFeature } from "../persistence/attachments.js?v=2026-08-26.27";
+import { MODES, touch, duplicateFeature } from "./object-model.js?v=2026-08-26.27";
 
 let currentMapId = getActiveMapId();
 

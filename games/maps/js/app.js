@@ -1,24 +1,24 @@
-import { createMap } from "./map/map-init.js?v=2026-08-26.26";
+import { createMap } from "./map/map-init.js?v=2026-08-26.27";
 import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
   applyLayerVisibility,
-} from "./map/map-layers.js?v=2026-08-26.26";
-import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.26";
-import { setupSelection } from "./map/map-selection.js?v=2026-08-26.26";
+} from "./map/map-layers.js?v=2026-08-26.27";
+import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.27";
+import { setupSelection } from "./map/map-selection.js?v=2026-08-26.27";
 import {
   setupEditLayers,
   showEditVertices,
   clearEditVertices,
   enableVertexDragging,
-} from "./map/map-edit.js?v=2026-08-26.26";
+} from "./map/map-edit.js?v=2026-08-26.27";
 import {
   MODES,
   createPoint,
   createLine,
   createPolygon,
-} from "./objects/object-model.js?v=2026-08-26.26";
+} from "./objects/object-model.js?v=2026-08-26.27";
 import {
   getState,
   subscribe,
@@ -36,17 +36,17 @@ import {
   replaceAll,
   switchMap,
   getCurrentMapId,
-} from "./objects/object-store.js?v=2026-08-26.26";
-import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.26";
-import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.26";
-import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.26";
-import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.26";
-import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.26";
-import { setupMapsDialog } from "./ui/maps-menu.js?v=2026-08-26.26";
-import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.26";
-import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.26";
-import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.26";
-import { loadObjects } from "./persistence/local-storage.js?v=2026-08-26.26";
+} from "./objects/object-store.js?v=2026-08-26.27";
+import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.27";
+import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.27";
+import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.27";
+import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.27";
+import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.27";
+import { setupMapsDialog } from "./ui/maps-menu.js?v=2026-08-26.27";
+import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.27";
+import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.27";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.27";
+import { loadObjects } from "./persistence/local-storage.js?v=2026-08-26.27";
 import {
   ensureMapsIndex,
   takeNeedsSeedingFlag,
@@ -56,7 +56,7 @@ import {
   createMap as createMapEntry,
   renameMap,
   deleteMap,
-} from "./persistence/maps-index.js?v=2026-08-26.26";
+} from "./persistence/maps-index.js?v=2026-08-26.27";
 import {
   geometryBounds,
   featureCollectionBounds,
@@ -64,7 +64,7 @@ import {
   polygonAreaMeters,
   formatDistance,
   formatArea,
-} from "./geo/measure.js?v=2026-08-26.26";
+} from "./geo/measure.js?v=2026-08-26.27";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
@@ -473,13 +473,36 @@ hintCancel.addEventListener("click", () => {
   }
 });
 
+// Typing in a form field (the editor dialog's name/description, the
+// search box, an inline map-rename input, ...) should never trigger these
+// — Backspace-to-delete-a-character would otherwise delete the whole
+// selected object instead.
+function isTypingInField(target) {
+  return target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+}
+
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape") return;
-  const mode = getState().mode;
-  if (mode === MODES.EDIT_SHAPE) {
-    setMode(MODES.VIEW);
-  } else if (mode !== MODES.VIEW) {
-    cancelDrawing();
+  if (isTypingInField(event.target)) return;
+
+  if (event.key === "Escape") {
+    const mode = getState().mode;
+    if (mode === MODES.EDIT_SHAPE) {
+      setMode(MODES.VIEW);
+    } else if (mode !== MODES.VIEW) {
+      cancelDrawing();
+    }
+    return;
+  }
+
+  const { selectedId, mode } = getState();
+  if (!selectedId || mode === MODES.EDIT_SHAPE) return;
+
+  if (event.key === "Delete" || event.key === "Backspace") {
+    event.preventDefault();
+    handleDelete(selectedId);
+  } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d") {
+    event.preventDefault();
+    handleDuplicate(selectedId);
   }
 });
 
