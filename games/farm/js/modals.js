@@ -249,6 +249,34 @@ const Modals = (function () {
     });
   }
 
+  // ---- Welcome back (offline progress summary) -------------------------------
+
+  // Shown once at boot when Simulation.catchUpOffline finds something
+  // actually worth mentioning (see its own doc comment for the gating
+  // logic) — a friendly summary instead of leaving the player to notice
+  // ready crops/animals/jobs on their own. "day(s)"/"item(s)" side-steps
+  // plural agreement rather than adding a pluralization system for one
+  // popup — same trade-off already made elsewhere for short UI strings.
+  function showWelcomeBack(summary) {
+    enqueueOrRun(function () {
+      const lines = [];
+      if (summary.daysPassed > 0) {
+        lines.push('<p>🌙 ' + summary.daysPassed + ' ' + I18N.t('ui.welcomeBack.days', 'day(s) passed while you were away.') + '</p>');
+      }
+      if (summary.cropsReady > 0) {
+        lines.push('<p>🌾 ' + summary.cropsReady + ' ' + I18N.t('ui.welcomeBack.crops', 'crop(s) ready to harvest!') + '</p>');
+      }
+      if (summary.animalsReady > 0) {
+        lines.push('<p>🐔 ' + summary.animalsReady + ' ' + I18N.t('ui.welcomeBack.animals', 'animal product(s) ready to collect!') + '</p>');
+      }
+      if (summary.jobsReady > 0) {
+        lines.push('<p>⚙️ ' + summary.jobsReady + ' ' + I18N.t('ui.welcomeBack.jobs', 'recipe(s) finished!') + '</p>');
+      }
+      open('<h2>👋 ' + I18N.t('ui.welcomeBack.title', 'Welcome back!') + '</h2>' + lines.join('') +
+        '<button class="btn-primary" data-close>' + I18N.t('ui.welcomeBack.ok', "Let's go!") + '</button>');
+    });
+  }
+
   // ---- Market -----------------------------------------------------------------
 
   // The sell-button handler refreshes this same modal in place (no
@@ -448,6 +476,7 @@ const Modals = (function () {
     showBuildingRecipes: showBuildingRecipes,
     showMissionComplete: showMissionComplete,
     showFact: showFact,
+    showWelcomeBack: showWelcomeBack,
     showMarket: showMarket,
     showSettings: showSettings,
     showFarmSlots: showFarmSlots

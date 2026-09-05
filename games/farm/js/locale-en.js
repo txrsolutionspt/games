@@ -62,6 +62,13 @@ const LOCALE_EN = {
   'ui.mission.completed': 'Mission Complete!',
   'ui.mission.ok': 'Got it!',
 
+  'ui.welcomeBack.title': 'Welcome back!',
+  'ui.welcomeBack.days': 'day(s) passed while you were away.',
+  'ui.welcomeBack.crops': 'crop(s) ready to harvest!',
+  'ui.welcomeBack.animals': 'animal product(s) ready to collect!',
+  'ui.welcomeBack.jobs': 'recipe(s) finished!',
+  'ui.welcomeBack.ok': "Let's go!",
+
   'ui.market.title': 'Market',
   'ui.market.sell': 'Sell 1',
   'ui.market.each': 'each',
