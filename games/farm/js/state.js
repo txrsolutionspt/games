@@ -5,14 +5,13 @@ function createInitialState() {
   const plots = [];
   const total = CONFIG.gridCols * CONFIG.gridRows;
   for (let i = 0; i < total; i++) {
-    // Buy-to-expand economy (PLAN.md §10/§14): only the starting cluster
-    // (row 0, col < initialUnlockedPlots — the same span terrainSafeCols
-    // uses to force soil, see farm-rules.js) is unlocked from the start.
-    // Every other plot is locked until a player spends coins to unlock it
+    // For now, every plot starts unlocked — no buy-to-expand economy.
+    // Easy to bring back later: change this to
+    // `i < CONFIG.initialUnlockedPlots` again. The unlock machinery itself
     // (farm-rules.js canUnlockPlot, input.js unlockPlot, Modals.
-    // showUnlockPlot, economy.js plotUnlockCost) — any locked plot can be
-    // unlocked directly, in any order, not just the nearest one.
-    plots.push({ index: i, unlocked: i < CONFIG.initialUnlockedPlots, occupant: null });
+    // showUnlockPlot) is left in place, just unreachable while every plot
+    // starts unlocked.
+    plots.push({ index: i, unlocked: true, occupant: null });
   }
 
   return {
@@ -24,7 +23,7 @@ function createInitialState() {
     missions: {},       // id -> { progress, completed }
     seenFacts: {},       // key -> true; which first-time educational popups have shown
     tutorialStep: 0,
-    settings: { locale: null } // null = not chosen yet, auto-detect from browser
+    settings: { locale: null, muted: false } // locale: null = not chosen yet, auto-detect from browser
   };
 }
 

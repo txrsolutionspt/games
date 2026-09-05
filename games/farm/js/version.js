@@ -6,7 +6,7 @@
 //
 // Bump with ./bump-version.sh (no arguments — always increments the patch
 // number automatically) before committing a release-facing change.
-const APP_VERSION = '1.0.4';
+const APP_VERSION = '1.0.5';
 
 if (typeof module === 'object' && module.exports) {
   module.exports = APP_VERSION;

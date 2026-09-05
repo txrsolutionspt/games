@@ -288,6 +288,9 @@ const Modals = (function () {
       '<button class="btn-secondary lang-btn" data-lang="en">English</button>' +
       '<button class="btn-secondary lang-btn" data-lang="pt">Português</button>' +
       '</div>' +
+      '<button class="btn-secondary" id="sound-btn">' + (state.settings.muted ? '🔇 ' : '🔊 ') +
+      I18N.t('ui.settings.sound', 'Sound') + ': ' +
+      (state.settings.muted ? I18N.t('ui.settings.soundOff', 'Off') : I18N.t('ui.settings.soundOn', 'On')) + '</button>' +
       '<button class="btn-secondary" id="farms-btn">🚜 ' + I18N.t('ui.farms.settingsEntry', 'My Farms') + '</button>' +
       '<button class="btn-secondary" id="privacy-btn">🛡️ ' + I18N.t('ui.settings.privacy', 'Privacy for Parents') + '</button>' +
       '<button class="btn-danger" id="reset-btn">🗑️ ' + I18N.t('ui.settings.reset', 'Reset Game Data') + '</button>' +
@@ -295,6 +298,10 @@ const Modals = (function () {
       '<p class="settings-version">' + I18N.t('ui.settings.version', 'Version') + ' ' + APP_VERSION + '</p>');
     root().querySelectorAll('.lang-btn').forEach(function (btn) {
       btn.addEventListener('click', function () { actions.setLocale(btn.dataset.lang); renderSettings(state, actions); });
+    });
+    document.getElementById('sound-btn').addEventListener('click', function () {
+      actions.setMuted(!state.settings.muted);
+      renderSettings(state, actions);
     });
     document.getElementById('farms-btn').addEventListener('click', function () { renderFarmSlots(actions.farms); });
     document.getElementById('privacy-btn').addEventListener('click', function () { showPrivacy(); });
