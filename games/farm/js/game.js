@@ -69,7 +69,7 @@
     I18N.setLocale(state.settings.locale || I18N.detectLocale());
     SoundFx.setMuted(!!state.settings.muted);
 
-    Simulation.catchUpOffline(state);
+    const welcomeBackSummary = Simulation.catchUpOffline(state);
 
     Missions.init(state);
     Tutorial.init(state);
@@ -247,6 +247,17 @@
     requestAnimationFrame(frame);
 
     Hud.refresh(state, ui);
+
+    // "Welcome back" popup (PLAN.md §13): tells the player what's waiting
+    // for them after time away, rather than leaving them to notice ready
+    // crops/animals/jobs on their own. catchUpOffline already decided
+    // whether there's anything actually worth mentioning (null otherwise),
+    // so no extra threshold check is needed here.
+    if (welcomeBackSummary) {
+      SoundFx.play('collect');
+      Modals.showWelcomeBack(welcomeBackSummary);
+    }
+
     // No immediate save-on-open: a fresh boot's state is either a brand new
     // farm (nothing worth persisting yet) or identical to what's already in
     // localStorage, so writing it right away is a redundant disk write and

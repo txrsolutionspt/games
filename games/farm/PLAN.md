@@ -406,6 +406,19 @@ already applied to crops/animals/recipes/missions (§1).
   `canCollect`, `computeGrowthProgress`, `computeYieldQuality`,
   `canStartRecipe`), so they can be unit-tested exactly like
   `last-little-farm/farm-logic.js` is today.
+- **"Welcome back" summary.** `Simulation.catchUpOffline` (called once at
+  boot, before the live tick loop starts) returns a small summary object —
+  `{ daysPassed, cropsReady, animalsReady, jobsReady }` — or `null` when
+  there's nothing worth telling the player about (no time passed, or too
+  little for anything to actually finish). It has to compute readiness
+  itself with `farm-rules.js`'s own progress functions rather than counting
+  existing `state === 'ready'` flags, since catchUpOffline only advances
+  the clock — flipping `occupant.state` to `'ready'` is still exclusively
+  the live per-second `tick()` loop's job (see above), which hasn't run
+  yet at this point in boot. `game.js` shows `Modals.showWelcomeBack` when
+  the summary isn't null, so a player who left crops growing or animals
+  producing gets told what's waiting for them instead of having to notice
+  it themselves.
 
 ## 9. Rendering (pseudo-isometric grid)
 

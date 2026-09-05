@@ -144,14 +144,42 @@ const Simulation = (function () {
   // Called once at boot: fast-forwards the clock (and any day boundaries
   // crossed) to account for real time that passed while the tab was closed,
   // capped so a long-neglected save can't trigger an unbounded replay.
+  //
+  // Returns a summary for game.js's "welcome back" popup (Modals.
+  // showWelcomeBack) describing what's now waiting for the player, or null
+  // if there's nothing worth telling them about (no time passed, or too
+  // little time passed for anything to actually finish). Counts are read
+  // with the same FarmRules progress functions the live tick() loop uses,
+  // computed here because catchUpOffline — unlike tick() — never flips
+  // occupant.state to 'ready' itself (see tick() above); that still only
+  // happens on the first live tick after boot, so this has to check
+  // readiness directly rather than count 'ready' flags that don't exist
+  // yet.
   function catchUpOffline(state) {
     const elapsedRealSec = Math.max(0, Math.floor((Date.now() - (state.clock.lastRealTimestamp || Date.now())) / 1000));
     const catchUpSec = Math.min(elapsedRealSec, CONFIG.maxOfflineCatchUpSec);
-    if (catchUpSec <= 0) return;
+    if (catchUpSec <= 0) return null;
     const oldDay = currentDay(state);
     state.clock.tick += Math.floor(catchUpSec * CONFIG.timeScale);
     const newDay = currentDay(state);
     if (newDay > oldDay) processDayBoundaries(state, oldDay, newDay);
+
+    let cropsReady = 0, animalsReady = 0, jobsReady = 0;
+    state.plots.forEach(function (plot) {
+      const occ = plot.occupant;
+      if (!occ) return;
+      if (occ.kind === 'crop' && occ.state !== 'ready') {
+        if (FarmRules.cropProgress(occ, CROPS_BY_ID[occ.id], state.clock.tick).matured) cropsReady++;
+      } else if (occ.kind === 'animal' && occ.state !== 'ready') {
+        if (FarmRules.animalProgress(occ, ANIMALS_BY_ID[occ.id], state.clock.tick).ready) animalsReady++;
+      } else if (occ.kind === 'building' && occ.job && !occ.job.readyNotified) {
+        if (FarmRules.recipeProgress(occ.job, RECIPES_BY_ID[occ.job.recipeId], state.clock.tick).ready) jobsReady++;
+      }
+    });
+
+    const daysPassed = newDay - oldDay;
+    if (daysPassed <= 0 && cropsReady === 0 && animalsReady === 0 && jobsReady === 0) return null;
+    return { daysPassed: daysPassed, cropsReady: cropsReady, animalsReady: animalsReady, jobsReady: jobsReady };
   }
 
   let intervalId = null;
