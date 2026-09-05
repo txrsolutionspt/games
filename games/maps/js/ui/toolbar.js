@@ -1,5 +1,5 @@
-import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.27";
-import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.27";
+import { getState, replaceAll } from "../objects/object-store.js?v=2026-08-26.28";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.28";
 
 const addButton = document.getElementById("add-button");
 const addDropdown = document.getElementById("add-dropdown");
@@ -11,8 +11,9 @@ const searchClear = document.getElementById("search-clear");
 const searchResults = document.getElementById("search-results");
 const aboutOverlay = document.getElementById("about-overlay");
 const aboutClose = document.getElementById("about-close");
+const unitsLabel = document.getElementById("units-label");
 
-export function setupToolbar({ onAdd, onFlyTo, onSelectObject, onOpenMyMaps }) {
+export function setupToolbar({ onAdd, onFlyTo, onSelectObject, onOpenMyMaps, getPreferences, onToggleUnits }) {
   setupDropdown(addButton, addDropdown, "[data-add]", (button) => onAdd(button.dataset.add));
 
   setupDropdown(moreButton, moreDropdown, "[data-action]", (button) => {
@@ -21,7 +22,13 @@ export function setupToolbar({ onAdd, onFlyTo, onSelectObject, onOpenMyMaps }) {
     else if (action === "export") exportData();
     else if (action === "about") openAboutDialog();
     else if (action === "my-maps") onOpenMyMaps();
+    else if (action === "units") {
+      onToggleUnits();
+      renderUnitsLabel(getPreferences());
+    }
   });
+
+  renderUnitsLabel(getPreferences());
 
   aboutClose.addEventListener("click", () => aboutOverlay.classList.add("hidden"));
 
@@ -67,6 +74,12 @@ function setupDropdown(triggerButton, dropdown, itemSelector, onItemClick) {
 
 function openAboutDialog() {
   aboutOverlay.classList.remove("hidden");
+}
+
+function renderUnitsLabel(preferences) {
+  if (unitsLabel) {
+    unitsLabel.textContent = preferences.units === "imperial" ? "Units: Imperial" : "Units: Metric";
+  }
 }
 
 function exportData() {

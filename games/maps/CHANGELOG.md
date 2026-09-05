@@ -6,6 +6,11 @@ file updated.
 
 ## 2026-09-05
 
+- **Metric/imperial units toggle.** Menu → Units switches distance and
+  area readouts (in the feature popup and the measure tool) between
+  metric (m/km, m²/ha) and imperial (ft/mi, sq ft/acres). Applies across
+  every map, not just the current one, and any already-open popup updates
+  immediately.
 - **Keyboard shortcuts on desktop.** With an object selected: Delete or
   Backspace removes it (with the same confirmation as the popup's Delete
   button), and Ctrl/Cmd+D duplicates it. Both are ignored while typing in

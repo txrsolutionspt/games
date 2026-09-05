@@ -63,6 +63,16 @@ check("formatDistance at/over 1km uses km", formatDistance(1500) === "1.5 km");
 check("formatArea under 1 hectare has no ha suffix", !formatArea(500).includes("ha"));
 check("formatArea at/over 1 hectare adds a ha suffix", formatArea(50000).includes("ha"));
 check("formatCoordinate is 'lat, lng' with 6 decimals", formatCoordinate([-8.5, 41.2]) === "41.200000, -8.500000");
+check("formatDistance defaults to metric when unitSystem is omitted", formatDistance(1500) === formatDistance(1500, "metric"));
+
+console.log("\n== imperial units ==");
+check("formatDistance imperial under 1 mile uses feet", formatDistance(100, "imperial") === "328 ft");
+check("formatDistance imperial at/over 1 mile uses miles", formatDistance(2000, "imperial") === "1.24 mi");
+check("formatArea imperial under 1 acre has no acre suffix", !formatArea(500, "imperial").includes("ac)"));
+check("formatArea imperial at/over 1 acre adds an acre suffix", formatArea(10000, "imperial").includes("ac)"));
+check("formatArea imperial uses sq ft, not m²", formatArea(500, "imperial").includes("sq ft") && !formatArea(500, "imperial").includes("m²"));
+// 1 mile ≈ 1609.344 m — sanity-check the conversion itself, not just the string shape.
+check("imperial distance conversion is numerically correct (1 mile)", formatDistance(1609.344, "imperial") === "1 mi");
 
 console.log("\n== geometryBounds / featureCollectionBounds ==");
 const pointBounds = geometryBounds({ type: "Point", coordinates: [5, 10] });

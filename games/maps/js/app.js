@@ -1,24 +1,24 @@
-import { createMap } from "./map/map-init.js?v=2026-08-26.27";
+import { createMap } from "./map/map-init.js?v=2026-08-26.28";
 import {
   setupObjectLayers,
   refreshObjectLayers,
   setSelectedFilter,
   applyLayerVisibility,
-} from "./map/map-layers.js?v=2026-08-26.27";
-import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.27";
-import { setupSelection } from "./map/map-selection.js?v=2026-08-26.27";
+} from "./map/map-layers.js?v=2026-08-26.28";
+import { setupDrawingLayers, updateDrawingPreview } from "./map/map-drawing.js?v=2026-08-26.28";
+import { setupSelection } from "./map/map-selection.js?v=2026-08-26.28";
 import {
   setupEditLayers,
   showEditVertices,
   clearEditVertices,
   enableVertexDragging,
-} from "./map/map-edit.js?v=2026-08-26.27";
+} from "./map/map-edit.js?v=2026-08-26.28";
 import {
   MODES,
   createPoint,
   createLine,
   createPolygon,
-} from "./objects/object-model.js?v=2026-08-26.27";
+} from "./objects/object-model.js?v=2026-08-26.28";
 import {
   getState,
   subscribe,
@@ -36,17 +36,18 @@ import {
   replaceAll,
   switchMap,
   getCurrentMapId,
-} from "./objects/object-store.js?v=2026-08-26.27";
-import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.27";
-import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.27";
-import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.27";
-import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.27";
-import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.27";
-import { setupMapsDialog } from "./ui/maps-menu.js?v=2026-08-26.27";
-import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.27";
-import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.27";
-import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.27";
-import { loadObjects } from "./persistence/local-storage.js?v=2026-08-26.27";
+} from "./objects/object-store.js?v=2026-08-26.28";
+import { renderSidebar, showFeaturePopup, closeFeaturePopup } from "./ui/editor-panel.js?v=2026-08-26.28";
+import { openEditorDialog, openConfirmDialog } from "./ui/dialogs.js?v=2026-08-26.28";
+import { setupToolbar } from "./ui/toolbar.js?v=2026-08-26.28";
+import { setupViewMenu } from "./ui/view-menu.js?v=2026-08-26.28";
+import { setupLayersMenu } from "./ui/layers-menu.js?v=2026-08-26.28";
+import { setupMapsDialog } from "./ui/maps-menu.js?v=2026-08-26.28";
+import { buildBaseStyle } from "./map/map-styles.js?v=2026-08-26.28";
+import { createFitAllControl } from "./map/map-controls.js?v=2026-08-26.28";
+import { loadMapSettings, saveMapSettings } from "./persistence/map-settings.js?v=2026-08-26.28";
+import { loadPreferences, savePreferences } from "./persistence/preferences.js?v=2026-08-26.28";
+import { loadObjects } from "./persistence/local-storage.js?v=2026-08-26.28";
 import {
   ensureMapsIndex,
   takeNeedsSeedingFlag,
@@ -56,7 +57,7 @@ import {
   createMap as createMapEntry,
   renameMap,
   deleteMap,
-} from "./persistence/maps-index.js?v=2026-08-26.27";
+} from "./persistence/maps-index.js?v=2026-08-26.28";
 import {
   geometryBounds,
   featureCollectionBounds,
@@ -64,7 +65,7 @@ import {
   polygonAreaMeters,
   formatDistance,
   formatArea,
-} from "./geo/measure.js?v=2026-08-26.27";
+} from "./geo/measure.js?v=2026-08-26.28";
 
 const hintEl = document.getElementById("drawing-hint");
 const hintText = document.getElementById("drawing-hint-text");
@@ -83,6 +84,7 @@ const sidebarTitleEl = document.getElementById("sidebar-title");
 ensureMapsIndex();
 
 let mapSettings = loadMapSettings(getCurrentMapId());
+let preferences = loadPreferences();
 const map = createMap(mapSettings);
 
 // The map style (base imagery, terrain) is swappable independently of the
@@ -110,6 +112,16 @@ function toggleLayerGroup(geometryType) {
   mapSettings = { ...mapSettings, layers: { ...mapSettings.layers, [geometryType]: !currentlyOn } };
   saveMapSettings(getCurrentMapId(), mapSettings);
   applyLayerVisibility(map, { groupVisibility: mapSettings.layers, labelsVisible: mapSettings.labelsVisible });
+}
+
+// Global, not per-map (see persistence/preferences.js). Forces the popup to
+// re-render even though the underlying feature hasn't changed, since it's
+// otherwise deduped by lastPopupKey in render() below.
+function toggleUnits() {
+  preferences = { ...preferences, units: preferences.units === "metric" ? "imperial" : "metric" };
+  savePreferences(preferences);
+  lastPopupKey = null;
+  render(getState());
 }
 
 // On mobile the sidebar is a bottom sheet, closed by default; on desktop
@@ -301,6 +313,8 @@ map.on("style.load", async () => {
       if (feature) flyToFeature(feature);
     },
     onOpenMyMaps: () => mapsDialog.open(),
+    getPreferences: () => preferences,
+    onToggleUnits: toggleUnits,
   });
 
   setupViewMenu({
@@ -538,10 +552,10 @@ function updateDrawingHint(state) {
     if (coords.length < 2) {
       hintText.textContent = "Tap the map to start measuring.";
     } else {
-      let text = `📏 ${formatDistance(lineLengthMeters(coords))}`;
+      let text = `📏 ${formatDistance(lineLengthMeters(coords), preferences.units)}`;
       if (coords.length >= 3) {
         const area = polygonAreaMeters([[...coords, coords[0]]]);
-        text += ` · ▦ ${formatArea(area)} enclosed`;
+        text += ` · ▦ ${formatArea(area, preferences.units)} enclosed`;
       }
       hintText.textContent = `${text} — tap to add more points, or Done to finish.`;
     }
@@ -580,12 +594,17 @@ function render(state) {
     lastPopupKey = popupKey;
 
     if (feature) {
-      showFeaturePopup(map, feature, {
-        onEditInfo: () => handleEditInfo(feature.id),
-        onEditShape: () => setMode(MODES.EDIT_SHAPE),
-        onDuplicate: () => handleDuplicate(feature.id),
-        onDelete: () => handleDelete(feature.id),
-      });
+      showFeaturePopup(
+        map,
+        feature,
+        {
+          onEditInfo: () => handleEditInfo(feature.id),
+          onEditShape: () => setMode(MODES.EDIT_SHAPE),
+          onDuplicate: () => handleDuplicate(feature.id),
+          onDelete: () => handleDelete(feature.id),
+        },
+        preferences.units
+      );
     } else {
       closeFeaturePopup();
     }
