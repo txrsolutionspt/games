@@ -23,7 +23,7 @@ function createInitialState() {
     missions: {},       // id -> { progress, completed }
     seenFacts: {},       // key -> true; which first-time educational popups have shown
     tutorialStep: 0,
-    settings: { locale: null } // null = not chosen yet, auto-detect from browser
+    settings: { locale: null, muted: false } // locale: null = not chosen yet, auto-detect from browser
   };
 }
 

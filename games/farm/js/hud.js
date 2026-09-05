@@ -100,7 +100,10 @@ const Hud = (function () {
   };
 
   function refreshTop(state) {
-    if (lastCoins !== null && state.coins !== lastCoins) pulseCoins();
+    if (lastCoins !== null && state.coins !== lastCoins) {
+      pulseCoins();
+      SoundFx.play(state.coins > lastCoins ? 'coin' : 'spend');
+    }
     lastCoins = state.coins;
 
     el('coins-val').textContent = state.coins;

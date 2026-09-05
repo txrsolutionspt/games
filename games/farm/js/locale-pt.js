@@ -71,6 +71,9 @@ const LOCALE_PT = {
 
   'ui.settings.title': 'Definições',
   'ui.settings.language': 'Idioma',
+  'ui.settings.sound': 'Som',
+  'ui.settings.soundOn': 'Ligado',
+  'ui.settings.soundOff': 'Desligado',
   'ui.settings.privacy': 'Privacidade para os Pais',
   'ui.settings.reset': 'Repor Dados do Jogo',
   'ui.settings.version': 'Versão',

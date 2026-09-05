@@ -474,9 +474,8 @@ what's on screen) rather than just raising this number further.
 
 The field is no longer visually/functionally uniform farmland — every
 unlocked plot has one of four terrain types, each restricting what can be
-placed there. This is a placement-and-visuals layer only for now (see the
-"not in this pass" note below for the bigger follow-on ideas it deliberately
-leaves out).
+placed there (see "Lake irrigation and quarries" below for what lake and
+mountain tiles actually do).
 
 - **Farmland (soil)** — the default; plantable. Crops and processing
   buildings (mill/bakery/churn/kitchen) can both go here, same as every
@@ -689,6 +688,22 @@ inventing a new one:
   `.github/workflows/farm-check-version-bump.yml` fails a PR that changes
   release-facing farm files without also bumping it. See
   `games/farm/CLAUDE.md` for the full rule.
+- **Sound** (`js/audio.js`'s `SoundFx`): a short cue per action — plant,
+  water, harvest, feed, collect (animal produce/quarry stone/recipe
+  output), a coin chime when coins go up, a softer tone when they go down,
+  and a small fanfare on mission complete — wired via the same event bus
+  as the first-time educational facts (game.js), plus a coin/spend check
+  in `hud.js`'s `refreshTop` tied to the coin-counter's own pop animation.
+  Every sound is synthesized live with the Web Audio API (`OscillatorNode`
+  + a quick attack/decay `GainNode` envelope), not an audio file — nothing
+  to fetch or license, keeping PRIVACY.md's "runs entirely in your
+  browser" true for audio too. Deliberately one-directional: there is no
+  "wrong action" buzzer anywhere, only positive reinforcement for things
+  the player actually did (a blocked action still gets its usual toast).
+  Muted by default until unlocked by the player's first tap/click
+  (browsers block audio before any user gesture) and toggleable anytime
+  via a Sound On/Off button in Settings, persisted in
+  `state.settings.muted`.
 
 ## 13. Missions & "what you learned" loop
 

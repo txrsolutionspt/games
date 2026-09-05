@@ -67,6 +67,7 @@
     const ui = { tool: null, hoverIndex: -1, view: { zoom: 1, panX: 0, panY: 0 } };
 
     I18N.setLocale(state.settings.locale || I18N.detectLocale());
+    SoundFx.setMuted(!!state.settings.muted);
 
     Simulation.catchUpOffline(state);
 
@@ -98,12 +99,25 @@
       Modals.showFact(I18N.t('quarry.stone.name', QUARRY.name), QUARRY.icon, I18N.t('quarry.stone.fact', QUARRY.educational));
     });
     Events.on('missionCompleted', function (payload) {
+      SoundFx.play('mission');
       Modals.showMissionComplete(payload.mission);
       Hud.refresh(state, ui);
     });
     Events.on('tick', function () {
       Hud.refresh(state, ui);
     });
+
+    // Sound cues (PLAN.md §12): a short synthesized tone per action, kept
+    // as its own set of listeners rather than folded into the first-time-
+    // fact handlers above, since those early-return after the first
+    // occurrence and sound should play every time.
+    Events.on('plant', function () { SoundFx.play('plant'); });
+    Events.on('water', function () { SoundFx.play('water'); });
+    Events.on('harvest', function () { SoundFx.play('harvest'); });
+    Events.on('feedAnimal', function () { SoundFx.play('water'); });
+    Events.on('collectAnimal', function () { SoundFx.play('collect'); });
+    Events.on('process', function () { SoundFx.play('collect'); });
+    Events.on('mine', function () { SoundFx.play('collect'); });
 
     Input.setupToolBelt(state, ui, canvas);
     Input.setupCanvas(state, ui, canvas);
@@ -158,6 +172,11 @@
           refreshRotateText();
           Persistence.scheduleSave(state);
         },
+        setMuted: function (value) {
+          state.settings.muted = value;
+          SoundFx.setMuted(value);
+          Persistence.scheduleSave(state);
+        },
         reset: function () {
           Persistence.reset();
           window.location.reload();
@@ -201,6 +220,12 @@
         lockOrientationIfPossible();
       }, { once: true, capture: true });
     }
+
+    // Sound is blocked by the same "needs a user gesture" browser rule as
+    // fullscreen above, but applies on desktop/mouse too (unlike
+    // fullscreen, which is touch-only here) — so this listener isn't
+    // gated behind isTouchDevice().
+    document.addEventListener('pointerdown', function () { SoundFx.unlock(); }, { once: true, capture: true });
 
     Render.resize(canvas);
     // Re-sync geometry on any actual box change, not just window resize:
