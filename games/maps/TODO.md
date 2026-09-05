@@ -27,6 +27,36 @@ that keeps both of these current.
   full MapLibre style like OpenFreeMap's) where roads/buildings/etc. are
   actual distinct layers. That would be a bigger change (see below).
 
+## Feature ideas (not yet prioritized)
+
+Brainstormed, not scoped or committed to — pick from here when picking up
+new work.
+
+**Quick, self-contained wins:**
+- Duplicate object (copy a pin/route/area instead of redrawing it).
+- Keyboard shortcuts on desktop (e.g. Delete to remove the selected object).
+- Distance/area units toggle (metric vs. imperial) — currently always metric.
+- Custom color/icon per object, not just the fixed category set.
+
+**Sharing & portability:**
+- Share a single object via a link or the device's native share sheet.
+- Export to KML/GPX, not just GeoJSON — opens the data in Google Earth,
+  Garmin, etc.
+- Import from GPX/KML to match.
+
+**Organization, as object count grows:**
+- Sort/filter the sidebar list — by category, alphabetically, or nearest
+  to the user's current location.
+- Marker clustering when zoomed out with many pins.
+- Multi-select + bulk delete/recategorize.
+
+**Bigger/riskier (comparable weight to the postponed items above):**
+- Offline tile caching for a chosen area (download a region for real
+  offline map use — bigger than the current app-shell-only offline
+  support from the PWA work).
+- App-wide light/dark UI theme (the chrome itself — sidebar, dialogs,
+  toolbar — separate from the map's own "Dark" style).
+
 ## Known rough edges
 
 - **"Dark" style isn't a real dark style.** It's OpenStreetMap's standard
@@ -88,8 +118,7 @@ that keeps both of these current.
 
 ## Suggested next pick-up order
 
-1. Undo/redo (self-contained, biggest remaining trust-builder).
-2. Presentation/share mode.
-3. Decide if/when to move the base map to a vector style — this is the one
-   that unlocks both the real base-map layer toggles and a proper Dark
-   style, so it's worth doing those two together rather than separately.
+Undo/redo, presentation/share mode, and the vector-style migration are
+postponed for now — bigger/riskier than what's currently wanted. Pick the
+next piece of work from "Feature ideas" above instead; the quick wins
+there are the best starting point.
