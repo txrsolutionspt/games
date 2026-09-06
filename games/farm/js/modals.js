@@ -73,65 +73,101 @@ const Modals = (function () {
     document.getElementById('tooltip').classList.add('hidden');
   }
 
-  // ---- Shop drawers ---------------------------------------------------------
+  // ---- Tool popovers (crop/animal/building choice) --------------------------
 
-  function showCropShop(state, onPick) {
-    enqueueOrRun(function () {
-      const season = Simulation.currentSeason(state);
-      const cards = CROPS.map(function (c) {
-        const inSeason = FarmRules.isCropInSeason(c, season);
-        const name = I18N.t('crop.' + c.id + '.name', c.name);
-        return '<button class="shop-card" data-id="' + c.id + '">' +
-          '<div class="shop-icon">' + c.icon + '</div>' +
-          '<div class="shop-name">' + name + '</div>' +
-          '<div class="shop-cost">🪙 ' + c.seedCost + '</div>' +
-          (inSeason ? '' : '<div class="shop-note">' + I18N.t('ui.shop.outOfSeason', 'Grows better another season') + '</div>') +
-          '</button>';
-      }).join('');
-      open('<h2>' + I18N.t('ui.shop.crops.title', 'Choose a Seed') + '</h2><div class="shop-grid">' + cards + '</div>' +
-        '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
-      root().querySelectorAll('.shop-card').forEach(function (btn) {
-        btn.addEventListener('click', function () { close(); onPick(btn.dataset.id); });
-      });
+  // Choosing a seed/animal/building is the single most frequent choice in
+  // the game, so — unlike every other screen in this file — it doesn't go
+  // through the full-screen dimmed modal system. Instead it's a small
+  // popover anchored to the tool-belt button that opened it: quicker to
+  // open, quicker to dismiss, and never interrupts the view of the field
+  // the way a full modal reasonably can for Settings or the Market.
+  // Reuses the same .shop-card/.shop-grid markup and picking logic the
+  // old modal shops used (see style.css for the compact popover layout
+  // those classes get inside #tool-popover specifically) — only the
+  // container changed, not the cards themselves.
+  let popoverOpenTool = null;
+
+  function closePopover() {
+    document.getElementById('tool-popover').classList.add('hidden');
+    document.getElementById('tool-popover-overlay').classList.add('hidden');
+    popoverOpenTool = null;
+  }
+
+  // Returns false (and leaves nothing changed) when the tap was on the
+  // already-open tool's own button -- the caller should skip building
+  // cards/wiring listeners in that case, since this just toggled it shut.
+  function openPopover(tool, anchorEl, bodyHtml) {
+    if (popoverOpenTool === tool) { closePopover(); return false; }
+    const pop = document.getElementById('tool-popover');
+    const overlay = document.getElementById('tool-popover-overlay');
+    pop.innerHTML = bodyHtml;
+    overlay.classList.remove('hidden');
+    pop.classList.remove('hidden');
+    popoverOpenTool = tool;
+
+    // Anchor vertically to the tapped button, clamped so a popover near
+    // the bottom of a short frame never overflows past it. Positioned
+    // relative to #app (see the CSS comment on #tool-popover), not the
+    // raw viewport, so this has to subtract #app's own offset rather
+    // than using the button's viewport-relative rect directly.
+    const appRect = document.getElementById('app').getBoundingClientRect();
+    const rect = anchorEl.getBoundingClientRect();
+    const topInApp = rect.top - appRect.top;
+    const maxTop = appRect.height - pop.offsetHeight - 8;
+    pop.style.top = Math.max(8, Math.min(topInApp, maxTop)) + 'px';
+
+    overlay.addEventListener('click', closePopover, { once: true });
+    return true;
+  }
+
+  function showCropPopover(state, anchorEl, onPick) {
+    const season = Simulation.currentSeason(state);
+    const cards = CROPS.map(function (c) {
+      const inSeason = FarmRules.isCropInSeason(c, season);
+      const name = I18N.t('crop.' + c.id + '.name', c.name);
+      return '<button class="shop-card" data-id="' + c.id + '">' +
+        '<div class="shop-icon">' + c.icon + '</div>' +
+        '<div class="shop-name">' + name + '</div>' +
+        '<div class="shop-cost">🪙 ' + c.seedCost + '</div>' +
+        (inSeason ? '' : '<div class="shop-note">' + I18N.t('ui.shop.outOfSeason', 'Grows better another season') + '</div>') +
+        '</button>';
+    }).join('');
+    if (!openPopover('plant', anchorEl, '<div class="shop-grid">' + cards + '</div>')) return;
+    document.getElementById('tool-popover').querySelectorAll('.shop-card').forEach(function (btn) {
+      btn.addEventListener('click', function () { closePopover(); onPick(btn.dataset.id); });
     });
   }
 
-  function showAnimalShop(onPick) {
-    enqueueOrRun(function () {
-      const cards = ANIMALS.map(function (a) {
-        const name = I18N.t('animal.' + a.id + '.name', a.name);
-        return '<button class="shop-card" data-id="' + a.id + '">' +
-          '<div class="shop-icon">' + a.icon + '</div>' +
-          '<div class="shop-name">' + name + '</div>' +
-          '<div class="shop-cost">🪙 ' + a.cost + '</div>' +
-          '</button>';
-      }).join('');
-      open('<h2>' + I18N.t('ui.shop.animals.title', 'Choose an Animal') + '</h2><div class="shop-grid">' + cards + '</div>' +
-        '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
-      root().querySelectorAll('.shop-card').forEach(function (btn) {
-        btn.addEventListener('click', function () { close(); onPick(btn.dataset.id); });
-      });
+  function showAnimalPopover(anchorEl, onPick) {
+    const cards = ANIMALS.map(function (a) {
+      const name = I18N.t('animal.' + a.id + '.name', a.name);
+      return '<button class="shop-card" data-id="' + a.id + '">' +
+        '<div class="shop-icon">' + a.icon + '</div>' +
+        '<div class="shop-name">' + name + '</div>' +
+        '<div class="shop-cost">🪙 ' + a.cost + '</div>' +
+        '</button>';
+    }).join('');
+    if (!openPopover('animals', anchorEl, '<div class="shop-grid">' + cards + '</div>')) return;
+    document.getElementById('tool-popover').querySelectorAll('.shop-card').forEach(function (btn) {
+      btn.addEventListener('click', function () { closePopover(); onPick(btn.dataset.id); });
     });
   }
 
-  function showBuildingShop(state, onPick) {
-    enqueueOrRun(function () {
-      const haveStone = state.inventory.stone || 0;
-      const cards = BUILDINGS.map(function (b) {
-        const name = I18N.t('building.' + b.id + '.name', b.name);
-        const enoughStone = haveStone >= (b.stoneCost || 0);
-        return '<button class="shop-card" data-id="' + b.id + '">' +
-          '<div class="shop-icon">' + b.icon + '</div>' +
-          '<div class="shop-name">' + name + '</div>' +
-          '<div class="shop-cost">🪙 ' + b.cost + (b.stoneCost ? ' · ⛏️ ' + b.stoneCost : '') + '</div>' +
-          (enoughStone ? '' : '<div class="shop-note">' + I18N.t('ui.shop.needsStone', 'Need more stone from a quarry') + '</div>') +
-          '</button>';
-      }).join('');
-      open('<h2>' + I18N.t('ui.shop.build.title', 'Choose a Building') + '</h2><div class="shop-grid">' + cards + '</div>' +
-        '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
-      root().querySelectorAll('.shop-card').forEach(function (btn) {
-        btn.addEventListener('click', function () { close(); onPick(btn.dataset.id); });
-      });
+  function showBuildingPopover(state, anchorEl, onPick) {
+    const haveStone = state.inventory.stone || 0;
+    const cards = BUILDINGS.map(function (b) {
+      const name = I18N.t('building.' + b.id + '.name', b.name);
+      const enoughStone = haveStone >= (b.stoneCost || 0);
+      return '<button class="shop-card" data-id="' + b.id + '">' +
+        '<div class="shop-icon">' + b.icon + '</div>' +
+        '<div class="shop-name">' + name + '</div>' +
+        '<div class="shop-cost">🪙 ' + b.cost + (b.stoneCost ? ' · ⛏️ ' + b.stoneCost : '') + '</div>' +
+        (enoughStone ? '' : '<div class="shop-note">' + I18N.t('ui.shop.needsStone', 'Need more stone from a quarry') + '</div>') +
+        '</button>';
+    }).join('');
+    if (!openPopover('build', anchorEl, '<div class="shop-grid">' + cards + '</div>')) return;
+    document.getElementById('tool-popover').querySelectorAll('.shop-card').forEach(function (btn) {
+      btn.addEventListener('click', function () { closePopover(); onPick(btn.dataset.id); });
     });
   }
 
@@ -491,9 +527,10 @@ const Modals = (function () {
     close: close,
     showTooltip: showTooltip,
     hideTooltip: hideTooltip,
-    showCropShop: showCropShop,
-    showAnimalShop: showAnimalShop,
-    showBuildingShop: showBuildingShop,
+    showCropPopover: showCropPopover,
+    showAnimalPopover: showAnimalPopover,
+    showBuildingPopover: showBuildingPopover,
+    closePopover: closePopover,
     showUnlockPlot: showUnlockPlot,
     showAnimalInfo: showAnimalInfo,
     showBuildingRecipes: showBuildingRecipes,

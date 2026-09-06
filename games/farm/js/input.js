@@ -6,29 +6,32 @@
 
 const Input = (function () {
   function setupToolBelt(state, ui, canvas) {
-    Hud.buildToolBelt(function (tool) {
+    Hud.buildToolBelt(function (tool, btn) {
       if (tool === 'plant') {
-        Modals.showCropShop(state, function (cropId) {
+        Modals.showCropPopover(state, btn, function (cropId) {
           ui.tool = { type: 'plant-crop', id: cropId };
           Hud.refresh(state, ui);
         });
         return;
       }
       if (tool === 'animals') {
-        Modals.showAnimalShop(function (animalId) {
+        Modals.showAnimalPopover(btn, function (animalId) {
           ui.tool = { type: 'place-animal', id: animalId };
           Hud.refresh(state, ui);
         });
         return;
       }
       if (tool === 'build') {
-        Modals.showBuildingShop(state, function (buildingId) {
+        Modals.showBuildingPopover(state, btn, function (buildingId) {
           ui.tool = { type: 'place-building', id: buildingId };
           Hud.refresh(state, ui);
         });
         return;
       }
-      // water / harvest toggle directly, no drawer needed
+      // water / harvest toggle directly, no popover needed -- but do close
+      // any other tool's popover left open (e.g. tapping Water right after
+      // opening Plant without picking a seed).
+      Modals.closePopover();
       const type = tool === 'water' ? 'water' : 'harvest';
       ui.tool = (ui.tool && ui.tool.type === type) ? null : { type: type };
       Hud.refresh(state, ui);
