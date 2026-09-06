@@ -9,6 +9,11 @@ that keeps both of these current.
 
 ## Deferred features (need assets/APIs this pass didn't have)
 
+- **Custom icon per object.** Custom *color* per object shipped (see
+  Changelog 2026-09-06); a custom icon per object (beyond the fixed
+  category set) is a bigger change — needs a picker UI and touches
+  MapLibre's icon-rendering pipeline (`map-icons.js`) for arbitrary
+  images/symbols — and was scoped out of that pass on purpose.
 - **Undo/redo.** Not started. Biggest remaining trust-builder for an editor
   where drawing/deleting shapes is otherwise final.
 - **Presentation / share mode.** A clean read-only view of a map (no edit
@@ -31,9 +36,6 @@ that keeps both of these current.
 
 Brainstormed, not scoped or committed to — pick from here when picking up
 new work.
-
-**Quick, self-contained wins:**
-- Custom color/icon per object, not just the fixed category set.
 
 **Sharing & portability:**
 - Share a single object via a link or the device's native share sheet.
@@ -86,8 +88,10 @@ new work.
 
 - **Data model is intentionally simple** (see `js/objects/object-model.js`):
   a GeoJSON Feature with `id`, `geometry`, `properties` (name/category/
-  description/attachments), and `metadata` (createdAt/updatedAt). No
-  elevation, no GPS accuracy, no address/reverse-geocoding. Fine for the
+  description/color/attachments), and `metadata` (createdAt/updatedAt). No
+  elevation, no GPS accuracy, no address/reverse-geocoding. `properties.color`
+  is `null` by default (falls back to the geometry type's default color via
+  `coalesce` in `map-layers.js`) or a hex string overriding it. Fine for the
   current scope; would need explicit schema additions (and a migration path
   for existing `localStorage` data) if any of that becomes wanted.
 - **Persistence is browser-local, no backend.** Object/settings data lives
@@ -116,6 +120,7 @@ new work.
 ## Suggested next pick-up order
 
 Undo/redo, presentation/share mode, and the vector-style migration are
-postponed for now — bigger/riskier than what's currently wanted. Pick the
-next piece of work from "Feature ideas" above instead; the quick wins
-there are the best starting point.
+postponed for now — bigger/riskier than what's currently wanted. The
+previous batch of quick, self-contained wins (duplicate, keyboard
+shortcuts, units toggle, custom object color) are all shipped — pick the
+next piece of work from "Feature ideas" above instead.

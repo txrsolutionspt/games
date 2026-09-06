@@ -1,12 +1,13 @@
-import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.28";
-import { getCurrentMapId, addAttachmentMeta, removeAttachmentMeta } from "../objects/object-store.js?v=2026-08-26.28";
-import { addFile, deleteFile, getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.28";
+import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.29";
+import { getCurrentMapId, addAttachmentMeta, removeAttachmentMeta } from "../objects/object-store.js?v=2026-08-26.29";
+import { addFile, deleteFile, getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.29";
 
 const editorOverlay = document.getElementById("editor-overlay");
 const editorForm = document.getElementById("editor-form");
 const editorTitle = document.getElementById("editor-title");
 const editorName = document.getElementById("editor-name");
 const editorCategoryGrid = document.getElementById("editor-category-grid");
+const editorColorSwatches = document.getElementById("editor-color-swatches");
 const editorDescription = document.getElementById("editor-description");
 const editorFileList = document.getElementById("editor-file-list");
 const editorFileAdd = document.getElementById("editor-file-add");
@@ -23,6 +24,20 @@ const GEOMETRY_LABEL = {
   LineString: "Line",
   Polygon: "Area",
 };
+
+// A custom color overrides the geometry type's own default marker/line/fill
+// color on the map (see map-layers.js) — the icon itself still comes from
+// the category, this only recolors the shape.
+const COLOR_SWATCHES = [
+  "#ef4444",
+  "#f97316",
+  "#f59e0b",
+  "#22c55e",
+  "#14b8a6",
+  "#3b82f6",
+  "#a855f7",
+  "#ec4899",
+];
 
 function formatFileSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -57,6 +72,40 @@ export function openEditorDialog(geometryType, { isNew, properties }) {
         }
       });
       editorCategoryGrid.appendChild(button);
+    }
+
+    let selectedColor = properties.color || null;
+
+    editorColorSwatches.innerHTML = "";
+    const defaultSwatch = document.createElement("button");
+    defaultSwatch.type = "button";
+    defaultSwatch.className = "color-swatch color-swatch-default";
+    defaultSwatch.title = "Default color";
+    defaultSwatch.setAttribute("aria-label", "Default color");
+    defaultSwatch.classList.toggle("selected", selectedColor === null);
+    defaultSwatch.addEventListener("click", () => {
+      selectedColor = null;
+      for (const sibling of editorColorSwatches.children) {
+        sibling.classList.toggle("selected", sibling === defaultSwatch);
+      }
+    });
+    editorColorSwatches.appendChild(defaultSwatch);
+
+    for (const color of COLOR_SWATCHES) {
+      const swatch = document.createElement("button");
+      swatch.type = "button";
+      swatch.className = "color-swatch";
+      swatch.style.background = color;
+      swatch.title = color;
+      swatch.setAttribute("aria-label", `Color ${color}`);
+      swatch.classList.toggle("selected", color === selectedColor);
+      swatch.addEventListener("click", () => {
+        selectedColor = color;
+        for (const sibling of editorColorSwatches.children) {
+          sibling.classList.toggle("selected", sibling === swatch);
+        }
+      });
+      editorColorSwatches.appendChild(swatch);
     }
 
     // A brand-new object doesn't exist in the store yet (it's only added on
@@ -164,6 +213,7 @@ export function openEditorDialog(geometryType, { isNew, properties }) {
         name: editorName.value.trim(),
         category: selectedCategory,
         description: editorDescription.value.trim(),
+        color: selectedColor,
       });
     }
 

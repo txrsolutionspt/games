@@ -10,6 +10,7 @@ import {
   categoryInfo,
   geometryKind,
   touch,
+  duplicateFeature,
 } from "../js/objects/object-model.js";
 
 let passed = 0;
@@ -31,6 +32,7 @@ check("createPoint sets geometry type", point.geometry.type === "Point");
 check("createPoint keeps the given coordinates", JSON.stringify(point.geometry.coordinates) === JSON.stringify([1, 2]));
 check("feature.id and properties.id match", point.id === point.properties.id);
 check("a fresh feature has an empty attachments array", Array.isArray(point.properties.attachments) && point.properties.attachments.length === 0);
+check("a fresh feature defaults to no custom color", point.properties.color === null);
 check("a fresh Point feature defaults to that geometry's first category", point.properties.category === categoriesFor("Point")[0]?.value);
 check("createdAt and updatedAt are set and equal at creation", point.metadata.createdAt === point.metadata.updatedAt);
 
@@ -74,6 +76,17 @@ check("touch() bumps updatedAt without changing createdAt", point.metadata.updat
 
 check("MODES has distinct values for every mode", new Set(Object.values(MODES)).size === Object.values(MODES).length);
 check("MODES.VIEW exists (the default/idle mode)", MODES.VIEW === "view");
+
+console.log("\n== duplicateFeature ==");
+const colored = createPoint([3, 4]);
+colored.properties.color = "#ef4444";
+const copy = duplicateFeature(colored);
+check("the duplicate gets a new id", copy.id !== colored.id);
+check("the duplicate carries over the original's custom color", copy.properties.color === "#ef4444");
+
+const plain = createPoint([5, 6]);
+const plainCopy = duplicateFeature(plain);
+check("duplicating a feature with no custom color keeps it null", plainCopy.properties.color === null);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

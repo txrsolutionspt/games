@@ -1,9 +1,18 @@
-import { CATEGORIES } from "../objects/object-model.js?v=2026-08-26.28";
-import { registerCategoryIcons, categoryIconExpression } from "./map-icons.js?v=2026-08-26.28";
+import { CATEGORIES } from "../objects/object-model.js?v=2026-08-26.29";
+import { registerCategoryIcons, categoryIconExpression } from "./map-icons.js?v=2026-08-26.29";
 
 const SOURCE_ID = "user-objects";
 
 export const OBJECT_LAYER_IDS = ["user-points", "user-lines", "user-polygons"];
+
+// An object's own properties.color (set via the editor dialog's color
+// swatches) overrides the geometry type's default; unset (null/absent)
+// falls back to that default. Selection-highlight layers stay a fixed
+// yellow regardless — recoloring the shape shouldn't also change how
+// "selected" reads.
+function colorExpression(defaultColor) {
+  return ["coalesce", ["get", "color"], defaultColor];
+}
 
 export function setupObjectLayers(map, initialData) {
   map.addSource(SOURCE_ID, { type: "geojson", data: initialData });
@@ -14,7 +23,7 @@ export function setupObjectLayers(map, initialData) {
     type: "fill",
     source: SOURCE_ID,
     filter: ["==", ["geometry-type"], "Polygon"],
-    paint: { "fill-color": "#22c55e", "fill-opacity": 0.35 },
+    paint: { "fill-color": colorExpression("#22c55e"), "fill-opacity": 0.35 },
   });
 
   // A brighter fill tint for the selected polygon, so selection is obvious
@@ -32,7 +41,7 @@ export function setupObjectLayers(map, initialData) {
     type: "line",
     source: SOURCE_ID,
     filter: ["==", ["geometry-type"], "Polygon"],
-    paint: { "line-color": "#16a34a", "line-width": 2 },
+    paint: { "line-color": colorExpression("#16a34a"), "line-width": 2 },
   });
 
   map.addLayer({
@@ -40,7 +49,7 @@ export function setupObjectLayers(map, initialData) {
     type: "line",
     source: SOURCE_ID,
     filter: ["==", ["geometry-type"], "LineString"],
-    paint: { "line-color": "#f97316", "line-width": 4 },
+    paint: { "line-color": colorExpression("#f97316"), "line-width": 4 },
   });
 
   // A soft, wide halo drawn under the selected line so selection reads as a
@@ -71,7 +80,7 @@ export function setupObjectLayers(map, initialData) {
     filter: ["==", ["geometry-type"], "Point"],
     paint: {
       "circle-radius": 11,
-      "circle-color": "#3b82f6",
+      "circle-color": colorExpression("#3b82f6"),
       "circle-stroke-width": 2,
       "circle-stroke-color": "#ffffff",
     },
