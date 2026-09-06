@@ -10,6 +10,12 @@
 // file, via each item's own `key`.
 const WHATS_NEW = [
   {
+    version: '1.0.10',
+    items: [
+      { icon: '🍎', key: 'whatsnew.1.0.10.0', fallback: 'New: an Apple Tree that keeps producing fruit every season without needing to be replanted, plus two new animals — Goats and Pigs (which sniff out truffles!).' }
+    ]
+  },
+  {
     version: '1.0.9',
     items: [
       { icon: '🧶', key: 'whatsnew.1.0.9.0', fallback: 'Sheep wool now has a use! Spin it into yarn at a new Loom, then sew that yarn into clothing at a new Tailor.' }

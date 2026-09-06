@@ -6,6 +6,12 @@ scripts, an in-progress change that got reverted before ever shipping) is
 left out — this is a record of what changed for someone actually playing,
 not a full commit log (see git history / `PLAN.md` for that).
 
+## 1.0.10
+- New content: an Apple Tree crop that keeps producing fruit season after
+  season instead of needing to be replanted after each harvest, plus two
+  new animals — Goats (goat's milk) and Pigs (truffles, sniffed out from
+  underground).
+
 ## 1.0.9
 - Wool now has somewhere to go: a new Loom building spins it into yarn,
   and a new Tailor sews that yarn into clothing to sell — a longer
