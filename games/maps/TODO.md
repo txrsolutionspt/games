@@ -44,8 +44,6 @@ new work.
 - Import from GPX/KML to match.
 
 **Organization, as object count grows:**
-- Sort/filter the sidebar list — by category, alphabetically, or nearest
-  to the user's current location.
 - Marker clustering when zoomed out with many pins.
 - Multi-select + bulk delete/recategorize.
 

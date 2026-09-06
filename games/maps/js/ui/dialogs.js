@@ -1,6 +1,6 @@
-import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.29";
-import { getCurrentMapId, addAttachmentMeta, removeAttachmentMeta } from "../objects/object-store.js?v=2026-08-26.29";
-import { addFile, deleteFile, getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.29";
+import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.30";
+import { getCurrentMapId, addAttachmentMeta, removeAttachmentMeta } from "../objects/object-store.js?v=2026-08-26.30";
+import { addFile, deleteFile, getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.30";
 
 const editorOverlay = document.getElementById("editor-overlay");
 const editorForm = document.getElementById("editor-form");
