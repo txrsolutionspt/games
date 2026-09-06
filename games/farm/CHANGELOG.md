@@ -6,6 +6,11 @@ scripts, an in-progress change that got reverted before ever shipping) is
 left out — this is a record of what changed for someone actually playing,
 not a full commit log (see git history / `PLAN.md` for that).
 
+## 1.0.11
+- Farm expansion is back: half the field starts unlocked and ready to
+  play, and the rest can now be bought plot by plot with coins, starting
+  cheap and growing pricier the farther out you go.
+
 ## 1.0.10
 - New content: an Apple Tree crop that keeps producing fruit season after
   season instead of needing to be replanted after each harvest, plus two

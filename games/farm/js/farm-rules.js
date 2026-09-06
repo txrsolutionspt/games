@@ -40,13 +40,13 @@
     return x - Math.floor(x);
   }
 
-  // The starting cluster itself (row 0, col < safeCols — matching
-  // CONFIG.initialUnlockedPlots) is always soil regardless of the hash, so
-  // the tutorial's first "plant wheat on an empty plot" step can never
-  // land on unusable ground. Deliberately just that small cluster, not a
-  // whole safe row: plots unlock in row-major order, so forcing all of row
-  // 0 to soil would mean animals (pasture-only) stay unreachable until a
-  // player unlocks all the way into row 1 — a large chunk of the field —
+  // The starting cluster itself (row 0, col < safeCols — CONFIG.
+  // terrainSafeCols, deliberately much smaller than CONFIG.
+  // initialUnlockedPlots) is always soil regardless of the hash, so the
+  // tutorial's first "plant wheat on an empty plot" step can never land on
+  // unusable ground. Deliberately just that small cluster, not a whole
+  // safe row: forcing all of row 0 to soil would mean animals
+  // (pasture-only) stay unreachable until a player crossed into row 1 —
   // which would break the early-game loop rather than protect it.
   function terrainForPlot(col, row, blockSize, safeCols) {
     if (row === 0 && col < safeCols) return 'soil';

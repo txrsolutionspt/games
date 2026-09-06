@@ -560,14 +560,13 @@ like the rest of `farm-rules.js`.
   scattered randomly across the field.
 - Weighted distribution: soil 65%, pasture 15%, lake 12%, mountain 8% — soil
   stays the common case so the game doesn't feel terrain-starved.
-- **Safe zone:** only the starting cluster itself — row 0, `col <
-  CONFIG.terrainSafeCols` (kept equal to `initialUnlockedPlots`) — is forced
-  to soil regardless of the hash, guaranteeing the tutorial's first "tap an
-  empty plot and plant wheat" step always lands on usable ground.
-  Deliberately narrow, not a whole safe row: since plots unlock in
-  row-major order, forcing all of row 0 to soil would make pasture (and
-  therefore animals) unreachable until a player unlocked all the way into
-  row 1 — a much bigger, more expensive stretch of the field — which would
+- **Safe zone:** only a small starting cluster — row 0, `col <
+  CONFIG.terrainSafeCols` (8, deliberately independent of
+  `initialUnlockedPlots`) — is forced to soil regardless of the hash,
+  guaranteeing the tutorial's first "tap an empty plot and plant wheat"
+  step always lands on usable ground. Deliberately narrow, not a whole
+  safe row: forcing all of row 0 to soil would make pasture (and therefore
+  animals) unreachable until a player crossed into row 1, which would
   break the early-game loop rather than protect it. Beyond the starting
   cluster, row 0 gets real terrain variety like anywhere else, so an early
   pasture patch (and a first chicken) stays within easy reach.
@@ -577,17 +576,24 @@ like the rest of `farm-rules.js`.
   player can't actually reach yet. The unlock-plot modal *does* show the
   terrain (icon + name + one-line hint) before the player spends coins, so
   "why can't I plant here" is answered before the purchase, not after.
-- **Every plot starts unlocked, for now.** `state.js`'s `createInitialState`
-  sets `unlocked: true` on every plot rather than gating it behind
-  `initialUnlockedPlots`/coins, so the whole 60×60 terrain patchwork is
-  visible immediately instead of being revealed plot-by-plot as a player
-  buys their way outward. The buy-to-expand machinery this bypasses
-  (`farm-rules.js` `canUnlockPlot`, `input.js` `unlockPlot`, `Modals.
-  showUnlockPlot`, the locked-tile padlock rendering) is left fully in
-  place, just unreachable — reverting is a one-line change back to
-  `unlocked: i < CONFIG.initialUnlockedPlots`. `initialUnlockedPlots` itself
-  stays in `CONFIG` regardless, since it still anchors the starting camera
-  focus and sizes the terrain safe zone above.
+- **Buy-to-expand: half the field starts unlocked.** `state.js`'s
+  `createInitialState` sets `unlocked: i < CONFIG.initialUnlockedPlots` on
+  each plot, and `CONFIG.initialUnlockedPlots` is computed as half of
+  `gridCols × gridRows` (1,800 of 3,600 — plots are stored row-major, so
+  this is rows 0–29 of the 60-row field, fully open). The other half is
+  bought plot-by-plot via `farm-rules.js` `canUnlockPlot`, `input.js`
+  `unlockPlot` and `Modals.showUnlockPlot` (the locked-tile padlock
+  rendering shows what's still to buy). `CONFIG.plotUnlockCost` is
+  re-anchored to `initialUnlockedPlots` (`20 + (index -
+  initialUnlockedPlots) * 2`) so the price curve starts cheap right where
+  purchasing actually begins, regardless of how many plots start unlocked
+  — the first purchasable plot costs 20 coins, same as it would if the
+  starting set were much smaller. This was shipped once already as a much
+  smaller starting cluster (`initialUnlockedPlots: 8`), then turned off
+  entirely (every plot simply started unlocked, no economy) for scope
+  reasons unrelated to whether it worked; re-enabling it with a much larger
+  starting half — rather than the original tiny cluster — avoids handing a
+  returning or new player an unlock grind before the game feels playable.
 - Attempting to plant/build on non-soil or place an animal on non-pasture
   shows a specific toast (e.g. "Crops need farmland soil!") rather than
   silently doing nothing — the same "always give feedback" rule the rest of

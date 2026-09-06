@@ -40,21 +40,28 @@ const CONFIG = {
   // number here.
   gridCols: 60,
   gridRows: 60,
-  // For now every plot starts unlocked (see state.js) — this no longer
-  // gates which plots begin playable. It still anchors the starting camera
-  // focus (render.js FOCUS_COL/FOCUS_ROW) and sizes the terrain safe zone
-  // (terrainSafeCols below), so it stays meaningful even with buy-to-expand
-  // switched off.
-  initialUnlockedPlots: 8,
+  // How many plots start already unlocked (state.js's createInitialState) —
+  // half the field, computed below (after gridCols/gridRows) so it always
+  // tracks the real field size regardless of grid dimensions. Buy-to-expand
+  // is active: the player starts with a large, immediately-playable half
+  // of the map (rows 0..29 of 60, row-major order) and buys their way into
+  // the rest — see plotUnlockCost below for how the purchase price is
+  // re-anchored to start counting from here. Also anchors the starting
+  // camera focus (render.js FOCUS_COL/FOCUS_ROW).
+  initialUnlockedPlots: 0, // placeholder — set below, after gridCols/gridRows
 
   // Terrain (PLAN.md §10): plots are grouped into blockSize x blockSize
   // blocks for terrain generation, so each terrain type reads as a
-  // multi-tile patch rather than single-tile speckle. terrainSafeCols is
-  // set below, right after initialUnlockedPlots, so the two can never
-  // drift apart — the starting cluster (row 0, col < terrainSafeCols) is
-  // always soil regardless of the hash, guaranteeing the tutorial's first
-  // planting step always lands on usable ground.
+  // multi-tile patch rather than single-tile speckle. terrainSafeCols
+  // guarantees row 0's first few columns are always soil regardless of the
+  // hash, so the tutorial's first planting step always lands on usable
+  // ground. Deliberately kept small and independent of
+  // initialUnlockedPlots (a large fraction of the field, now that
+  // buy-to-expand is active) — widening the guaranteed-soil zone to match
+  // would strip most terrain variety, and therefore pasture/animals, out
+  // of the entire starting half of the map.
   terrainBlockSize: 4,
+  terrainSafeCols: 8,
 
   // Lake irrigation (PLAN.md §10/§17): a growing crop within this many
   // tiles of any lake gets a free daily watering, the same free-watering
@@ -88,18 +95,21 @@ const CONFIG = {
 
   startingCoins: 60,
 
-  // Cost, in coins, to unlock the Nth plot (0-indexed) beyond the
-  // starting set. Growth is slower than a smaller field would need — at
-  // the far edge of a 3,600-plot field (index ~3599) this is still only
-  // in the low thousands of coins, not the tens of thousands a steeper
-  // per-plot rate would reach — since there's now far more field to
+  // Cost, in coins, to unlock the Nth *purchasable* plot (0-indexed,
+  // counting from the first plot beyond the starting unlocked set, not
+  // from plot 0) — re-anchored to initialUnlockedPlots so the price curve
+  // always starts cheap right where purchasing actually begins, regardless
+  // of how many plots start unlocked. Growth is slower than a smaller
+  // field would need — at the far purchasable edge (~1,800 plots in) this
+  // is still only in the low thousands of coins, not the tens of thousands
+  // a steeper per-plot rate would reach — since there's far more field to
   // eventually grow into than any player needs to fully unlock.
   plotUnlockCost(index) {
-    return 20 + index * 2;
+    return 20 + (index - CONFIG.initialUnlockedPlots) * 2;
   }
 };
 
-CONFIG.terrainSafeCols = CONFIG.initialUnlockedPlots;
+CONFIG.initialUnlockedPlots = Math.floor(CONFIG.gridCols * CONFIG.gridRows / 2);
 
 if (typeof module === 'object' && module.exports) {
   module.exports = CONFIG;
