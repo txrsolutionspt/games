@@ -6,6 +6,12 @@ scripts, an in-progress change that got reverted before ever shipping) is
 left out — this is a record of what changed for someone actually playing,
 not a full commit log (see git history / `PLAN.md` for that).
 
+## 1.0.9
+- Wool now has somewhere to go: a new Loom building spins it into yarn,
+  and a new Tailor sews that yarn into clothing to sell — a longer
+  version of the same "raw material becomes something useful" chain as
+  wheat → flour → bread.
+
 ## 1.0.8
 - The farm looks a little more three-dimensional now: tiles have a soft
   shaded look instead of flat color, and crops/animals/buildings cast a

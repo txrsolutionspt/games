@@ -230,14 +230,23 @@ actually grows:
 ```
 
 **Recipe** (`data-recipes.js`) — processing chains, `inputs → time → output`.
-MVP ships four, satisfying the "at least 3" requirement with headroom:
+MVP shipped four; a second chain (wool → yarn → clothing) was added later,
+reusing the same building/recipe/mission mechanics end-to-end rather than
+adding any new system:
 
 ```js
-{ id: 'flour',  building: 'mill',   inputs: [{item:'wheat_grain', qty:3}], timeSec: 60,  output: {item:'flour', qty:1} }
-{ id: 'bread',  building: 'bakery', inputs: [{item:'flour', qty:2}],       timeSec: 90,  output: {item:'bread', qty:1} }
-{ id: 'butter', building: 'churn',  inputs: [{item:'milk', qty:2}],        timeSec: 60,  output: {item:'butter', qty:1} }
-{ id: 'sauce',  building: 'kitchen',inputs: [{item:'tomato', qty:3}],      timeSec: 45,  output: {item:'tomato_sauce', qty:1} }
+{ id: 'flour',    building: 'mill',   inputs: [{item:'wheat_grain', qty:3}], timeSec: 60,  output: {item:'flour', qty:1} }
+{ id: 'bread',    building: 'bakery', inputs: [{item:'flour', qty:2}],       timeSec: 90,  output: {item:'bread', qty:1} }
+{ id: 'butter',   building: 'churn',  inputs: [{item:'milk', qty:2}],        timeSec: 60,  output: {item:'butter', qty:1} }
+{ id: 'sauce',    building: 'kitchen',inputs: [{item:'tomato', qty:3}],      timeSec: 45,  output: {item:'tomato_sauce', qty:1} }
+{ id: 'yarn',     building: 'loom',   inputs: [{item:'wool', qty:3}],        timeSec: 25,  output: {item:'yarn', qty:1} }
+{ id: 'clothing', building: 'tailor', inputs: [{item:'yarn', qty:2}],        timeSec: 35,  output: {item:'clothing', qty:1} }
 ```
+
+`yarn` is both a recipe output and another recipe's input, same as `flour`
+already was for `bread` — `Economy.sellPriceFor` looks a sell price up
+generically across crops/animal-produce/recipe-outputs, so an intermediate
+good like flour or yarn needs no special-casing to be sellable too.
 
 Each recipe carries an `educational` string. It's shown as a popup only the
 *first* time that product completes, and is otherwise available on demand —
@@ -245,8 +254,9 @@ see §12 for why every completion doesn't launch a modal.
 
 Each entry in `data-recipes.js`'s `BUILDINGS` array (the building itself,
 not the recipe) also carries a `stoneCost` alongside its coin `cost` — mill
-4, bakery 6, churn 5, kitchen 5 — spent from `state.inventory.stone` on
-placement, mined from mountain quarries (see §10).
+4, bakery 6, churn 5, kitchen 5, loom 5, tailor 7 — spent from
+`state.inventory.stone` on placement, mined from mountain quarries (see
+§10).
 
 **Quarry** (`data-quarry.js`): one shared definition, not a list, since
 there's only one kind of quarry — every mountain tile already is one, so
@@ -510,8 +520,8 @@ placed there (see "Lake irrigation and quarries" below for what lake and
 mountain tiles actually do).
 
 - **Farmland (soil)** — the default; plantable. Crops and processing
-  buildings (mill/bakery/churn/kitchen) can both go here, same as every
-  plot could before this feature.
+  buildings (mill/bakery/churn/kitchen/loom/tailor) can both go here, same
+  as every plot could before this feature.
 - **Pasture (grassland)** — animals only. Crops and buildings can't be
   placed here; it exists specifically so a farm reads as having a
   dedicated area for livestock, not livestock scattered arbitrarily
@@ -609,9 +619,9 @@ inventing a new one:
   mirror `animalProgress`/`canCollectAnimal` one-for-one. A tap while
   mining is in progress shows a percentage tooltip; a tap once ready
   collects 1 stone and shows the same first-time-fact-then-toast pattern
-  every other harvest uses. All four buildings (`data-recipes.js`
-  `BUILDINGS`) now carry a `stoneCost` alongside their coin `cost`
-  (mill 4, bakery 6, churn 5, kitchen 5); `input.js`'s `placeBuilding`
+  every other harvest uses. Every building (`data-recipes.js`
+  `BUILDINGS`) carries a `stoneCost` alongside their coin `cost`
+  (mill 4, bakery 6, churn 5, kitchen 5, loom 5, tailor 7); `input.js`'s `placeBuilding`
   checks and deducts `state.inventory.stone` the same way it already
   checks and deducts coins, and the building shop (`modals.js`
   `showBuildingShop`) shows the stone cost on every card plus a "need
