@@ -4,6 +4,15 @@ User-facing changes to the map editor, newest first. See `TODO.md` for
 what's deliberately deferred, and `CLAUDE.md` for the rule that keeps this
 file updated.
 
+## 2026-09-06
+
+- **Custom color per object.** The editor dialog's Category section now
+  also shows a row of color swatches. Pick one to override that object's
+  default color on the map (points, lines, and area fills/outlines); pick
+  "Default" to go back to the category's usual color. The icon on a point
+  marker still comes from its category — this only recolors the shape.
+  Duplicating a colored object carries its color to the copy.
+
 ## 2026-09-05
 
 - **Metric/imperial units toggle.** Menu → Units switches distance and

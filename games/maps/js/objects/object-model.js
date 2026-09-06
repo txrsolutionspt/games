@@ -62,6 +62,7 @@ function createFeature(geometry) {
       name: "",
       category: DEFAULT_CATEGORY[geometry.type] || "",
       description: "",
+      color: null, // null = use the geometry type's default color (see map-layers.js)
       attachments: [],
     },
     metadata: {

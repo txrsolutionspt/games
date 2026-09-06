@@ -103,6 +103,53 @@ const { check, section, report } = makeReporter("e2e-core-objects");
     check("the popup shows an area readout for a polygon", metaLines.some((t) => /▦/.test(t)), JSON.stringify(metaLines));
   }
 
+  section("custom color swatches, integrated into the category section");
+  {
+    await page.click("#add-button");
+    await page.click('[data-add="point"]');
+    await page.mouse.click(mapBox.x + mapBox.width / 4, mapBox.y + mapBox.height / 4);
+    await page.waitForTimeout(200);
+
+    const swatchCount = await page.locator("#editor-color-swatches .color-swatch").count();
+    check("the editor shows a default swatch plus the color palette", swatchCount === 9, `count=${swatchCount}`);
+
+    const defaultSelectedInitially = await page
+      .locator("#editor-color-swatches .color-swatch-default")
+      .evaluate((el) => el.classList.contains("selected"));
+    check("a new object starts with the default (no custom color) swatch selected", defaultSelectedInitially);
+
+    await page.click('#editor-color-swatches .color-swatch[title="#ef4444"]');
+    await page.fill("#editor-name", "Colored Point");
+    await page.click('#editor-category-grid [data-category="water"]');
+    await page.click("#editor-save");
+    await page.waitForTimeout(300);
+
+    const saved = await page.evaluate(() => {
+      const mapId = JSON.parse(localStorage.getItem("maps-v1")).activeMapId;
+      const stored = JSON.parse(localStorage.getItem(`map-editor-data-v1:${mapId}`));
+      return stored.objects.find((f) => f.properties.name === "Colored Point");
+    });
+    check("the chosen swatch color is saved on properties.color", saved?.properties.color === "#ef4444");
+
+    await page.click(".feature-popup [data-action='edit-info']");
+    await page.waitForTimeout(200);
+    const reselected = await page
+      .locator('#editor-color-swatches .color-swatch[title="#ef4444"]')
+      .evaluate((el) => el.classList.contains("selected"));
+    check("reopening the editor shows the previously-picked swatch as selected", reselected);
+
+    await page.click("#editor-color-swatches .color-swatch-default");
+    await page.click("#editor-save");
+    await page.waitForTimeout(300);
+
+    const reset = await page.evaluate(() => {
+      const mapId = JSON.parse(localStorage.getItem("maps-v1")).activeMapId;
+      const stored = JSON.parse(localStorage.getItem(`map-editor-data-v1:${mapId}`));
+      return stored.objects.find((f) => f.properties.name === "Colored Point");
+    });
+    check("picking the Default swatch resets properties.color to null", reset?.properties.color === null);
+  }
+
   section("edit properties + sidebar list");
   {
     await page.click("#sidebar-toggle-button").catch(() => {});
