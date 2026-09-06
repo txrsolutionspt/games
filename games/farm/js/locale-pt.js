@@ -238,6 +238,7 @@ const LOCALE_PT = {
   'mission.quarry-work.description': 'Extraia pedra de uma montanha.',
   'mission.quarry-work.learned': 'As pedreiras extraem pedra das montanhas para usar em construções.',
 
+  'whatsnew.1.0.11.0': 'A expansão da quinta está de volta! Metade do terreno começa desbloqueada, e agora podes comprar o resto com moedas — barato ao início, mais caro quanto mais longe fores.',
   'whatsnew.1.0.10.0': 'Novidade: uma Macieira que continua a dar fruta todas as estações sem precisar de ser replantada, além de dois novos animais — Cabras e Porcos (que farejam trufas!).',
   'whatsnew.1.0.9.0': 'A lã das ovelhas agora tem uma utilidade! Fia-a em fio num novo Tear e depois costura esse fio em roupa num novo Alfaiate.',
   'whatsnew.1.0.8.0': 'A quinta parece um pouco mais tridimensional agora: parcelas com sombreado suave e sombras leves em plantações, animais e construções.',

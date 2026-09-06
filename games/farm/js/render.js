@@ -19,10 +19,11 @@ const MAX_ZOOM = 2.5;
 // panning/scrolling, the same as a map that's bigger than the screen.
 const TARGET_VISIBLE_COLS = 5;
 
-// Initial camera focus, in grid coordinates: the starting unlocked
-// cluster (roughly the centroid of plot indices 0..initialUnlockedPlots),
+// Initial camera focus, in grid coordinates: near the top-left corner of
+// the starting unlocked half of the field (CONFIG.initialUnlockedPlots),
 // not the grid's overall center — a new player should land looking at
-// their own plots, not empty locked land in the middle of a big field.
+// their own plots and the tutorial's first wheat tile, not the middle of
+// a mostly-locked field.
 const FOCUS_COL = 2.5;
 const FOCUS_ROW = 0.5;
 
