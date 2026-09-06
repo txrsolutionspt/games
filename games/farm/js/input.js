@@ -123,7 +123,15 @@ const Input = (function () {
     const inSeason = FarmRules.isCropInSeason(def, Simulation.currentSeason(state));
     const result = FarmRules.cropYield(plot.occupant, def, inSeason);
     Economy.addItem(state, result.item, result.qty);
-    plot.occupant = null;
+    if (def.perennial) {
+      // Stays planted: reset straight back to growing instead of clearing
+      // the plot, so it grows another round for free (see data-crops.js).
+      plot.occupant.plantedAt = state.clock.tick;
+      plot.occupant.waterGiven = 0;
+      plot.occupant.state = 'growing';
+    } else {
+      plot.occupant = null;
+    }
     Events.emit('harvest', { crop: def.id, qty: result.qty });
     Hud.toast(def.icon + ' ' + I18N.t('ui.toast.harvested', 'Harvested!') + ' +' + result.qty);
     Persistence.scheduleSave(state);

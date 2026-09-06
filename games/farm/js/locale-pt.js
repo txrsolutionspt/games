@@ -148,6 +148,8 @@ const LOCALE_PT = {
   'crop.strawberry.fact': 'Os morangos crescem rente ao chão e amadurecem depressa quando o tempo aquece.',
   'crop.potato.name': 'Batata',
   'crop.potato.fact': 'As batatas crescem debaixo da terra e guardam energia extra para a planta — por isso são tão nutritivas.',
+  'crop.apple.name': 'Macieira',
+  'crop.apple.fact': 'As macieiras são plantas perenes: a mesma árvore continua a dar fruta estação após estação, sem precisar de ser replantada.',
 
   'animal.chicken.name': 'Galinha',
   'animal.chicken.fact': 'As galinhas transformam o trigo que você cultiva em ovos — as quintas de verdade alimentam os animais com o que cultivam.',
@@ -155,6 +157,10 @@ const LOCALE_PT = {
   'animal.cow.fact': 'As vacas comem grão e erva e transformam-nos em leite, que pode virar manteiga ou queijo.',
   'animal.sheep.name': 'Ovelha',
   'animal.sheep.fact': 'As ovelhas têm um casaco de lã que pode ser tosquiado e fiado para fazer roupa.',
+  'animal.goat.name': 'Cabra',
+  'animal.goat.fact': 'As cabras são resistentes e comem com gosto muitas plantas diferentes, por isso são fáceis de criar em quintas pequenas.',
+  'animal.pig.name': 'Porco',
+  'animal.pig.fact': 'Os porcos têm um excelente olfato e às vezes são treinados para farejar trufas escondidas debaixo da terra.',
 
   'building.mill.name': 'Moinho',
   'building.bakery.name': 'Padaria',
@@ -216,10 +222,23 @@ const LOCALE_PT = {
   'mission.sew-clothing.description': 'Costure roupa no Alfaiate.',
   'mission.sew-clothing.learned': 'Tecer e costurar transformam o fio em roupa quentinha para vestir.',
 
+  'mission.apple-orchard.title': 'Cultive um Pomar',
+  'mission.apple-orchard.description': 'Colha 5 maçãs da sua macieira.',
+  'mission.apple-orchard.learned': 'As macieiras são plantas perenes — a mesma árvore continua a dar fruta estação após estação, sem precisar de ser replantada.',
+
+  'mission.goat-grazing.title': 'Pastagem de Cabras',
+  'mission.goat-grazing.description': 'Alimente uma cabra.',
+  'mission.goat-grazing.learned': 'As cabras são resistentes e comem com gosto muitas plantas diferentes, por isso são fáceis de criar em quintas pequenas.',
+
+  'mission.truffle-hunt.title': 'Caça às Trufas',
+  'mission.truffle-hunt.description': 'Recolha 3 trufas de um porco.',
+  'mission.truffle-hunt.learned': 'Os porcos têm um excelente olfato e às vezes são treinados para farejar trufas escondidas debaixo da terra.',
+
   'mission.quarry-work.title': 'Trabalho na Pedreira',
   'mission.quarry-work.description': 'Extraia pedra de uma montanha.',
   'mission.quarry-work.learned': 'As pedreiras extraem pedra das montanhas para usar em construções.',
 
+  'whatsnew.1.0.10.0': 'Novidade: uma Macieira que continua a dar fruta todas as estações sem precisar de ser replantada, além de dois novos animais — Cabras e Porcos (que farejam trufas!).',
   'whatsnew.1.0.9.0': 'A lã das ovelhas agora tem uma utilidade! Fia-a em fio num novo Tear e depois costura esse fio em roupa num novo Alfaiate.',
   'whatsnew.1.0.8.0': 'A quinta parece um pouco mais tridimensional agora: parcelas com sombreado suave e sombras leves em plantações, animais e construções.',
   'whatsnew.1.0.8.1': 'Tocar em Plantar, Animais ou Construir agora abre as opções mesmo ao lado do botão — mais rápido, e podes trocar entre eles sem fechar nada primeiro.',

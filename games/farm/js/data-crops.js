@@ -6,6 +6,14 @@
 // before it matures yields a full harvest; watering less still yields a
 // (smaller) harvest — neglect never destroys the crop.
 //
+// perennial (optional, default falsy): a crop that stays planted after
+// harvest instead of clearing the plot — input.js's harvestCrop resets it
+// straight back to growing (same growTimeSec/waterRequired) rather than
+// nulling the occupant, so it's ready to grow another round for free. This
+// is the one crop-level branch anywhere in the harvest path; everything
+// else (growth math, watering, rendering) already works unmodified since
+// cropProgress is purely a function of plantedAt/tick.
+//
 // name/educational are shown as-is in English, and double as the built-in
 // English fallback for i18n (see js/i18n.js) via keys 'crop.<id>.name' /
 // 'crop.<id>.fact'.
@@ -88,6 +96,20 @@ const CROPS = [
     harvestYield: { item: 'potato', qty: 4 },
     sellPrice: 3,
     educational: 'Potatoes grow underground and store extra energy for the plant — that is why they are so filling.'
+  },
+  {
+    id: 'apple',
+    name: 'Apple Tree',
+    icon: '🍎',
+    seedCost: 20,
+    growthStages: 4,
+    growTimeSec: 100,
+    waterRequired: 3,
+    season: ['fall'],
+    perennial: true,
+    harvestYield: { item: 'apple', qty: 4 },
+    sellPrice: 4,
+    educational: 'Apple trees are perennials: unlike wheat or carrots, the same tree keeps producing fruit season after season instead of needing to be replanted.'
   }
 ];
 

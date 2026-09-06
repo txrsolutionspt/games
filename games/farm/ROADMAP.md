@@ -41,16 +41,6 @@ stale ideas look active.
   a deliberate second pass, ideally on its own, but not urgent enough to
   jump the queue over content or the UI work already in flight.
 
-### More crops/animals
-- **Priority**: Medium
-- **Status**: Idea
-- **What**: Goat, pig, and an apple orchard as a longer-cycle "tree" type
-  that stays productive across multiple harvests instead of being
-  replanted each time.
-- **Why**: More variety in the core loop; a tree-type crop teaches a
-  different growing pattern (perennial vs. annual) than anything in the
-  game today.
-
 ### Second farm / biome
 - **Priority**: Low
 - **Status**: Idea

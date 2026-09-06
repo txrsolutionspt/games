@@ -35,6 +35,24 @@ const ANIMALS = [
     needs: { feedItemId: 'wheat_grain', feedPerCycleSec: 90, waterPerCycleSec: 90, shelter: 'barn' },
     produces: { item: 'wool', qty: 1, cycleSec: 100, sellPrice: 6 },
     educational: 'Sheep grow a woolly coat that can be sheared and spun into yarn for clothing.'
+  },
+  {
+    id: 'goat',
+    name: 'Goat',
+    icon: '🐐',
+    cost: 60,
+    needs: { feedItemId: 'wheat_grain', feedPerCycleSec: 70, waterPerCycleSec: 70, shelter: 'barn' },
+    produces: { item: 'goat_milk', qty: 1, cycleSec: 75, sellPrice: 6 },
+    educational: 'Goats are hardy and will happily eat many different plants, which is why they are easy to raise on small farms.'
+  },
+  {
+    id: 'pig',
+    name: 'Pig',
+    icon: '🐖',
+    cost: 90,
+    needs: { feedItemId: 'wheat_grain', feedPerCycleSec: 100, waterPerCycleSec: 100, shelter: 'barn' },
+    produces: { item: 'truffle', qty: 1, cycleSec: 120, sellPrice: 9 },
+    educational: 'Pigs have an excellent sense of smell and are sometimes trained to sniff out truffles hidden underground.'
   }
 ];
 

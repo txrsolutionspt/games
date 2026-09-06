@@ -77,6 +77,36 @@ const MISSIONS = [
     learned: 'Flour, water and heat combine to bake fresh bread.'
   },
   {
+    id: 'apple-orchard',
+    title: 'Grow an Orchard',
+    description: 'Harvest 5 apples from your apple tree.',
+    trigger: 'harvest',
+    match: { crop: 'apple' },
+    count: 5,
+    reward: { coins: 20 },
+    learned: 'Apple trees are perennials — the same tree keeps producing fruit season after season instead of needing to be replanted.'
+  },
+  {
+    id: 'goat-grazing',
+    title: 'Goat Grazing',
+    description: 'Feed a goat.',
+    trigger: 'feedAnimal',
+    match: { animal: 'goat' },
+    count: 1,
+    reward: { coins: 10 },
+    learned: 'Goats are hardy and will happily eat many different plants, which is why they are easy to raise on small farms.'
+  },
+  {
+    id: 'truffle-hunt',
+    title: 'Truffle Hunt',
+    description: 'Collect 3 truffles from a pig.',
+    trigger: 'collectAnimal',
+    match: { item: 'truffle' },
+    count: 3,
+    reward: { coins: 20 },
+    learned: 'Pigs have an excellent sense of smell and are sometimes trained to sniff out truffles hidden underground.'
+  },
+  {
     id: 'right-season',
     title: 'Right Crop, Right Season',
     description: 'Plant a crop that grows well in the current season.',

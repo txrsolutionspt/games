@@ -164,7 +164,14 @@ never touches rendering, input or simulation code.
 
 **Crop** (`data-crops.js`), MVP set of 6 — wheat, carrot, tomato, corn,
 strawberry, potato — chosen to span different growth times, water needs and
-seasons. `waterRequired` is a *count*, not a timer: the player can give the
+seasons. A 7th, the apple tree, was added later as the first `perennial`
+crop: harvesting it resets it straight back to growing (same
+`growTimeSec`/`waterRequired`) instead of clearing the plot, so it keeps
+producing without being replanted — see `input.js`'s `harvestCrop` for the
+one branch this needed; growth math, watering and rendering are unchanged
+since `cropProgress` is purely a function of `plantedAt`/tick regardless of
+whether the plot gets replanted or reused. `waterRequired` is a *count*, not
+a timer: the player can give the
 crop that many waterings whenever they like during growth, on their own
 schedule, rather than hitting a strict real-time window. That keeps care
 forgiving for kids while still teaching that crops need repeated attention,
@@ -201,7 +208,9 @@ hit the minimum required waterings without over-watering):
 ```
 
 **Animal** (`data-animals.js`), MVP set of 3 — chicken (eggs), cow (milk),
-sheep (wool). `needs.feedItemId` points at a real harvested crop item (here,
+sheep (wool) — plus two added later: goat (goat's milk) and pig (truffles,
+sold raw like every other animal product; no recipe of their own yet).
+`needs.feedItemId` points at a real harvested crop item (here,
 the `wheat_grain` the player's own wheat produces) rather than an abstract
 "feed" resource, so feeding animals is visibly tied to crops the player
 actually grows:
