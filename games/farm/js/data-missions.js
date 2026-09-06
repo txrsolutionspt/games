@@ -87,6 +87,26 @@ const MISSIONS = [
     learned: 'Planting a crop in its right season gives it the weather it grows best in.'
   },
   {
+    id: 'wool-to-yarn',
+    title: 'Spin Some Yarn',
+    description: 'Spin wool into yarn at the Loom.',
+    trigger: 'process',
+    match: { recipe: 'yarn' },
+    count: 1,
+    reward: { coins: 15 },
+    learned: 'Spinning twists sheared wool fibers together into strong, useful yarn.'
+  },
+  {
+    id: 'sew-clothing',
+    title: 'Sew Some Clothing',
+    description: 'Sew clothing at the Tailor.',
+    trigger: 'process',
+    match: { recipe: 'clothing' },
+    count: 1,
+    reward: { coins: 25 },
+    learned: 'Weaving and sewing turn yarn into warm clothing people can wear.'
+  },
+  {
     id: 'quarry-work',
     title: 'Quarry Work',
     description: 'Mine 1 stone from a mountain.',

@@ -51,14 +51,6 @@ stale ideas look active.
   different growing pattern (perennial vs. annual) than anything in the
   game today.
 
-### Longer production chains
-- **Priority**: Medium
-- **Status**: Idea
-- **What**: Wool → yarn → clothing, extending the existing
-  crop/animal → processed-good chains by one more step.
-- **Why**: Deepens the "raw material becomes something useful" lesson
-  the game already teaches with wheat → flour → bread.
-
 ### Second farm / biome
 - **Priority**: Low
 - **Status**: Idea

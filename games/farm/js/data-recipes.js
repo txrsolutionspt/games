@@ -10,7 +10,9 @@ const BUILDINGS = [
   { id: 'mill', name: 'Mill', icon: '⚙️', cost: 40, stoneCost: 4 },
   { id: 'bakery', name: 'Bakery', icon: '🍞', cost: 70, stoneCost: 6 },
   { id: 'churn', name: 'Butter Churn', icon: '🧈', cost: 60, stoneCost: 5 },
-  { id: 'kitchen', name: 'Kitchen', icon: '🍲', cost: 65, stoneCost: 5 }
+  { id: 'kitchen', name: 'Kitchen', icon: '🍲', cost: 65, stoneCost: 5 },
+  { id: 'loom', name: 'Loom', icon: '🧶', cost: 65, stoneCost: 5 },
+  { id: 'tailor', name: 'Tailor', icon: '🪡', cost: 90, stoneCost: 7 }
 ];
 
 const BUILDINGS_BY_ID = {};
@@ -52,6 +54,24 @@ const RECIPES = [
     timeSec: 20,
     output: { item: 'tomato_sauce', qty: 1, sellPrice: 12 },
     educational: 'Cooking ripe tomatoes down with a little heat turns them into a rich sauce.'
+  },
+  {
+    id: 'yarn',
+    building: 'loom',
+    name: 'Spin Yarn',
+    inputs: [{ item: 'wool', qty: 3 }],
+    timeSec: 25,
+    output: { item: 'yarn', qty: 1, sellPrice: 10 },
+    educational: 'Spinning twists sheared wool fibers together into strong, useful yarn.'
+  },
+  {
+    id: 'clothing',
+    building: 'tailor',
+    name: 'Sew Clothing',
+    inputs: [{ item: 'yarn', qty: 2 }],
+    timeSec: 35,
+    output: { item: 'clothing', qty: 1, sellPrice: 22 },
+    educational: 'Weaving and sewing turn yarn into warm clothing people can wear.'
   }
 ];
 

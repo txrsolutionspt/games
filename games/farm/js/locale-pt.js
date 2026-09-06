@@ -160,6 +160,8 @@ const LOCALE_PT = {
   'building.bakery.name': 'Padaria',
   'building.churn.name': 'Batedeira de Manteiga',
   'building.kitchen.name': 'Cozinha',
+  'building.loom.name': 'Tear',
+  'building.tailor.name': 'Alfaiate',
 
   'recipe.flour.name': 'Moer Farinha',
   'recipe.flour.fact': 'As pedras do moinho trituram o grão seco de trigo, transformando-o em farinha fina.',
@@ -169,6 +171,10 @@ const LOCALE_PT = {
   'recipe.butter.fact': 'Bater o leite agita a nata até se juntar, formando manteiga.',
   'recipe.sauce.name': 'Cozinhar Molho de Tomate',
   'recipe.sauce.fact': 'Cozinhar tomates maduros em lume brando transforma-os num molho rico.',
+  'recipe.yarn.name': 'Fiar Lã',
+  'recipe.yarn.fact': 'Fiar tece as fibras da lã tosquiada, transformando-as em fio forte e útil.',
+  'recipe.clothing.name': 'Costurar Roupa',
+  'recipe.clothing.fact': 'Tecer e costurar transformam o fio em roupa quentinha para vestir.',
 
   'mission.first-plant.title': 'Prepare o Seu Primeiro Terreno',
   'mission.first-plant.description': 'Plante qualquer cultura num terreno vazio.',
@@ -202,10 +208,19 @@ const LOCALE_PT = {
   'mission.right-season.description': 'Plante uma cultura que cresça bem na estação atual.',
   'mission.right-season.learned': 'Plantar uma cultura na sua estação certa dá-lhe o clima em que ela cresce melhor.',
 
+  'mission.wool-to-yarn.title': 'Fie um Pouco de Lã',
+  'mission.wool-to-yarn.description': 'Fie lã em fio no Tear.',
+  'mission.wool-to-yarn.learned': 'Fiar tece as fibras da lã tosquiada, transformando-as em fio forte e útil.',
+
+  'mission.sew-clothing.title': 'Costure Alguma Roupa',
+  'mission.sew-clothing.description': 'Costure roupa no Alfaiate.',
+  'mission.sew-clothing.learned': 'Tecer e costurar transformam o fio em roupa quentinha para vestir.',
+
   'mission.quarry-work.title': 'Trabalho na Pedreira',
   'mission.quarry-work.description': 'Extraia pedra de uma montanha.',
   'mission.quarry-work.learned': 'As pedreiras extraem pedra das montanhas para usar em construções.',
 
+  'whatsnew.1.0.9.0': 'A lã das ovelhas agora tem uma utilidade! Fia-a em fio num novo Tear e depois costura esse fio em roupa num novo Alfaiate.',
   'whatsnew.1.0.8.0': 'A quinta parece um pouco mais tridimensional agora: parcelas com sombreado suave e sombras leves em plantações, animais e construções.',
   'whatsnew.1.0.8.1': 'Tocar em Plantar, Animais ou Construir agora abre as opções mesmo ao lado do botão — mais rápido, e podes trocar entre eles sem fechar nada primeiro.',
   'whatsnew.1.0.7.0': 'Este ecrã de "Novidades"! Volta aqui depois de uma atualização para ver o que mudou.',

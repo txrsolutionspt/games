@@ -10,6 +10,12 @@
 // file, via each item's own `key`.
 const WHATS_NEW = [
   {
+    version: '1.0.9',
+    items: [
+      { icon: '🧶', key: 'whatsnew.1.0.9.0', fallback: 'Sheep wool now has a use! Spin it into yarn at a new Loom, then sew that yarn into clothing at a new Tailor.' }
+    ]
+  },
+  {
     version: '1.0.8',
     items: [
       { icon: '🎨', key: 'whatsnew.1.0.8.0', fallback: 'The farm looks a little more three-dimensional now: shaded tiles and soft shadows on crops, animals and buildings.' },

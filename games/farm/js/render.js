@@ -299,7 +299,7 @@ const Render = (function () {
     }
   }
 
-  const BUILDING_COLOR = { mill: '#c9a86a', bakery: '#e0a45c', churn: '#e8d99a', kitchen: '#e2846a' };
+  const BUILDING_COLOR = { mill: '#c9a86a', bakery: '#e0a45c', churn: '#e8d99a', kitchen: '#e2846a', loom: '#b9c9e0', tailor: '#c9a8d8' };
 
   function drawBuilding(ctx, plot, geom, cx, cy, t, tick) {
     const occ = plot.occupant;
