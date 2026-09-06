@@ -46,6 +46,7 @@ jobs:
           - e2e-attachments.js
           - e2e-pwa.js
           - e2e-keyboard-shortcuts.js
+          - e2e-sidebar-sort-filter.js
     steps:
       - name: Checkout
         uses: actions/checkout@v4

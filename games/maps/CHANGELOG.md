@@ -6,6 +6,11 @@ file updated.
 
 ## 2026-09-06
 
+- **Sort and filter the sidebar list.** The Objects sidebar now has Sort
+  (Default, Name A–Z, Category, or Nearest to me) and Filter (by category)
+  controls above the list. "Nearest to me" asks for location permission
+  the first time it's picked. The filter only ever offers categories
+  actually in use, so it always narrows down to something.
 - **Custom color per object.** The editor dialog's Category section now
   also shows a row of color swatches. Pick one to override that object's
   default color on the map (points, lines, and area fills/outlines); pick
