@@ -119,6 +119,24 @@ const Render = (function () {
     return { col: Math.round(col), row: Math.round(row) };
   }
 
+  // Lightens a "#rrggbb" color by `amt` (0-255) per channel, clamped —
+  // used to build the tile gradient below without needing a second,
+  // hand-picked "highlight" color for every terrain/hover/highlight
+  // variant already defined further down.
+  function lighten(hex, amt) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const clamp = function (v) { return Math.max(0, Math.min(255, v)); };
+    const r = clamp((num >> 16) + amt);
+    const g = clamp(((num >> 8) & 0xff) + amt);
+    const b = clamp((num & 0xff) + amt);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  // A top-lit gradient instead of a flat fill gives every tile a subtle
+  // beveled, less paper-flat look for roughly the same drawing cost (one
+  // gradient object + one fill, same as the flat version) — no new
+  // per-tile draw calls, which matters since draw() below still iterates
+  // every plot in the field every frame regardless of what's on screen.
   function drawDiamond(ctx, cx, cy, w, h, fill, stroke) {
     ctx.beginPath();
     ctx.moveTo(cx, cy - h / 2);
@@ -126,7 +144,14 @@ const Render = (function () {
     ctx.lineTo(cx, cy + h / 2);
     ctx.lineTo(cx - w / 2, cy);
     ctx.closePath();
-    ctx.fillStyle = fill;
+    if (fill.charAt(0) === '#') {
+      const grad = ctx.createLinearGradient(cx, cy - h / 2, cx, cy + h / 2);
+      grad.addColorStop(0, lighten(fill, 26));
+      grad.addColorStop(1, fill);
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = fill; // already a computed rgb()/rgba() string (e.g. a hover tint) -- use as-is
+    }
     ctx.fill();
     if (stroke) {
       ctx.lineWidth = Math.max(1, w * 0.018);
@@ -137,6 +162,20 @@ const Render = (function () {
 
   function bounceOffset(t, active) {
     return active ? Math.sin(t / 220) * 3 : 0;
+  }
+
+  // A soft drop shadow behind an occupant's main icon (crop/animal/
+  // building/quarry) gives it a "sticker" look instead of flat emoji
+  // sitting on a flat tile — applied only to occupied tiles (a small
+  // fraction of the field), not every tile, to keep the per-frame cost
+  // bounded by how much the player has actually built.
+  function withIconShadow(ctx, fn) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 3;
+    fn();
+    ctx.restore();
   }
 
   // Growth reads as a clear seed → sprout → recognizable-crop → mature
@@ -159,7 +198,7 @@ const Render = (function () {
     if (ready) {
       const size = geom.tileH * 1.05;
       ctx.font = size + 'px sans-serif';
-      ctx.fillText(def.icon, cx, cy - size * 0.35 + bounce);
+      withIconShadow(ctx, function () { ctx.fillText(def.icon, cx, cy - size * 0.35 + bounce); });
       ctx.font = (geom.tileH * 0.3) + 'px sans-serif';
       ctx.fillText('✨', cx + size * 0.35, cy - size * 0.55 + bounce);
     } else {
@@ -179,7 +218,7 @@ const Render = (function () {
         const size = geom.tileH * (0.6 + 0.3 * stageFrac);
         ctx.font = size + 'px sans-serif';
         ctx.globalAlpha = 0.85;
-        ctx.fillText(def.icon, cx, cy - size * 0.3);
+        withIconShadow(ctx, function () { ctx.fillText(def.icon, cx, cy - size * 0.3); });
         ctx.globalAlpha = 1;
       } else {
         const size = geom.tileH * (0.28 + 0.3 * stageFrac);
@@ -211,7 +250,7 @@ const Render = (function () {
     ctx.font = size + 'px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(def.icon, cx, cy - size * 0.3 + bounce);
+    withIconShadow(ctx, function () { ctx.fillText(def.icon, cx, cy - size * 0.3 + bounce); });
 
     if (ready) {
       ctx.font = (geom.tileH * 0.3) + 'px sans-serif';
@@ -244,7 +283,7 @@ const Render = (function () {
 
     const size = geom.tileH * 0.75;
     ctx.font = size + 'px sans-serif';
-    ctx.fillText(QUARRY.icon, cx + geom.tileW * 0.16, cy - size * 0.2 + bounce);
+    withIconShadow(ctx, function () { ctx.fillText(QUARRY.icon, cx + geom.tileW * 0.16, cy - size * 0.2 + bounce); });
 
     if (progress.ready) {
       ctx.font = (geom.tileH * 0.3) + 'px sans-serif';
@@ -279,7 +318,7 @@ const Render = (function () {
     ctx.arcTo(cx - w / 2, top + h, cx - w / 2, top, r);
     ctx.arcTo(cx - w / 2, top, cx + w / 2, top, r);
     ctx.closePath();
-    ctx.fill();
+    withIconShadow(ctx, function () { ctx.fill(); });
     ctx.stroke();
 
     ctx.font = (geom.tileH * 0.6) + 'px sans-serif';

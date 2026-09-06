@@ -212,7 +212,11 @@ button.btn-primary:active, button.btn-secondary:active, button.btn-danger:active
   padding-right: max(6px, env(safe-area-inset-right));
   background: rgba(255, 250, 240, 0.95);
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.08);
-  z-index: 5;
+  /* Above #tool-popover-overlay (see below) so switching straight from
+     one tool-belt button to another (e.g. Plant to Build) works in one
+     tap, instead of the overlay swallowing that tap to just dismiss the
+     first popover. */
+  z-index: 36;
   overflow-y: auto;
 }
 
@@ -266,6 +270,73 @@ button.btn-primary:active, button.btn-secondary:active, button.btn-danger:active
   pointer-events: none;
   z-index: 30;
 }
+
+/* ---- Tool popover (crop/animal/building choice) ----
+   Anchored to the tool-belt button that opened it (see modals.js
+   openPopover), not centered like a modal -- quicker to open and dismiss
+   for the game's single most frequent choice. The overlay only exists to
+   catch an outside tap to dismiss; it stays fully transparent so picking
+   a seed never dims or interrupts the view of the field the way a real
+   modal reasonably does elsewhere. */
+
+/* absolute, not fixed: the desktop layout (see the media query far below)
+   centers #app in its own smaller frame rather than filling the browser
+   viewport, and #app is the positioned ancestor #top-info already
+   anchors to for the same reason -- fixed positioning here would escape
+   that frame and land relative to the browser window instead. */
+#tool-popover-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 32;
+}
+
+#tool-popover {
+  position: absolute;
+  right: 94px; /* tool-belt width (88px) + gap, matching #top-info's own right offset */
+  z-index: 33;
+  max-width: 200px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--bg-panel);
+  border: 3px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius);
+  padding: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  transform-origin: right center;
+  animation: popover-pop-in 0.16s ease-out;
+}
+
+@keyframes popover-pop-in {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Compact horizontal rows instead of the old modal's big card grid --
+   .shop-card/.shop-grid are only ever used inside this popover now, so
+   this isn't scoped defensively against some other, unrelated use. */
+#tool-popover .shop-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+#tool-popover .shop-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: "icon name cost" "icon note note";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+  text-align: left;
+  min-height: auto;
+  padding: 6px 8px;
+}
+
+#tool-popover .shop-icon { grid-area: icon; font-size: 24px; }
+#tool-popover .shop-name { grid-area: name; margin: 0; }
+#tool-popover .shop-cost { grid-area: cost; margin: 0; }
+#tool-popover .shop-note { grid-area: note; margin: 0; }
 
 /* ---- Modals ---- */
 

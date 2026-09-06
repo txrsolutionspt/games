@@ -10,6 +10,13 @@
 // file, via each item's own `key`.
 const WHATS_NEW = [
   {
+    version: '1.0.8',
+    items: [
+      { icon: '🎨', key: 'whatsnew.1.0.8.0', fallback: 'The farm looks a little more three-dimensional now: shaded tiles and soft shadows on crops, animals and buildings.' },
+      { icon: '⚡', key: 'whatsnew.1.0.8.1', fallback: 'Tapping Plant, Animals, or Build now pops your choices open right next to the button — faster, and you can switch between them without closing anything first.' }
+    ]
+  },
+  {
     version: '1.0.7',
     items: [
       { icon: '🆕', key: 'whatsnew.1.0.7.0', fallback: 'This "What\'s New" screen! Check back here after an update to see what changed.' }

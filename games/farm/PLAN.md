@@ -440,6 +440,21 @@ already applied to crops/animals/recipes/missions (§1).
 - Idle-but-alive feel: small per-frame bob/sway animation on
   ready-to-harvest crops and animals, done with a time-based sine offset —
   cheap and reads as "friendly and alive" without needing sprite sheets.
+- **Not flat-colored — a cheap depth pass, no new assets.** `drawDiamond`
+  fills every tile with a top-lit linear gradient (`lighten()`, a small hex
+  → lightened-`rgb()` helper) instead of one flat color, for a subtle
+  beveled look at the same drawing cost (one gradient object + one `fill()`
+  call, same as the flat version it replaced) — this matters because
+  `draw()` still iterates every one of the 3,600 plots every frame
+  regardless of what's actually on screen, so a per-tile cost increase
+  would multiply across the whole field, not just the visible part. Every
+  occupant's main icon (crop/animal/building/quarry — not the small
+  secondary icons like water droplets or the ready sparkle) gets a soft
+  drop shadow via `withIconShadow` (a `ctx.shadowBlur`/`shadowOffsetY`
+  wrapper) for a "sticker" look instead of flat emoji on a flat tile —
+  applied only to occupied tiles, a small fraction of the field, so this
+  cost scales with what the player has actually built rather than with
+  the field's fixed size the way the tile gradient's cost does.
 - Pinch/scroll-to-zoom and drag-to-pan on the field itself (§10), not a
   tool-belt button.
 
@@ -658,9 +673,10 @@ inventing a new one:
 - `index.html`: canvas + a thin DOM chrome — a left-hand rail (coins,
   market, full screen, settings), a right-hand tool belt rail, and a
   `#top-info` stack across the top of the stage: a day/season/weather bar
-  above the mission tracker banner, and a modal layer (shop, processing,
-  mission-complete/"what you learned", settings). The side-rail layout is
-  the only layout — see below for why this is landscape-only rather than
+  above the mission tracker banner, a modal layer (processing,
+  mission-complete/"what you learned", settings), and a tool popover layer
+  (crop/animal/building choice — see below). The side-rail layout is the
+  only layout — see below for why this is landscape-only rather than
   portrait-first. Day/season/weather live in their own full-width bar
   rather than a chip squeezed into the narrow (78px) HUD rail alongside
   the coin count — a chip that width can't fit "Day 12 · Summer · Rainy"
@@ -668,6 +684,28 @@ inventing a new one:
   used to do.
 - Modals are simple centered DOM cards with icon-first content and at most
   1–2 short sentences of text, per the brief's "minimal text" requirement.
+- **Tool popovers (crop/animal/building choice), not modals.** Choosing a
+  seed/animal/building is the single most frequent decision in the game,
+  so — unlike Settings, the Market, or any mission/fact popup — it doesn't
+  go through the full-screen dimmed modal system (`modals.js`'s
+  `open`/`close`/`enqueueOrRun`). Tapping Plant/Animals/Build opens a small
+  `#tool-popover` anchored to that button (`modals.js`
+  `showCropPopover`/`showAnimalPopover`/`showBuildingPopover`), positioned
+  with `position: absolute` relative to `#app` — not `fixed` relative to
+  the viewport, since the desktop layout below centers `#app` in its own
+  smaller frame, the same reason `#top-info` already anchors to `#app`
+  rather than the window. Only one can be open at a time: tapping the same
+  tool-belt button again toggles it shut, tapping a different tool-belt
+  button (including Water/Harvest, which don't use a popover themselves)
+  closes it and opens/activates the new one, and a full-screen but
+  invisible `#tool-popover-overlay` behind it (never dimmed, so the field
+  stays visible) closes it on an outside tap. `#tool-belt` sits at a higher
+  z-index than the overlay specifically so switching directly between
+  tool-belt buttons is one tap, not two (tap away, then tap again). Picking
+  a card closes the popover and sets `ui.tool`, exactly like the modal
+  shops these replaced — `.shop-card`/`.shop-grid` markup and the
+  season/stone-cost notes are unchanged, only the container and its CSS
+  layout (compact rows instead of a big card grid) are new.
 - **Landscape-only, not responsive portrait/landscape switching.** A
   side-rail HUD and tool belt need width, not height, to stay
   thumb-reachable and readable — cramming them into a portrait phone

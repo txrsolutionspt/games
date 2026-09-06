@@ -69,7 +69,7 @@ const Hud = (function () {
       btn.className = 'tool-btn';
       btn.dataset.tool = tool;
       btn.innerHTML = '<span class="tool-icon">' + TOOL_LABELS[tool].icon + '</span><span class="tool-label"></span>';
-      btn.addEventListener('click', function () { onToolTap(tool); });
+      btn.addEventListener('click', function () { onToolTap(tool, btn); });
       belt.appendChild(btn);
     });
   }

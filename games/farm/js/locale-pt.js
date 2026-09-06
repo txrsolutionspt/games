@@ -206,6 +206,8 @@ const LOCALE_PT = {
   'mission.quarry-work.description': 'Extraia pedra de uma montanha.',
   'mission.quarry-work.learned': 'As pedreiras extraem pedra das montanhas para usar em construções.',
 
+  'whatsnew.1.0.8.0': 'A quinta parece um pouco mais tridimensional agora: parcelas com sombreado suave e sombras leves em plantações, animais e construções.',
+  'whatsnew.1.0.8.1': 'Tocar em Plantar, Animais ou Construir agora abre as opções mesmo ao lado do botão — mais rápido, e podes trocar entre eles sem fechar nada primeiro.',
   'whatsnew.1.0.7.0': 'Este ecrã de "Novidades"! Volta aqui depois de uma atualização para ver o que mudou.',
   'whatsnew.1.0.6.0': 'Uma mensagem de "Bem-vindo de volta!" agora mostra o que cresceu ou terminou enquanto estavas fora.',
   'whatsnew.1.0.5.0': 'Adicionámos som! Pequenos toques ao plantar, regar, colher e mais — desliga a qualquer momento nas Definições.',
