@@ -48,3 +48,21 @@ documentation in the same commit — all of these that apply:**
 A version bump with no matching documentation update is an incomplete
 change, the same way a version bump is incomplete without the code change
 it's meant to track.
+
+## One branch per PR — never reuse a branch name across merges
+
+**Rule: once a PR merges, start the next round of work on a brand-new
+branch cut from the now-updated `main` — don't reset/force-push the same
+branch name to build the next PR on top of it.**
+
+Earlier PRs in this project's history reused a single branch name across
+many merges, resetting it onto `main` before each new round of commits.
+That worked, but it meant the branch name tracked a moving target rather
+than mapping to one finished PR, and repeated force-pushes leave no
+stable record of what any individual PR actually contained.
+
+Going forward: after a PR merges, branch the next round of work off the
+updated `main` under its own new name (e.g. `claude/farm-<short-topic>`),
+so every branch corresponds to exactly one PR and stays around as a
+stable, inspectable record of it — never recycled, never force-pushed
+over for unrelated follow-up work.

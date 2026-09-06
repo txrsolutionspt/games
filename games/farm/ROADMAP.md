@@ -24,9 +24,13 @@ stale ideas look active.
 
 ## Planned
 
+*(nothing currently — see Under consideration below)*
+
+## Under consideration
+
 ### Buy-to-expand plots (re-enable)
-- **Priority**: Medium
-- **Status**: Planned — built, currently switched off
+- **Priority**: Low
+- **Status**: Idea
 - **What**: Only a starting cluster of plots unlocked at first; the rest
   cost coins to unlock (economy and UI already exist in
   `farm-rules.js`/`input.js`/`modals.js`/`economy.js`, see `PLAN.md` §10).
@@ -34,9 +38,8 @@ stale ideas look active.
   again in the same session it shipped — re-enabling it was correct on
   its own, but landed at the same time as an unrelated UI-focus request
   and got reverted for scope reasons, not because it didn't work. Worth
-  a deliberate second pass, ideally on its own.
-
-## Under consideration
+  a deliberate second pass, ideally on its own, but not urgent enough to
+  jump the queue over content or the UI work already in flight.
 
 ### More crops/animals
 - **Priority**: Medium
