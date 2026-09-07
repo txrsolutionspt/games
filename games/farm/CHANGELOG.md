@@ -6,6 +6,11 @@ scripts, an in-progress change that got reverted before ever shipping) is
 left out — this is a record of what changed for someone actually playing,
 not a full commit log (see git history / `PLAN.md` for that).
 
+## 1.0.12
+- Fixed a bug where Reset Game Data (and switching/creating/deleting a
+  farm) could silently fail to take effect — your old progress could
+  come right back after the page reloaded.
+
 ## 1.0.11
 - Farm expansion is back: half the field starts unlocked and ready to
   play, and the rest can now be bought plot by plot with coins, starting

@@ -10,6 +10,12 @@
 // file, via each item's own `key`.
 const WHATS_NEW = [
   {
+    version: '1.0.12',
+    items: [
+      { icon: '🛠️', key: 'whatsnew.1.0.12.0', fallback: 'Fixed a bug where Reset Game Data (and switching farms) could quietly not take effect after reloading.' }
+    ]
+  },
+  {
     version: '1.0.11',
     items: [
       { icon: '🗺️', key: 'whatsnew.1.0.11.0', fallback: 'Farm expansion is back! Half the field starts unlocked, and you can now buy your way into the rest with coins — cheap at first, pricier the farther out you go.' }

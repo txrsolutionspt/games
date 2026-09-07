@@ -57,6 +57,24 @@
       overlay is what actually enforces landscape play */ }
   }
 
+  // Guards the flush-on-hide handlers (see flushSave below) against a
+  // specific race: switching/creating/deleting a farm and "Reset Game
+  // Data" all mutate persistence (which farm is active, or wipe it
+  // entirely) and then call window.location.reload() to re-boot cleanly.
+  // That reload fires 'pagehide' (and often 'visibilitychange') on the
+  // OLD page before it unloads, which would otherwise flush-save the
+  // stale in-memory `state` object — silently re-writing the farm being
+  // left, or the very data just reset, right back into localStorage under
+  // whatever slot id is now active. reloadFreshBoot() sets this flag
+  // first so that flush is suppressed for exactly this one intentional
+  // reload; call it instead of window.location.reload() directly
+  // whenever a persistence mutation must be followed by a reload.
+  let suppressFlushOnReload = false;
+  function reloadFreshBoot() {
+    suppressFlushOnReload = true;
+    window.location.reload();
+  }
+
   function boot() {
     const canvas = document.getElementById('farm-canvas');
     const state = Persistence.load() || createInitialState();
@@ -139,13 +157,13 @@
         switchTo: function (id) {
           Persistence.saveNow(state);
           Persistence.setActiveSlotId(id);
-          window.location.reload();
+          reloadFreshBoot();
         },
         create: function (name) {
           Persistence.saveNow(state);
           const newId = Persistence.createSlot(name);
           Persistence.setActiveSlotId(newId);
-          window.location.reload();
+          reloadFreshBoot();
         },
         rename: function (id, name) {
           Persistence.renameSlot(id, name);
@@ -159,7 +177,7 @@
             Modals.showFarmSlots(farmActions);
             return;
           }
-          if (wasActive) { window.location.reload(); return; }
+          if (wasActive) { reloadFreshBoot(); return; }
           Modals.showFarmSlots(farmActions);
         }
       };
@@ -184,7 +202,7 @@
         },
         reset: function () {
           Persistence.reset();
-          window.location.reload();
+          reloadFreshBoot();
         },
         farms: farmActions
       });
@@ -283,7 +301,12 @@
     // 'beforeunload' often misses) and 'pagehide' (fires on desktop tab
     // close/navigation) both flush a synchronous save immediately so the
     // debounce window is never the last word on what actually got saved.
-    function flushSave() { Persistence.saveNow(state); }
+    // Suppressed by suppressFlushOnReload (see reloadFreshBoot above) for
+    // the one case where flushing the in-memory `state` here would be
+    // wrong: a reload deliberately triggered right after a persistence
+    // mutation (switch/create/delete farm, reset) that this stale `state`
+    // object doesn't reflect.
+    function flushSave() { if (!suppressFlushOnReload) Persistence.saveNow(state); }
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'hidden') flushSave();
     });

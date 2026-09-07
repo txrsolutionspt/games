@@ -373,6 +373,21 @@ already applied to crops/animals/recipes/missions (§1).
   calls the same immediate `saveNow` and shows a "Saved!" toast, so a player
   who wants certainty doesn't have to trust an invisible background
   mechanism.
+- **Reload-after-persistence-mutation race (fixed):** switching/creating/
+  deleting a farm and Reset Game Data (below) all mutate persisted state
+  and then call `window.location.reload()` so `game.js` re-boots cleanly
+  against the new/reset state. That reload itself fires `pagehide` (and
+  often `visibilitychange`) on the still-live page *before* it unloads —
+  which, left unguarded, ran the flush-on-hide save above using the
+  now-stale in-memory `state` object, silently re-writing exactly what the
+  mutation just changed (a reset farm coming back, a newly-created farm
+  starting with the old farm's progress, or a deleted farm's data landing
+  in whichever other farm became active). `game.js`'s `reloadFreshBoot()`
+  sets a module-level flag right before calling `window.location.reload()`
+  that `flushSave` checks and skips on; every reload-after-mutation call
+  site (`farmActions.switchTo`/`create`/`delete`, and reset below) goes
+  through it instead of calling `window.location.reload()` directly, so
+  none of them can resurrect stale data this way again.
 - `test-persistence.js` (`node test-persistence.js`) exercises the actual
   save/load round trip through `persistence.js` itself — not just
   farm-rules.js's pure math — asserting coins and planted-crop occupants
