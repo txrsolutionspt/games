@@ -18,7 +18,7 @@
        third-party CDN is one more thing that can be slow or blocked on a given network. -->
   <script src="vendor/maplibre-gl/maplibre-gl.js" onerror="window.__mapEditorScriptError='vendor/maplibre-gl/maplibre-gl.js failed to load'"></script>
   <link href="vendor/maplibre-gl/maplibre-gl.css" rel="stylesheet" />
-  <link href="css/map-editor.css?v=2026-08-26.30" rel="stylesheet" />
+  <link href="css/map-editor.css?v=2026-08-26.31" rel="stylesheet" />
   <style>
     body { margin: 0; padding: 0; }
   </style>
@@ -170,6 +170,17 @@
           <select id="sidebar-filter" aria-label="Filter by category">
             <option value="all">All categories</option>
           </select>
+          <button id="sidebar-select-toggle" type="button">Select</button>
+        </div>
+        <div id="sidebar-bulk-bar" class="hidden">
+          <label class="bulk-select-all">
+            <input type="checkbox" id="sidebar-select-all" aria-label="Select all" />
+            <span id="sidebar-bulk-count">0 selected</span>
+          </label>
+          <div class="bulk-actions">
+            <button type="button" id="sidebar-bulk-recategorize" disabled>Recategorize</button>
+            <button type="button" id="sidebar-bulk-delete" class="danger" disabled>Delete</button>
+          </div>
         </div>
         <div id="object-list"></div>
       </aside>
@@ -222,6 +233,16 @@
     </div>
   </div>
 
+  <div id="bulk-category-overlay" class="overlay hidden">
+    <div class="dialog">
+      <h3 id="bulk-category-title">Recategorize</h3>
+      <div id="bulk-category-grid" class="category-grid"></div>
+      <div class="dialog-actions">
+        <button type="button" id="bulk-category-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div id="confirm-overlay" class="overlay hidden">
     <div class="dialog">
       <p id="confirm-message"></p>
@@ -235,7 +256,7 @@
   <div id="about-overlay" class="overlay hidden">
     <div class="dialog">
       <h3>About</h3>
-      <p id="about-version">map-editor build 2026-08-26.30</p>
+      <p id="about-version">map-editor build 2026-08-26.31</p>
       <div class="dialog-actions">
         <button type="button" id="about-close">Close</button>
       </div>
@@ -288,7 +309,7 @@
       }, 8000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=2026-08-26.30" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
+  <script type="module" src="js/app.js?v=2026-08-26.31" onerror="document.getElementById('fatal-error-banner').textContent='Error: js/app.js failed to load as a module (opening this file directly with file:// blocks ES modules — serve it over http instead).'; document.getElementById('fatal-error-banner').classList.remove('hidden')"></script>
   <script>
     // Progressive enhancement only (installability + offline shell caching)
     // — never treated as fatal if it fails, unlike the diagnostics above.

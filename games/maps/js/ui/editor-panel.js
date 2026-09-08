@@ -5,14 +5,22 @@ import {
   formatArea,
   formatCoordinate,
   haversineDistance,
-} from "../geo/measure.js?v=2026-08-26.30";
-import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.30";
-import { getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.30";
+} from "../geo/measure.js?v=2026-08-26.31";
+import { categoryInfo } from "../objects/object-model.js?v=2026-08-26.31";
+import { getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.31";
+import { deleteObjects, updateObjectsCategory } from "../objects/object-store.js?v=2026-08-26.31";
+import { openConfirmDialog, openBulkCategoryDialog } from "./dialogs.js?v=2026-08-26.31";
 
 const summaryEl = document.getElementById("object-summary");
 const listEl = document.getElementById("object-list");
 const sortSelect = document.getElementById("sidebar-sort");
 const filterSelect = document.getElementById("sidebar-filter");
+const selectToggleBtn = document.getElementById("sidebar-select-toggle");
+const bulkBar = document.getElementById("sidebar-bulk-bar");
+const bulkCountEl = document.getElementById("sidebar-bulk-count");
+const selectAllCheckbox = document.getElementById("sidebar-select-all");
+const bulkRecategorizeBtn = document.getElementById("sidebar-bulk-recategorize");
+const bulkDeleteBtn = document.getElementById("sidebar-bulk-delete");
 
 const GROUPS = [
   { type: "Point", label: "Places", icon: "🔵" },
@@ -30,6 +38,15 @@ let currentSelectedId = null;
 let currentOnSelect = () => {};
 let sortMode = "default";
 let filterKey = "all";
+
+// Multi-select for the sidebar's bulk actions. Off by default — a plain
+// click on an item still just selects it on the map, same as always;
+// "Select" turns every item into a checkbox instead. lastRenderedFeatures
+// backs "select all", which should only reach the currently sorted/
+// filtered list, not every object on the map.
+let selectMode = false;
+let checkedIds = new Set();
+let lastRenderedFeatures = [];
 
 // Fetched lazily, only once "Nearest to me" is actually picked — no point
 // prompting for location permission before the user asks for it. null
@@ -65,6 +82,84 @@ filterSelect?.addEventListener("change", () => {
   filterKey = filterSelect.value;
   renderList();
 });
+
+selectToggleBtn?.addEventListener("click", () => {
+  selectMode = !selectMode;
+  checkedIds = new Set();
+  selectToggleBtn.textContent = selectMode ? "Cancel" : "Select";
+  selectToggleBtn.classList.toggle("active", selectMode);
+  renderList();
+});
+
+selectAllCheckbox?.addEventListener("change", () => {
+  checkedIds = selectAllCheckbox.checked ? new Set(lastRenderedFeatures.map((feature) => feature.id)) : new Set();
+  renderList();
+});
+
+function exitSelectMode() {
+  selectMode = false;
+  checkedIds = new Set();
+  if (selectToggleBtn) {
+    selectToggleBtn.textContent = "Select";
+    selectToggleBtn.classList.remove("active");
+  }
+  renderList();
+}
+
+bulkRecategorizeBtn?.addEventListener("click", async () => {
+  const ids = [...checkedIds];
+  if (ids.length === 0) return;
+
+  const features = currentObjects.filter((feature) => checkedIds.has(feature.id));
+  const types = new Set(features.map((feature) => feature.geometry.type));
+  if (types.size > 1) {
+    alert("Recategorize only works within one object type (Point, Line, or Area) at a time — narrow the selection first.");
+    return;
+  }
+
+  const [geometryType] = types;
+  const category = await openBulkCategoryDialog(geometryType, ids.length);
+  if (!category) return;
+
+  updateObjectsCategory(ids, category);
+  exitSelectMode();
+});
+
+bulkDeleteBtn?.addEventListener("click", async () => {
+  const ids = [...checkedIds];
+  if (ids.length === 0) return;
+
+  const confirmed = await openConfirmDialog(
+    ids.length === 1 ? "Delete this object? This can't be undone." : `Delete ${ids.length} objects? This can't be undone.`
+  );
+  if (!confirmed) return;
+
+  deleteObjects(ids);
+  exitSelectMode();
+});
+
+function updateBulkBar() {
+  if (!bulkBar) return;
+  bulkBar.classList.toggle("hidden", !selectMode);
+  if (!selectMode) return;
+
+  const count = checkedIds.size;
+  if (bulkCountEl) bulkCountEl.textContent = count === 1 ? "1 selected" : `${count} selected`;
+  if (bulkRecategorizeBtn) bulkRecategorizeBtn.disabled = count === 0;
+  if (bulkDeleteBtn) bulkDeleteBtn.disabled = count === 0;
+  if (selectAllCheckbox) {
+    selectAllCheckbox.checked = lastRenderedFeatures.length > 0 && count === lastRenderedFeatures.length;
+  }
+}
+
+function toggleChecked(id) {
+  if (checkedIds.has(id)) {
+    checkedIds.delete(id);
+  } else {
+    checkedIds.add(id);
+  }
+  renderList();
+}
 
 function categorySortKey(geometryType, value) {
   const info = categoryInfo(geometryType, value);
@@ -158,6 +253,15 @@ function renderFilterOptions(objects) {
 
 function renderList() {
   const sorted = sortFeatures(applyFilter(currentObjects));
+  lastRenderedFeatures = sorted;
+
+  // Drop any checked id that scrolled out of view (deleted, or filtered/
+  // sorted out) — a stale checkbox state could otherwise apply an action
+  // to an object the user can no longer even see.
+  if (checkedIds.size > 0) {
+    const visibleIds = new Set(sorted.map((feature) => feature.id));
+    checkedIds = new Set([...checkedIds].filter((id) => visibleIds.has(id)));
+  }
 
   listEl.innerHTML = "";
 
@@ -166,19 +270,31 @@ function renderList() {
     empty.className = "object-list-empty";
     empty.textContent = currentObjects.length === 0 ? "No objects yet." : "No objects match this filter.";
     listEl.appendChild(empty);
+    updateBulkBar();
     return;
   }
 
   for (const feature of sorted) {
+    const isChecked = checkedIds.has(feature.id);
     const item = document.createElement("div");
-    item.className = "object-list-item" + (feature.id === currentSelectedId ? " selected" : "");
+    item.className =
+      "object-list-item" +
+      (feature.id === currentSelectedId ? " selected" : "") +
+      (selectMode && isChecked ? " checked" : "");
+
+    const name = escapeHtml(feature.properties.name || "(unnamed)");
     item.innerHTML = `
-      <span class="name">${escapeHtml(feature.properties.name || "(unnamed)")}</span>
-      <span class="category">${categoryLabel(feature.geometry.type, feature.properties.category)}</span>
+      ${selectMode ? `<input type="checkbox" class="object-list-checkbox" ${isChecked ? "checked" : ""} aria-label="Select ${name}" tabindex="-1" />` : ""}
+      <div class="object-list-item-text">
+        <span class="name">${name}</span>
+        <span class="category">${categoryLabel(feature.geometry.type, feature.properties.category)}</span>
+      </div>
     `;
-    item.addEventListener("click", () => currentOnSelect(feature.id));
+    item.addEventListener("click", () => (selectMode ? toggleChecked(feature.id) : currentOnSelect(feature.id)));
     listEl.appendChild(item);
   }
+
+  updateBulkBar();
 }
 
 export function renderSidebar(objects, selectedId, onSelect) {

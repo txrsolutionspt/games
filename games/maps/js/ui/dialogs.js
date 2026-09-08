@@ -1,6 +1,6 @@
-import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.30";
-import { getCurrentMapId, addAttachmentMeta, removeAttachmentMeta } from "../objects/object-store.js?v=2026-08-26.30";
-import { addFile, deleteFile, getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.30";
+import { categoriesFor } from "../objects/object-model.js?v=2026-08-26.31";
+import { getCurrentMapId, addAttachmentMeta, removeAttachmentMeta } from "../objects/object-store.js?v=2026-08-26.31";
+import { addFile, deleteFile, getFileBlob, isImageType } from "../persistence/attachments.js?v=2026-08-26.31";
 
 const editorOverlay = document.getElementById("editor-overlay");
 const editorForm = document.getElementById("editor-form");
@@ -18,6 +18,11 @@ const confirmOverlay = document.getElementById("confirm-overlay");
 const confirmMessage = document.getElementById("confirm-message");
 const confirmCancel = document.getElementById("confirm-cancel");
 const confirmDelete = document.getElementById("confirm-delete");
+
+const bulkCategoryOverlay = document.getElementById("bulk-category-overlay");
+const bulkCategoryTitle = document.getElementById("bulk-category-title");
+const bulkCategoryGrid = document.getElementById("bulk-category-grid");
+const bulkCategoryCancel = document.getElementById("bulk-category-cancel");
 
 const GEOMETRY_LABEL = {
   Point: "Point",
@@ -242,6 +247,51 @@ function escapeHtml(value) {
   const div = document.createElement("div");
   div.textContent = value;
   return div.innerHTML;
+}
+
+// A single-purpose picker for the sidebar's bulk "Recategorize" action:
+// clicking a category applies immediately and closes, rather than needing
+// a separate Apply step like the main editor dialog (there's no name/
+// description/etc. to also edit here). geometryType picks which category
+// set to offer — the caller is responsible for only calling this with a
+// selection that's all one geometry type, since categories are namespaced
+// per type (see CATEGORIES in object-model.js).
+export function openBulkCategoryDialog(geometryType, count) {
+  return new Promise((resolve) => {
+    const label = GEOMETRY_LABEL[geometryType] || "Object";
+    bulkCategoryTitle.textContent = `Recategorize ${count} ${label}${count === 1 ? "" : "s"}`;
+    bulkCategoryGrid.innerHTML = "";
+
+    for (const option of categoriesFor(geometryType)) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "category-option";
+      button.dataset.category = option.value;
+      button.innerHTML = `
+        <span class="category-icon">${option.icon || ""}</span>
+        <span class="category-label">${option.label}</span>
+      `;
+      button.addEventListener("click", () => {
+        cleanup();
+        resolve(option.value);
+      });
+      bulkCategoryGrid.appendChild(button);
+    }
+
+    bulkCategoryOverlay.classList.remove("hidden");
+
+    function cleanup() {
+      bulkCategoryOverlay.classList.add("hidden");
+      bulkCategoryCancel.removeEventListener("click", onCancel);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(null);
+    }
+
+    bulkCategoryCancel.addEventListener("click", onCancel);
+  });
 }
 
 export function openConfirmDialog(message) {

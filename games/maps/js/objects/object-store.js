@@ -1,7 +1,7 @@
-import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.30";
-import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.30";
-import { deleteFilesForFeature } from "../persistence/attachments.js?v=2026-08-26.30";
-import { MODES, touch, duplicateFeature } from "./object-model.js?v=2026-08-26.30";
+import { loadObjects, saveObjects } from "../persistence/local-storage.js?v=2026-08-26.31";
+import { getActiveMapId } from "../persistence/maps-index.js?v=2026-08-26.31";
+import { deleteFilesForFeature } from "../persistence/attachments.js?v=2026-08-26.31";
+import { MODES, touch, duplicateFeature } from "./object-model.js?v=2026-08-26.31";
 
 let currentMapId = getActiveMapId();
 
@@ -152,6 +152,37 @@ export function deleteObject(id) {
   emit();
   // Best-effort: garbage-collect any files attached to the deleted object.
   deleteFilesForFeature(id).catch((error) => console.error("Failed to delete attachments for object", error));
+}
+
+// Same as deleteObject, but as one persist/emit for the whole batch instead
+// of one per object — the difference between one re-render and dozens when
+// deleting a multi-select from the sidebar.
+export function deleteObjects(ids) {
+  const idSet = new Set(ids);
+  state.objects = state.objects.filter((object) => !idSet.has(object.id));
+  if (state.selectedId && idSet.has(state.selectedId)) {
+    state.selectedId = null;
+  }
+  persist();
+  emit();
+  for (const id of ids) {
+    deleteFilesForFeature(id).catch((error) => console.error("Failed to delete attachments for object", error));
+  }
+}
+
+// Bulk recategorize from the sidebar's multi-select. Categories are
+// namespaced per geometry type (see CATEGORIES in object-model.js), so the
+// caller is responsible for only ever passing ids that share one geometry
+// type — this doesn't check.
+export function updateObjectsCategory(ids, category) {
+  const idSet = new Set(ids);
+  for (const object of state.objects) {
+    if (!idSet.has(object.id)) continue;
+    object.properties.category = category;
+    touch(object);
+  }
+  persist();
+  emit();
 }
 
 export function selectObject(id) {

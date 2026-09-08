@@ -4,6 +4,16 @@ User-facing changes to the map editor, newest first. See `TODO.md` for
 what's deliberately deferred, and `CLAUDE.md` for the rule that keeps this
 file updated.
 
+## 2026-09-08
+
+- **Multi-select in the sidebar: bulk delete and recategorize.** A new
+  "Select" button above the Objects list turns each item into a checkbox,
+  with a "Select all" that scopes to whatever the current sort/filter is
+  showing. With one or more checked, Recategorize (all one category in a
+  single pick) or Delete (with the usual confirmation) applies to all of
+  them at once. Recategorize only works within one object type (Point,
+  Line, or Area) at a time, since each type has its own category set.
+
 ## 2026-09-06
 
 - **Sort and filter the sidebar list.** The Objects sidebar now has Sort

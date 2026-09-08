@@ -45,7 +45,6 @@ new work.
 
 **Organization, as object count grows:**
 - Marker clustering when zoomed out with many pins.
-- Multi-select + bulk delete/recategorize.
 
 **Bigger/riskier (comparable weight to the postponed items above):**
 - Offline tile caching for a chosen area (download a region for real
