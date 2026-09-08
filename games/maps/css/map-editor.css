@@ -382,6 +382,69 @@ html, body {
   color: #374151;
 }
 
+#sidebar-select-toggle {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  font-size: 11px;
+  font-family: inherit;
+  color: #374151;
+  cursor: pointer;
+}
+
+#sidebar-select-toggle.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+#sidebar-bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  margin: 0 0 10px;
+  border-radius: 6px;
+  background: #eef2ff;
+  font-size: 12px;
+}
+
+.bulk-select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.bulk-actions button {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.bulk-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.bulk-actions button.danger {
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
 #object-list {
   display: flex;
   flex-direction: column;
@@ -397,7 +460,8 @@ html, body {
 
 .object-list-item {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   padding: 8px 10px;
   border-radius: 6px;
   cursor: pointer;
@@ -411,6 +475,22 @@ html, body {
 .object-list-item.selected {
   background: #e0e7ff;
   border-color: #6366f1;
+}
+
+.object-list-item.checked {
+  background: #e0e7ff;
+  border-color: #6366f1;
+}
+
+.object-list-checkbox {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.object-list-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .object-list-item .name {
