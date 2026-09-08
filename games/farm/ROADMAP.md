@@ -70,16 +70,6 @@ stale ideas look active.
   shipped (v1.0.3, v1.0.5). Low effort, low impact — good filler task,
   not worth prioritizing over content or expansion work.
 
-### Achievements / trophy case
-- **Priority**: Low
-- **Status**: Idea
-- **What**: A view (maybe in Settings, alongside What's New) listing
-  every completed mission as a permanent record, beyond the one-time
-  "Mission Complete!" popup.
-- **Why**: Missions already reward and explain; this would let a kid (or
-  a parent) look back at what's been learned, which the brief's
-  educational goal arguably wants a home for.
-
 ## Rejected / explicitly not planned
 
 Decided against, with reasoning, so it doesn't get silently re-proposed:

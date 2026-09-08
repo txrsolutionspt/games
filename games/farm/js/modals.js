@@ -356,6 +356,7 @@ const Modals = (function () {
       I18N.t('ui.settings.sound', 'Sound') + ': ' +
       (state.settings.muted ? I18N.t('ui.settings.soundOff', 'Off') : I18N.t('ui.settings.soundOn', 'On')) + '</button>' +
       '<button class="btn-secondary" id="whatsnew-btn">🆕 ' + I18N.t('ui.settings.whatsnew', "What's New") + '</button>' +
+      '<button class="btn-secondary" id="achievements-btn">🏆 ' + I18N.t('ui.settings.achievements', 'Achievements') + '</button>' +
       '<button class="btn-secondary" id="farms-btn">🚜 ' + I18N.t('ui.farms.settingsEntry', 'My Farms') + '</button>' +
       '<button class="btn-secondary" id="privacy-btn">🛡️ ' + I18N.t('ui.settings.privacy', 'Privacy for Parents') + '</button>' +
       '<button class="btn-danger" id="reset-btn">🗑️ ' + I18N.t('ui.settings.reset', 'Reset Game Data') + '</button>' +
@@ -372,6 +373,7 @@ const Modals = (function () {
       actions.markWhatsNewSeen();
       renderWhatsNew();
     });
+    document.getElementById('achievements-btn').addEventListener('click', function () { renderAchievements(state); });
     document.getElementById('farms-btn').addEventListener('click', function () { renderFarmSlots(actions.farms); });
     document.getElementById('privacy-btn').addEventListener('click', function () { showPrivacy(); });
     document.getElementById('reset-btn').addEventListener('click', function () { showResetConfirm(actions); });
@@ -396,6 +398,48 @@ const Modals = (function () {
       return '<p class="shop-cost">v' + entry.version + '</p>' + items;
     }).join('');
     open('<h2>🆕 ' + I18N.t('ui.whatsnew.title', "What's New") + '</h2>' + body +
+      '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
+  }
+
+  // ---- Achievements (trophy case) --------------------------------------------
+
+  // A permanent record of every mission, completed or not, beyond the
+  // one-time "Mission Complete!" popup (PLAN.md §13) — a kid (or a parent)
+  // can look back at what's been learned so far. Every mission is listed
+  // (not just completed ones) so progress toward the rest is visible too;
+  // the `learned` educational fact is only shown once a mission is
+  // actually completed, same as the completion popup itself, so finishing
+  // one still has something to reveal.
+  function renderAchievements(state) {
+    const completedCount = MISSIONS.filter(function (m) {
+      return state.missions[m.id] && state.missions[m.id].completed;
+    }).length;
+    const rows = MISSIONS.map(function (m) {
+      const progress = state.missions[m.id] || { progress: 0, completed: false };
+      const title = I18N.t('mission.' + m.id + '.title', m.title);
+      if (progress.completed) {
+        const learned = I18N.t('mission.' + m.id + '.learned', m.learned);
+        return '<div class="achievement-row achievement-done">' +
+          '<div class="achievement-icon">🏆</div>' +
+          '<div class="achievement-body">' +
+          '<div class="shop-name">' + title + '</div>' +
+          '<p class="fact">💡 ' + learned + '</p>' +
+          '</div></div>';
+      }
+      const description = I18N.t('mission.' + m.id + '.description', m.description);
+      const pct = Math.round(Math.min(1, progress.progress / m.count) * 100);
+      return '<div class="achievement-row achievement-locked">' +
+        '<div class="achievement-icon">🔒</div>' +
+        '<div class="achievement-body">' +
+        '<div class="shop-name">' + title + '</div>' +
+        '<p>' + description + '</p>' +
+        '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+        '<p class="achievement-count">' + progress.progress + ' / ' + m.count + '</p>' +
+        '</div></div>';
+    }).join('');
+    open('<h2>🏆 ' + I18N.t('ui.achievements.title', 'Achievements') + '</h2>' +
+      '<p class="shop-cost">' + completedCount + ' / ' + MISSIONS.length + ' ' +
+      I18N.t('ui.achievements.completedLabel', 'completed') + '</p>' + rows +
       '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
   }
 

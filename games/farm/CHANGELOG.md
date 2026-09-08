@@ -6,6 +6,12 @@ scripts, an in-progress change that got reverted before ever shipping) is
 left out — this is a record of what changed for someone actually playing,
 not a full commit log (see git history / `PLAN.md` for that).
 
+## 1.0.13
+- Added an Achievements screen in Settings — a permanent trophy case
+  listing every mission, completed or in progress, with what you've
+  learned so far. Beyond the one-time "Mission Complete!" popup, now you
+  (or a parent) can look back anytime.
+
 ## 1.0.12
 - Fixed a bug where Reset Game Data (and switching/creating/deleting a
   farm) could silently fail to take effect — your old progress could

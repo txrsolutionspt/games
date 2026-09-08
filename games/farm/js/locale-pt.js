@@ -83,6 +83,9 @@ const LOCALE_PT = {
   'ui.settings.soundOff': 'Desligado',
   'ui.settings.whatsnew': 'Novidades',
   'ui.whatsnew.title': 'Novidades',
+  'ui.settings.achievements': 'Conquistas',
+  'ui.achievements.title': 'Conquistas',
+  'ui.achievements.completedLabel': 'concluídas',
   'ui.settings.privacy': 'Privacidade para os Pais',
   'ui.settings.reset': 'Repor Dados do Jogo',
   'ui.settings.version': 'Versão',
@@ -238,6 +241,7 @@ const LOCALE_PT = {
   'mission.quarry-work.description': 'Extraia pedra de uma montanha.',
   'mission.quarry-work.learned': 'As pedreiras extraem pedra das montanhas para usar em construções.',
 
+  'whatsnew.1.0.13.0': 'Novo ecrã de Conquistas nas Definições: um recanto de troféus permanente com todas as missões, concluídas ou em progresso, para poderes olhar para trás quando quiseres.',
   'whatsnew.1.0.12.0': 'Corrigimos um problema em que Repor Dados do Jogo (e trocar de quinta) podia silenciosamente não fazer efeito depois de recarregar.',
   'whatsnew.1.0.11.0': 'A expansão da quinta está de volta! Metade do terreno começa desbloqueada, e agora podes comprar o resto com moedas — barato ao início, mais caro quanto mais longe fores.',
   'whatsnew.1.0.10.0': 'Novidade: uma Macieira que continua a dar fruta todas as estações sem precisar de ser replantada, além de dois novos animais — Cabras e Porcos (que farejam trufas!).',

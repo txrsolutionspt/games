@@ -838,21 +838,35 @@ inventing a new one:
   popup, every crop/animal/recipe tile has a small "i" info tap (via the
   same object hit-testing as §10) that re-shows its `educational` string
   in a lightweight, non-modal tooltip any time a curious kid wants it.
+- **Achievements (trophy case)**, in Settings, is the permanent counterpart
+  to that one-time popup: `modals.js`'s `renderAchievements` lists every
+  `data-missions.js` entry, completed or not, reading straight from
+  `state.missions[id]` — no new state or pure-logic function needed, since
+  a mission's `{progress, completed}` shape (`missions.js`) already has
+  everything the screen shows. A completed mission shows its `learned`
+  fact (so it stays available after the popup that first showed it is
+  gone); an incomplete one shows its `description` and a `progress`/
+  `count` bar instead — the fact itself stays hidden until actually
+  earned, same as the completion popup, so finishing a mission still has
+  something to reveal. No unseen-badge (unlike What's New's `#settings-
+  badge`): missions already interrupt with their own completion popup the
+  moment they're earned, so there's nothing new to flag here — this
+  screen is a look-back, not a notification.
 
 ## 14. MVP content checklist (mapped to the brief's MVP list)
 
 | Brief requirement | Plan |
 |---|---|
-| One farm | Single 60×60 plot grid (spans many screens, panned/scrolled — §9). Every plot starts unlocked *for now* (see §10's note below) rather than expanding via `economy.js` unlock cost |
-| 4–6 crops | 6 crops in `data-crops.js` (§5) |
-| 2–3 animal types | Chicken, cow, sheep in `data-animals.js` |
+| One farm | Single 60×60 plot grid (spans many screens, panned/scrolled — §9). Half starts unlocked, the rest bought plot-by-plot via `economy.js` unlock cost (see §10) |
+| 4–6 crops | 7 crops in `data-crops.js` (§5), including the perennial apple tree |
+| 2–3 animal types | Chicken, cow, sheep, goat, pig in `data-animals.js` |
 | Planting/watering/growing/harvesting | `farm-rules.js` + `simulation.js` (§8) |
 | Animal care | Feed/water/shelter needs, happiness-based yield (§8) |
 | Inventory | `state.inventory` map, shown in shop/processing modals |
-| ≥3 processing chains | 4 recipes shipped (§5) |
+| ≥3 processing chains | 6 recipes in `data-recipes.js` (§5), across two full chains (wheat→flour→bread, wool→yarn→clothing) plus two single-step ones (butter, tomato sauce) |
 | Simple currency | `state.coins`, mutated only via `economy.js` |
-| Farm expansion | Buy-more-plots / unlock-building actions exist in `farm-rules.js`/`input.js`/`modals.js`, but are switched off *for now* — every plot starts unlocked (see §10) |
-| 5–10 educational missions | `data-missions.js` seeded with ~8 entries from the brief's examples |
+| Farm expansion | Buy-more-plots via `farm-rules.js`/`input.js`/`modals.js` (see §10) |
+| 5–10 educational missions | `data-missions.js` has grown to 14 entries; a permanent Achievements screen in Settings (§13) now lists all of them, not just the one-time completion popup |
 | Basic tutorial | `tutorial.js` first-run sequence |
 | Local save/load | `persistence.js`, autosave + reset |
 | English + Portuguese UI | `i18n.js` + `locale-en.js`/`locale-pt.js` (§6) |
