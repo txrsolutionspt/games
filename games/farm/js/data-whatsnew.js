@@ -10,6 +10,12 @@
 // file, via each item's own `key`.
 const WHATS_NEW = [
   {
+    version: '1.0.13',
+    items: [
+      { icon: '🏆', key: 'whatsnew.1.0.13.0', fallback: 'New Achievements screen in Settings: a permanent trophy case of every mission, done or in progress, so you can look back anytime.' }
+    ]
+  },
+  {
     version: '1.0.12',
     items: [
       { icon: '🛠️', key: 'whatsnew.1.0.12.0', fallback: 'Fixed a bug where Reset Game Data (and switching farms) could quietly not take effect after reloading.' }

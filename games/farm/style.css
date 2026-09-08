@@ -450,6 +450,21 @@ button.btn-danger { background: var(--danger); color: #fff; }
 }
 .progress-fill { height: 100%; background: var(--green); }
 
+.achievement-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin: 8px 0;
+  text-align: left;
+}
+.achievement-icon { font-size: 26px; line-height: 1; }
+.achievement-body { flex: 1; min-width: 0; }
+.achievement-locked { opacity: 0.75; }
+.achievement-count { font-size: 12px; margin: 4px 0 0; }
+
 .market-row {
   display: flex;
   align-items: center;
