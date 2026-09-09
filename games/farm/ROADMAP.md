@@ -28,6 +28,24 @@ stale ideas look active.
 
 ## Under consideration
 
+### In-game "How to Play" reference
+- **Priority**: Medium
+- **Status**: Idea
+- **What**: A persistent ℹ️ info button (HUD rail or Settings) opening a
+  short, kid-friendly reference screen that covers the core mechanics in
+  one place — planting/watering/harvesting, feeding animals, processing
+  buildings, seasons/weather, the market, and buying more land. Distinct
+  from what already exists: the first-run tutorial (`tutorial.js`) only
+  plays once and only covers plant→water→harvest; the per-tile "i" info
+  tooltip (§10/§12) only explains one crop/animal/recipe at a time, not
+  the game as a whole.
+- **Why**: A returning player (or a parent helping a kid, or anyone who
+  rushed/skipped the tutorial) currently has no self-serve way to answer
+  "how do I do X again?" without hunting through menus or re-discovering
+  it by trial and error. A standing reference screen closes that gap
+  without re-teaching anything already learned, in the same
+  minimal-friction spirit as the rest of the UI.
+
 ### Second farm / biome
 - **Priority**: Low
 - **Status**: Idea
