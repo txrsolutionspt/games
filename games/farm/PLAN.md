@@ -131,6 +131,7 @@ games/farm/
     data-seasons.js          season + weather tables
     data-missions.js         mission/tutorial step definitions
     data-whatsnew.js         curated "What's New" entries per version, shown in Settings
+    data-howtoplay.js        persistent "How to Play" reference entries, shown via the HUD's ℹ️ button
     events.js                tiny pub/sub event bus
     audio.js                 synthesized sound cues (SoundFx), no audio files
     farm-rules.js            pure simulation rules (DOM-free, Node-testable)
@@ -814,6 +815,19 @@ inventing a new one:
   catch up on); an existing save from before this feature simply lacks
   the field, which `compareVersions` treats as older than everything,
   correctly surfacing the badge for a returning player.
+- **How to Play** (`js/data-howtoplay.js` + `Modals.showHowToPlay`): a
+  persistent reference to the core mechanics — six short icon+sentence
+  entries (planting, animals, buildings, seasons, the market, buying more
+  land) — reached via a dedicated ℹ️ button that's always visible in the
+  HUD rail (`index.html` `#btn-help`, first in the rail, ahead of Shop/
+  Save/Full screen/Settings), not tucked inside Settings. Deliberately
+  distinct from What's New above (release notes, shown once per version)
+  and from the first-run tutorial (`tutorial.js`, plays once and only
+  covers plant→water→harvest): this is always the same content, always
+  reachable, for a returning player (or a parent) who wants a reminder of
+  "how do I do X again?" without hunting through menus. No badge — unlike
+  What's New there's no "unseen" state to track, the content never
+  changes on its own.
 
 ## 13. Missions & "what you learned" loop
 

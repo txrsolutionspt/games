@@ -6,6 +6,11 @@ scripts, an in-progress change that got reverted before ever shipping) is
 left out — this is a record of what changed for someone actually playing,
 not a full commit log (see git history / `PLAN.md` for that).
 
+## 1.0.14
+- Added a new ℹ️ Help button in the top rail with a "How to Play"
+  screen — a quick reminder of planting, animals, buildings, seasons,
+  the market and buying more land, always one tap away.
+
 ## 1.0.13
 - Added an Achievements screen in Settings — a permanent trophy case
   listing every mission, completed or in progress, with what you've

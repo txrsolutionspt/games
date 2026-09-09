@@ -241,6 +241,7 @@ const LOCALE_PT = {
   'mission.quarry-work.description': 'Extraia pedra de uma montanha.',
   'mission.quarry-work.learned': 'As pedreiras extraem pedra das montanhas para usar em construções.',
 
+  'whatsnew.1.0.14.0': 'Novo botão de Ajuda (ℹ️) na barra superior com um lembrete rápido de "Como Jogar" — plantar, animais, construções, estações, a loja e comprar mais terreno, sempre a um toque de distância.',
   'whatsnew.1.0.13.0': 'Novo ecrã de Conquistas nas Definições: um recanto de troféus permanente com todas as missões, concluídas ou em progresso, para poderes olhar para trás quando quiseres.',
   'whatsnew.1.0.12.0': 'Corrigimos um problema em que Repor Dados do Jogo (e trocar de quinta) podia silenciosamente não fazer efeito depois de recarregar.',
   'whatsnew.1.0.11.0': 'A expansão da quinta está de volta! Metade do terreno começa desbloqueada, e agora podes comprar o resto com moedas — barato ao início, mais caro quanto mais longe fores.',
@@ -257,8 +258,17 @@ const LOCALE_PT = {
 
   'ui.rotate.title': 'Rode o seu dispositivo',
   'ui.rotate.body': 'O Little Farm School joga-se na horizontal.<br>Rode o telemóvel de lado para continuar.',
+  'ui.hud.help': 'Ajuda',
   'ui.hud.market': 'Loja',
   'ui.hud.save': 'Guardar',
   'ui.hud.settings': 'Definições',
-  'ui.hud.fullscreen': 'Ecrã inteiro'
+  'ui.hud.fullscreen': 'Ecrã inteiro',
+
+  'ui.howtoplay.title': 'Como Jogar',
+  'howtoplay.planting': 'Toca em Plantar, escolhe uma cultura e depois toca num terreno vazio. Rega-a algumas vezes enquanto cresce e toca em Colher assim que brilhar.',
+  'howtoplay.animals': 'Toca em Animais para colocar uma galinha, vaca, ovelha, cabra ou porco na pastagem. Alimenta-os e dá-lhes água, depois recolhe o que produzem quando estiverem prontos.',
+  'howtoplay.buildings': 'Toca em Construir para colocar uma construção de processamento no solo, como um Moinho ou uma Padaria. Toca nela para transformar ingredientes em algo mais valioso, como trigo em farinha e depois em pão.',
+  'howtoplay.seasons': 'A estação muda a cada poucos dias e afeta quais as culturas que crescem melhor. Os dias de chuva regam as tuas plantações de graça.',
+  'howtoplay.market': 'Toca no ícone da loja a qualquer momento para vender o que tiveres no inventário por moedas.',
+  'howtoplay.expand': 'Metade da tua quinta começa desbloqueada. Toca num terreno bloqueado e acinzentado para o comprar com moedas — quanto mais perto de casa, mais barato é.'
 };

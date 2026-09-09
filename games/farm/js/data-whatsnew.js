@@ -10,6 +10,12 @@
 // file, via each item's own `key`.
 const WHATS_NEW = [
   {
+    version: '1.0.14',
+    items: [
+      { icon: 'ℹ️', key: 'whatsnew.1.0.14.0', fallback: 'New Help button (ℹ️) in the top rail with a quick "How to Play" reminder — planting, animals, buildings, seasons, the market and buying more land, always one tap away.' }
+    ]
+  },
+  {
     version: '1.0.13',
     items: [
       { icon: '🏆', key: 'whatsnew.1.0.13.0', fallback: 'New Achievements screen in Settings: a permanent trophy case of every mission, done or in progress, so you can look back anytime.' }

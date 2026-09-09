@@ -10,6 +10,7 @@ const Hud = (function () {
   function el(id) { return document.getElementById(id); }
 
   const HUD_BUTTON_LABELS = {
+    'btn-help': { key: 'ui.hud.help', fallback: 'Help' },
     'btn-market': { key: 'ui.hud.market', fallback: 'Shop' },
     'btn-save': { key: 'ui.hud.save', fallback: 'Save' },
     'btn-fullscreen': { key: 'ui.hud.fullscreen', fallback: 'Full screen' },

@@ -140,6 +140,8 @@
     Input.setupToolBelt(state, ui, canvas);
     Input.setupCanvas(state, ui, canvas);
 
+    document.getElementById('btn-help').addEventListener('click', function () { Modals.showHowToPlay(); });
+
     document.getElementById('btn-market').addEventListener('click', function () {
       Modals.showMarket(state, function (itemId) {
         Input.sellItem(state, itemId);
