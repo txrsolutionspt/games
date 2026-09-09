@@ -340,6 +340,23 @@ const Modals = (function () {
     enqueueOrRun(function () { renderMarket(state, onSell); });
   }
 
+  // ---- How to Play (persistent reference, HUD ℹ️ button) ---------------------
+
+  // Unlike renderWhatsNew/renderAchievements (only ever reached as
+  // in-place navigation from an already-open Settings modal), this is a
+  // fresh top-level entry point — the HUD's own ℹ️ button — so it goes
+  // through enqueueOrRun the same way showMarket/showSettings above do,
+  // in case something else is already open.
+  function showHowToPlay() {
+    enqueueOrRun(function () {
+      const body = HOW_TO_PLAY.map(function (item) {
+        return '<p>' + item.icon + ' ' + I18N.t(item.key, item.fallback) + '</p>';
+      }).join('');
+      open('<h2>ℹ️ ' + I18N.t('ui.howtoplay.title', 'How to Play') + '</h2>' + body +
+        '<button class="btn-secondary" data-close>' + I18N.t('ui.shop.close', 'Close') + '</button>');
+    });
+  }
+
   // ---- Settings ---------------------------------------------------------------
 
   // The language buttons refresh this same modal in place after switching
@@ -582,6 +599,7 @@ const Modals = (function () {
     showFact: showFact,
     showWelcomeBack: showWelcomeBack,
     showMarket: showMarket,
+    showHowToPlay: showHowToPlay,
     showSettings: showSettings,
     showFarmSlots: showFarmSlots
   };
